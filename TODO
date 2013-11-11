@@ -1,0 +1,9 @@
+# in the future
+- double check permissions when sending a probePdu: if a user is not allowed
+to receave a channel, he should not be allowed to receive a pdu from one of
+these probes.
+- Add test (eunit, dializer)
+- XML support,
+- Websocket/secure Websocket support,
+- Json,
+- Behaviour in a distributed environment with multiple ifs servers running?
