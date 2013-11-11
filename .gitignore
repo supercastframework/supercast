@@ -3,7 +3,6 @@
 *.dump
 *.html
 *.css
-doc
 edoc-info
 *.bin
 *.asn1db
