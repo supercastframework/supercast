@@ -43,6 +43,9 @@ clean:
 	rm -f doc/*.css
 	rm -f doc/edoc-info
 	rm -f priv/asn1/build/*
+	rm -f include/ModSupercast.hrl
+	rm -f include/ModTracker.hrl
+	rm -f include/ModLocator.hrl
 
 clsupercast:
 	@$(ERL) -pa ebin -eval \

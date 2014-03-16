@@ -1,9 +1,18 @@
+# HIGH
+- new client socket "opus_tcp". No auth, automatic admin. Same behaviour than
+tcp or ssl client modules, but add a channel to subscribe to other clients A module
+written in any language can use the API and events from other modules, and
+be part of the system. Will listen only on "localhost".
+- new client socket "opus_ssl". Same as "opus_tcp" but can listen on others
+interfaces thant 127.0.0.1. No auth, but will need a shared ssl key to connect.
+
 # in the future
 - double check permissions when sending a probePdu: if a user is not allowed
 to receave a channel, he should not be allowed to receive a pdu from one of
 these probes.
+- lock on subscribe rationalize (channel, client, loggers) and document,
 - Add test (eunit, dializer)
 - XML support,
+- JSON support,
 - Websocket/secure Websocket support,
-- Json,
 - Behaviour in a distributed environment with multiple ifs servers running?
