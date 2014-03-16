@@ -6,3 +6,5 @@
 edoc-info
 *.bin
 *.asn1db
+include/*
+!include/supercast.hrl

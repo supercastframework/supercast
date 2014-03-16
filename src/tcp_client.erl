@@ -35,8 +35,7 @@
     auth_set/2,
     auth_set/5,
     send/2,
-    raw_send/2,
-    synchronize/2
+    raw_send/2
 ]).
 
 -export([
@@ -96,9 +95,6 @@ raw_send(SockState, Pdu) ->
     gen_fsm:send_event(SockState#client_state.pid, 
         {send_pdu, SockState#client_state.ref, Pdu}).
 
-synchronize(SockState, Fun) ->
-    gen_fsm:send_event(SockState#client_state.pid, 
-        {synchronize_chan, SockState#client_state.ref, Fun}).
 %%%------------------------------------------------------------------------
 %%% Callback functions from gen_server
 %%%------------------------------------------------------------------------
@@ -214,9 +210,17 @@ init([Encoder]) ->
         encoding_mod    = Encoder} = State
     ) ->
     {ok, PduList} = Fun(),
+    PduList2 = lists:filter(fun(X) ->
+        case X of
+            ignore ->
+                false;
+            _ ->
+                true
+        end
+    end, PduList),
     lists:foreach(fun(Pdu) -> 
         gen_tcp:send(Sock, Encoder:encode(Pdu))
-    end, PduList),
+    end, PduList2),
     {next_state, 'RUNNING', State};
 
 'RUNNING'(timeout, State) ->

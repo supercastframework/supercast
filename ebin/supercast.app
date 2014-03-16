@@ -19,10 +19,10 @@
 % You should have received a copy of the GNU General Public License
 % along with Enms.  If not, see <http://www.gnu.org/licenses/>.
 {application, supercast,
-	[
-		{description, "Supercast, InterFace Session/authentication"},
-		{vsn, "2.0.0"},
-		{modules, [
+    [
+        {description, "Supercast, InterFace Session/authentication"},
+        {vsn, "2.0.0"},
+        {modules, [
                 supercast_app,
                 supercast_sup,
                 supercast_mpd,
@@ -42,9 +42,12 @@
                 bsupercast_auth_local,
                 bsupercast_encoder_asn,
                 bsupercast_encoder_json,
-                bsupercast_encoder_native
+                bsupercast_encoder_native,
+                'NmsPDU',
+                'ModSupercast',
+                'ModTracker'
             ]},
-		{registered, [
+        {registered, [
                 supercast_sup,
                 supercast_server,
                 supercast_mpd,
@@ -55,9 +58,9 @@
                 tcp_client_sup,
                 tcp_listener
             ]},
-		{applications, 
+        {applications, 
             [kernel, stdlib, crypto, public_key, ssl]
         },
-		{mod, {supercast_app, []}}
-	]
+        {mod, {supercast_app, []}}
+    ]
 }.
