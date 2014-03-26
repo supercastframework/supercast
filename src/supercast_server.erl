@@ -153,15 +153,17 @@ handle_client_msg(
             {modSupercastPDU, 
                 {fromClient,
                     {subscribe,
-                        Channel
-        }   }   }   }, CState) ->
+                        {'Subscribe',
+                            QueryId,
+                            Channel
+        }   }   }   }   }, CState) ->
     Chan = erlang:list_to_atom(Channel),
     % ok mean satisfy return ok for read the chan
     case supercast_mpd:subscribe_stage1(Chan, CState) of
         error ->
-            send(CState, pdu(subscribeErr, Channel));
+            send(CState, pdu(subscribeErr, {QueryId, Channel}));
         ok ->
-            send(CState, pdu(subscribeOk, Channel)),
+            send(CState, pdu(subscribeOk, {QueryId, Channel})),
             supercast_mpd:subscribe_stage2(Chan,CState)
     end;
             
@@ -170,14 +172,16 @@ handle_client_msg(
             {modSupercastPDU, 
                 {fromClient,
                     {unsubscribe,
-                        Channel
-        }   }   }   }, CState) ->
+                        {'Unsubscribe',
+                            QueryId,
+                            Channel
+        }   }   }   }   }, CState) ->
     Chan = erlang:list_to_atom(Channel),
     case supercast_mpd:unsubscribe(Chan, CState) of
         ok  ->
-            send(CState, pdu(unsubscribeOk, Channel));
+            send(CState, pdu(unsubscribeOk, {QueryId, Channel}));
         _   ->
-            send(CState, pdu(unsubscribeErr, Channel))
+            send(CState, pdu(unsubscribeErr, {QueryId, Channel}))
     end;
 
 handle_client_msg(
@@ -222,29 +226,37 @@ pdu(authErr, {Name, Password}) ->
                     Name,
                     Password }}}};
 
-pdu(subscribeOk, Module) ->
+pdu(subscribeOk, {QueryId, Channel}) ->
     {modSupercastPDU, 
         {fromServer, 
             {subscribeOk, 
-                Module }}};
+                {'SubscribeOk',
+                    QueryId,
+                    Channel  }}}};
 
-pdu(subscribeErr, Module) ->
+pdu(subscribeErr, {QueryId, Channel}) ->
     {modSupercastPDU, 
         {fromServer,
             {subscribeErr, 
-                Module }}};
+                {'SubscribeErr',
+                    QueryId,
+                    Channel }}}};
 
-pdu(unsubscribeOk, Module) ->
+pdu(unsubscribeOk, {QueryId, Channel}) ->
     {modSupercastPDU, 
         {fromServer, 
             {unsubscribeOk, 
-                Module }}};
+                {'UnsubscribeOk',
+                    QueryId,
+                    Channel }}}};
 
-pdu(unsubscribeErr, Module) ->
+pdu(unsubscribeErr, {QueryId, Channel}) ->
     {modSupercastPDU, 
         {fromServer, 
             {unsubscribeErr, 
-                Module }}};
+                {'UnsubscribeErr',
+                    QueryId,
+                    Channel }}}};
 
 pdu(chanInfo, {Module, Channel, Type}) ->
     {modSupercastPDU,
