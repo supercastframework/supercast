@@ -1,10 +1,10 @@
 # in the future
-- double check permissions when sending a probePdu: if a user is not allowed
-to receave a channel, he should not be allowed to receive a pdu from one of
-these probes.
-- lock on subscribe rationalize (channel, client, loggers) and document,
-- Add test (eunit, dializer)
-- XML support,
-- JSON support,
+- lock on subscribe rationalize (channel,client,loggers) and document. Actualy
+a channel will block wile it is synchronizing a client. It is possible to not
+block, but it vastly increase code complexity for supercast_logger,
+ssl/tcp_client and supercast_channel modules.
+- XML  encoder support,
+- JSON encoder support,
 - Websocket/secure Websocket support,
-- Behaviour in a distributed environment with multiple ifs servers running?
+- Behaviour in a distributed environment with multiple supercast servers
+running?
