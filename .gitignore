@@ -11,3 +11,4 @@ priv/asn1/*
 !include/supercast.hrl
 !prin/asn/ModSupercast.asn
 !prin/asn/NmsPDU.asn
+supercast.plt
