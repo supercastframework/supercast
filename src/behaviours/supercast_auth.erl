@@ -37,10 +37,6 @@
 %% </code>
 %% @end
 -module(supercast_auth).
--export([behaviour_info/1]).
 
-behaviour_info(callbacks) ->
-    [{authenticate, 2}];
-
-behaviour_info(_) ->
-    undefined.
+-callback authenticate(UName::string(), UPass::string()) ->
+    {ok, Roles::[string()]} | fail.

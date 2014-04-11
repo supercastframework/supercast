@@ -22,29 +22,9 @@
 % @end
 -module(supercast_commander).
 -include("include/supercast.hrl").
--export([
-    behaviour_info/1
-]).
 
-% BEHAVIOUR FOR DOCUMENTATION ONLY
--export([
-    handle_command/2
-]).
-
-% behaviour functions
-% @private
-behaviour_info(callbacks) ->
-    [
-        {handle_command,     2}
-    ];
-
-behaviour_info(_) ->
-    undefined.
-
-% BEHAVIOUR FOR DOCUMENTATION ONLY
--spec handle_command(tuple(), tuple()) -> ok.
+-callback handle_command(Msg::tuple(), CState::#client_state{}) -> ok.
 % @doc
 % Handle command from client. This module is defined as receiver of clients
 % calls in the sys.config file 'pdu_dispatch' section.
 % @end
-handle_command(_Message, _ClientState) -> ok.

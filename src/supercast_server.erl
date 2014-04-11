@@ -172,12 +172,8 @@ handle_client_msg(
                             Channel
         }   }   }   }   }, CState) ->
     Chan = erlang:list_to_atom(Channel),
-    case supercast_mpd:unsubscribe(Chan, CState) of
-        ok  ->
-            send(CState, pdu(unsubscribeOk, {QueryId, Channel}));
-        _   ->
-            send(CState, pdu(unsubscribeErr, {QueryId, Channel}))
-    end;
+    ok = supercast_mpd:unsubscribe(Chan, CState),
+    send(CState, pdu(unsubscribeOk, {QueryId, Channel}));
 
 handle_client_msg(
         {message, 

@@ -23,45 +23,22 @@
 -module(supercast_channel).
 -include("include/supercast.hrl").
 -export([
-    behaviour_info/1,
     get_chan_perms/1,
     synchronize/2,
     subscribe/2,
     emit/2
 ]).
 
-% BEHAVIOUR FOR DOCUMENTATION ONLY
--export([
-    get_perms/1,
-    sync_request/2
-]).
-% behaviour functions
-behaviour_info(callbacks) ->
-    [
-        {get_perms,     1},
-        {sync_request,  2}
-    ];
-
-behaviour_info(_) ->
-    undefined.
-
-% BEHAVIOUR FOR DOCUMENTATION ONLY
--spec get_perms(_PidName) -> _PermConf.
+-callback get_perms(PidName::atom()) -> #perm_conf{}.
 % @doc
-% PidName = atom()
-% PermConf = #perm_conf{}
 % The module implementing supercast_channel behaviour must return the #perm_conf{}
 % defining the authorisation to subscribe to him.
 % Triggered on a client call to sync_request, supercast define if the user
 % is allowed and continue or stop subscription process.
 % @end
-get_perms(_) ->
-    #perm_conf{}.
 
--spec sync_request(_PidName, _ClientState) -> ok.
+-callback sync_request(PidName::atom(), CState::#client_state{}) -> ok.
 % @doc
-% PidName = atom()
-% ClientState = #client_state{}
 % This call is triggered when a client allowed to subscribe to the channel.
 % - The sync_request must include a supercast_channel:subscribe/2 if the channel want
 % to forward future messages to the client. 
@@ -72,11 +49,9 @@ get_perms(_) ->
 % It is better to use a asynchronous call to not block the supercast_mpd during
 % the dump.
 % @end
-sync_request(_,_) ->
-    ok.
 
 % API
--spec get_chan_perms(pid()) -> error | #perm_conf{}.
+-spec get_chan_perms(pid()) -> error | any().
 get_chan_perms(PidName) ->
     case module_from_pid(PidName) of
         error ->
@@ -85,7 +60,7 @@ get_chan_perms(PidName) ->
             Mod:get_perms(PidName)
     end.
 
--spec synchronize(pid(), #client_state{}) -> ok.
+-spec synchronize(pid(), #client_state{}) -> error | ok.
 synchronize(PidName, CState) ->
     case module_from_pid(PidName) of
         error ->
@@ -104,6 +79,8 @@ emit(PName, {Perms, Pdu}) ->
     supercast_mpd:multicast_msg(PName, {Perms, Pdu}).
 
 
+-spec module_from_pid(PidName::atom()) -> error | atom().
+% @private
 module_from_pid(PidName) ->
     case whereis(PidName) of
         undefined ->

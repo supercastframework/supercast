@@ -18,15 +18,10 @@
 % 
 % You should have received a copy of the GNU General Public License
 % along with Enms.  If not, see <http://www.gnu.org/licenses/>.
-%% @private
 %% @doc
 %% supercast_encoder
 %% @end
 -module(supercast_encoder).
--export([behaviour_info/1]).
 
-behaviour_info(callbacks) ->
-    [];
-
-behaviour_info(_) ->
-    undefined.
+-callback encode(Message :: tuple())    -> PDU      :: any().
+-callback decode(PDU :: any())          -> Message  :: tuple().

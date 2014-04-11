@@ -95,10 +95,10 @@
                   state=null}).
 
 encode(_ETerm) ->
-    not_implemented.
+    {decode, {not_implemented}}.
 
 decode(_Json) ->
-    not_implemented.
+    {encode, {not_implemented}}.
 
 %% @spec encoder([encoder_option()]) -> function()
 %% @doc Create an encoder/1 with the given options.

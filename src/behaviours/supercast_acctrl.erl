@@ -28,12 +28,7 @@
 % the application.
 % @end
 -module(supercast_acctrl).
--export([behaviour_info/1]).
 
-behaviour_info(callbacks) ->
-    [
-        {satisfy, 3}
-    ];
-
-behaviour_info(_) ->
-    undefined.
+-callback satisfy(Mod :: read | write, Things::[any()], PermConf::any()) ->
+    {ok, Allowed::[any()]} |
+    {ok, Allowed::[]}.

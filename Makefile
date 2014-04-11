@@ -48,6 +48,7 @@ ebin/%.beam: src/acctrls/%.erl
 	$(ERLC) $(EPATH) -o ebin/ src/acctrls/$*.erl
 
 clean:
+	rm -f supercast.plt
 	rm -f ebin/*.beam
 	rm -f *.dump
 	rm -f doc/*.html
@@ -83,10 +84,13 @@ test: compile
 	@$(ERL) -noinput -pa ebin -eval \
         'eunit:test(bsupercast_acctrl_rbac, [verbose]), init:stop()'
 
-dialize: ERLC = $(ERLC_DIAL)
-dialize: ASNC = $(ASNC_DIAL)
-dialize: clean compile
-	$(DIALYZER) --build_plt --apps erts kernel stdlib crypto public_key ssl ./ebin -pa ebin
+dialize: clean supercast.plt
+	$(DIALYZER) --plts supercast.plt -- ebin/
+
+supercast.plt: ERLC = $(ERLC_DIAL)
+supercast.plt: ASNC = $(ASNC_DIAL)
+supercast.plt: compile
+	$(DIALYZER) -Wno_undefined_callbacks --build_plt --output_plt supercast.plt -pa ebin --apps erts kernel stdlib crypto public_key ssl ebin/
 
 # DOCUMENTATION
 doc: doc/index.html
