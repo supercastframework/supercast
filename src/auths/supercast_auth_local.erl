@@ -19,8 +19,10 @@
 % You should have received a copy of the GNU General Public License
 % along with Enms.  If not, see <http://www.gnu.org/licenses/>.
 % @private
--module(bsupercast_auth_local).
--behaviour(beha_supercast_auth).
+% @doc
+% @end
+-module(supercast_auth_local).
+-behaviour(supercast_auth).
 -export([authenticate/2]).
 
 %% --------------------------------------------------------------

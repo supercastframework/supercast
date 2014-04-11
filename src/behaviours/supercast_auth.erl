@@ -18,15 +18,29 @@
 % 
 % You should have received a copy of the GNU General Public License
 % along with Enms.  If not, see <http://www.gnu.org/licenses/>.
-%% @private
 %% @doc
-%% supercast_encoder
+%% A module using this behaviour can be used by <em>supercast</em> to
+%% authenticate clients. The return will be used by the beha_supercast_acctrl
+%% module used by the application
+%% 
+%% == authenticate/2 ==
+%%
+%% The only function to be exported is <em>authenticate/2</em>.
+%%
+%% <code>
+%% authenticate(Uname, UPass) -> Any::term() | fail
+%% 
+%% <p>
+%% Note that the returned term() can be anything but must be understandable 
+%% by the beha_supercast_acctrl module used by the application.
+%% </p>
+%% </code>
 %% @end
--module(beha_supercast_encoder).
+-module(supercast_auth).
 -export([behaviour_info/1]).
 
 behaviour_info(callbacks) ->
-    [];
+    [{authenticate, 2}];
 
 behaviour_info(_) ->
     undefined.

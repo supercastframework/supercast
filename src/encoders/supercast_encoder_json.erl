@@ -1,5 +1,6 @@
 %% @author Bob Ippolito <bob@mochimedia.com>
 %% @copyright 2007 Mochi Media, Inc.
+%% @private
 
 %% @doc Yet another JSON (RFC 4627) library for Erlang. mochijson2 works
 %%      with binaries as strings, arrays as lists (without an {array, _})
@@ -36,8 +37,10 @@
 %%              or array
 %%          </li>
 %%      </ul>
+%% @end
 
--module(bsupercast_encoder_json).
+-module(supercast_encoder_json).
+-behaviour(supercast_encoder).
 -author('bob@mochimedia.com').
 -export([encoder/1, encode_mochi/1]).
 -export([decoder/1, decode_mochi/1, decode_mochi/2]).
@@ -105,7 +108,7 @@ encoder(Options) ->
     State = parse_encoder_options(Options, #encoder{}),
     fun (O) -> json_encode(O, State) end.
 
-%% @spec encode(json_term()) -> iolist()
+%% @spec encode_mochi(json_term()) -> iolist()
 %% @doc Encode the given as JSON to an iolist.
 encode_mochi(Any) ->
     json_encode(Any, #encoder{}).
@@ -116,7 +119,7 @@ decoder(Options) ->
     State = parse_decoder_options(Options, #decoder{}),
     fun (O) -> json_decode(O, State) end.
 
-%% @spec decode(iolist(), [{format, proplist | eep18 | struct}]) -> json_term()
+%% @spec decode_mochi(iolist(), [{format, proplist | eep18 | struct}]) -> json_term()
 %% @doc Decode the given iolist to Erlang terms using the given object format
 %%      for decoding, where proplist returns JSON objects as [{binary(), json_term()}]
 %%      proplists, eep18 returns JSON objects as {[binary(), json_term()]}, and struct
@@ -124,7 +127,7 @@ decoder(Options) ->
 decode_mochi(S, Options) ->
     json_decode(S, parse_decoder_options(Options, #decoder{})).
 
-%% @spec decode(iolist()) -> json_term()
+%% @spec decode_mochi(iolist()) -> json_term()
 %% @doc Decode the given iolist to Erlang terms.
 decode_mochi(S) ->
     json_decode(S, #decoder{}).

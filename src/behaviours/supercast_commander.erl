@@ -18,17 +18,33 @@
 % 
 % You should have received a copy of the GNU General Public License
 % along with Enms.  If not, see <http://www.gnu.org/licenses/>.
+% @doc
+% @end
+-module(supercast_commander).
+-include("include/supercast.hrl").
+-export([
+    behaviour_info/1
+]).
+
+% BEHAVIOUR FOR DOCUMENTATION ONLY
+-export([
+    handle_command/2
+]).
+
+% behaviour functions
 % @private
--module(bsupercast_encoder_asn).
--behaviour(beha_supercast_encoder).
--export([encode/1, decode/1]).
+behaviour_info(callbacks) ->
+    [
+        {handle_command,     2}
+    ];
 
+behaviour_info(_) ->
+    undefined.
 
-
-encode(Message) ->
-    {ok, Pdu} = 'NmsPDU':encode('PDU', Message),
-    Pdu.
-
-decode(Pdu) ->
-    {ok, Msg} = 'NmsPDU':decode('PDU', Pdu),
-    Msg.
+% BEHAVIOUR FOR DOCUMENTATION ONLY
+-spec handle_command(tuple(), tuple()) -> ok.
+% @doc
+% Handle command from client. This module is defined as receiver of clients
+% calls in the sys.config file 'pdu_dispatch' section.
+% @end
+handle_command(_Message, _ClientState) -> ok.

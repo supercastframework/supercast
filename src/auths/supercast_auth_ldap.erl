@@ -19,9 +19,9 @@
 % You should have received a copy of the GNU General Public License
 % along with Enms.  If not, see <http://www.gnu.org/licenses/>.
 % @private
--module(bsupercast_auth_ldap).
+-module(supercast_auth_ldap).
 -behaviour(gen_server).
--behaviour(beha_supercast_auth).
+-behaviour(supercast_auth).
 -include_lib("eldap/include/eldap.hrl").
 -include("../../include/supercast.hrl").
 

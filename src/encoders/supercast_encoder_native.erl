@@ -19,8 +19,8 @@
 % You should have received a copy of the GNU General Public License
 % along with Enms.  If not, see <http://www.gnu.org/licenses/>.
 % @private
--module(bsupercast_encoder_native).
--behaviour(beha_supercast_encoder).
+-module(supercast_encoder_native).
+-behaviour(supercast_encoder).
 -export([encode/1, decode/1]).
 
 encode(Message) ->

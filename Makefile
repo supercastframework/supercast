@@ -11,6 +11,9 @@ INCLUDE     = $(wildcard ../include/*.hrl)
 MAIN        = $(wildcard src/*.erl)
 MAIN_DST    = $(patsubst src/%.erl, ebin/%.beam, $(MAIN))
 
+BEHAVIOURS     = $(wildcard src/behaviours/*.erl)
+BEHAVIOURS_DST =  $(patsubst src/behaviours/%.erl, ebin/%.beam, $(BEHAVIOURS))
+
 AUTHS       = $(wildcard src/auths/*.erl)
 AUTHS_DST   = $(patsubst src/auths/%.erl, ebin/%.beam, $(AUTHS))
 
@@ -20,11 +23,15 @@ ENCODERS_DST = $(patsubst src/encoders/%.erl, ebin/%.beam, $(ENCODERS))
 ACCTRL      = $(wildcard src/acctrls/*.erl)
 ACCTRL_DST  = $(patsubst src/acctrls/%.erl, ebin/%.beam, $(ACCTRL))
 
-compile: $(MAIN_DST) $(AUTHS_DST) $(ENCODERS_DST) $(ACCTRL_DST) pdu
+compile: $(BEHAVIOURS_DST) $(MAIN_DST) $(AUTHS_DST) \
+            $(ENCODERS_DST) $(ACCTRL_DST) pdu
 
 
 ebin/%.beam: src/%.erl $(INCLUDE)
 	$(ERLC) $(EPATH) -o ebin/ src/$*.erl
+
+ebin/%.beam: src/behaviours/%.erl
+	$(ERLC) $(EPATH) -o ebin/ src/behaviours/$*.erl
 
 ebin/%.beam: src/auths/%.erl
 	$(ERLC) $(EPATH) -o ebin/ src/auths/$*.erl
@@ -74,7 +81,7 @@ test: compile
 # DOCUMENTATION
 doc: doc/index.html
 
-doc/index.html: doc/overview.edoc src/*.erl
+doc/index.html: doc/overview.edoc $(MAIN) $(ENCODERS) $(AUTHS) $(ACCTRL) $(BEHAVIOURS)
 	@echo "Building documentation..."
 	@$(ERL) -noinput -pa ebin -eval \
- 'edoc:application($(APP), ".", []), init:stop()'
+ 'edoc:application($(APP), ".", [{subpackages, true}, {packages, false}]), init:stop()'

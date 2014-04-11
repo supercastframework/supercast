@@ -18,6 +18,8 @@
 % 
 % You should have received a copy of the GNU General Public License
 % along with Enms.  If not, see <http://www.gnu.org/licenses/>.
+-define(LOGS(X), io:format("{~w, ~w}: DEBUG: ~p~n", [?MODULE, ?LINE, X])).
+
 -record(perm_conf, {
     read    = []    :: [term()],
     write   = []    :: [term()]

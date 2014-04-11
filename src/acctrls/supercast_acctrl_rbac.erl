@@ -19,8 +19,8 @@
 % You should have received a copy of the GNU General Public License
 % along with Enms.  If not, see <http://www.gnu.org/licenses/>.
 % @private
--module(bsupercast_acctrl_rbac).
--behaviour(beha_supercast_acctrl).
+-module(supercast_acctrl_rbac).
+-behaviour(supercast_acctrl).
 
 -include("../../include/supercast.hrl").
 -include_lib("eunit/include/eunit.hrl").
@@ -29,6 +29,7 @@
 
 -spec satisfy(read | write, [#client_state{}], #perm_conf{}) -> 
         {ok, [#client_state{}]}.
+% @private
 % @doc
 % Givent a list of client and a perm conf, return a list of allowed
 % clients or an empty list.

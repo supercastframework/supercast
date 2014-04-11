@@ -18,6 +18,7 @@
 % 
 % You should have received a copy of the GNU General Public License
 % along with Enms.  If not, see <http://www.gnu.org/licenses/>.
+% @private
 -module(supercast_mpd).
 -behaviour(gen_server).
 -include("../include/supercast.hrl").
@@ -40,9 +41,7 @@
     subscribe_stage3/2,
     unsubscribe/2,
     main_chans/0,
-    client_disconnect/1,
-    filter_things/2,
-    dump/0
+    client_disconnect/1
 ]).
 
 -record(state, {
@@ -66,7 +65,7 @@ start_link(MpdConf) ->
 % Called at the initial connexion of a client. Give him the main (static) 
 % channels. If dynamic channels exist in the application, this is the role
 % of one of these channels to inform the client. Note that depending on the
-% gen_channel module perm/0 function return, a client might not be able to
+% supercast_channel module perm/0 function return, a client might not be able to
 % subscribe to a channel apearing here. It is checked at the 
 % subscribe_stage1/1 call.
 % @end
@@ -83,15 +82,15 @@ main_chans() ->
 % @end
 subscribe_stage1(Channel, CState) ->
     % Does the channel exist?
-    try gen_channel:call(Channel, get_perms, ?CHAN_TIMEOUT) of
-        Perm ->
-            % The client permissions are ok?
-            gen_server:call(?MODULE, {subscribe_stage1, Channel, CState, Perm})
-        catch
-            _:_ ->
-                error
+    io:format("subscribe statge1, ~p~n", [Channel]),
+    Rep = supercast_channel:get_chan_perms(Channel),
+    io:format("subscribe statge1, rep, ~p~n", [Rep]),
+    case Rep of
+        #perm_conf{} = Perm ->
+            gen_server:call(?MODULE, {subscribe_stage1, Channel, CState, Perm});
+        _ ->
+            error
     end.
-
 
 -spec subscribe_stage2(atom(), #client_state{}) -> ok.
 % @doc
@@ -104,7 +103,7 @@ subscribe_stage2(Channel, CState) ->
             %client allready registered do nothing
             ok;
         false   ->
-            try gen_channel:call(Channel, {synchronize, CState}) of
+            try supercast_channel:synchronize(Channel, CState) of
                 ok ->
                     ok
                 catch
@@ -122,7 +121,7 @@ subscribe_stage3(Channel, CState) ->
 
 -spec multicast_msg(atom(), {#perm_conf{}, tuple()}) -> ok.
 % @doc
-% Called by a gen_channel module with a message that can be of interest for
+% Called by a supercast_channel module with a message that can be of interest for
 % clients that have subscribed to the channel.
 % Will be send depending of the right of the user.
 % @end
@@ -131,11 +130,11 @@ multicast_msg(Chan, {Perm, Pdu}) ->
 
 -spec unicast_msg(#client_state{}, tuple()) -> ok.
 % @doc
-% Called by a gen_channel module with a message for a single client. Message
+% Called by a supercast_channel module with a message for a single client. Message
 % will or will not be sent to the client depending on the permissions.
 % Note that the channel is not checked. Thus a client wich is not subscriber
 % of any channels can receive these messages.
-% Typicaly used when the gen_channel need to synchronize the client using his
+% Typicaly used when the supercast_channel need to synchronize the client using his
 % handle_cast({synchronize, CState}, State) function.
 % @end
 unicast_msg(CState, {Perm, Pdu}) ->
@@ -156,19 +155,6 @@ client_disconnect(CState) ->
 unsubscribe(Chan, CState) ->
     gen_server:call(?MODULE, {unsubscribe, Chan, CState}).
 
--spec filter_things(#client_state{}, [{#perm_conf{}, any()}]) -> [any()].
-% @doc
-% Called by external modules to filter things. It will return any "things",
-% that the client defined in #client_state{} is allowed to 'read'.
-% XXX This function should be exported to a gen_server filter.
-% @end
-filter_things(CState, Things) ->
-    {ok, Acctrl} = gen_server:call(?MODULE, get_acctrl),
-    filter_things_tool(CState, Things, Acctrl).
-
-% @private
-dump() ->
-    gen_server:call(?MODULE, dump).
 %%-------------------------------------------------------------
 %% GEN_SERVER CALLBACKS
 %%-------------------------------------------------------------
@@ -218,12 +204,10 @@ handle_call({client_disconnect, CState}, _F, S) ->
     {reply, ok, S#state{chans = Chans}};
 
 handle_call(get_acctrl, _F, #state{acctrl = Acctrl} = S) ->
-    % XXX maybe not in the gen_server loop using application:get_env to get the
-    % acctrl.
     {reply, {ok, Acctrl}, S};
 
 handle_call(dump, _F, S) ->
-    {reply, S, S};
+    {reply, {ok, S}, S};
 
 handle_call(_R, _F, S) ->
     io:format("handle_call ~p~p~n", [?MODULE, _R]),
@@ -312,15 +296,3 @@ del_subscriber(CState, Chans) ->
         N = lists:delete(CState, CList),
         [{Id, N} | Acc]
     end, [], Chans).
-
-filter_things_tool(CState, Pdus, Acctrl) ->
-    filter_things_tool(CState, Pdus, Acctrl, []).
-filter_things_tool(_, [], _, R) ->
-    R;
-filter_things_tool(CState, [{Perm, Pdu}|T], Acctrl, R) ->
-    case Acctrl:satisfy(read, [CState], Perm) of
-        {ok, []} ->
-            filter_things_tool(CState, T, Acctrl, R);
-        {ok, [CState]} ->
-            filter_things_tool(CState, T, Acctrl, [Pdu|R])
-    end.
