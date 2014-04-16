@@ -239,6 +239,9 @@ handle_cast({multicast, Chan, Perm, Pdu},
         {Chan, CList} ->
             % take the list of clients wich satisfy Perm
             {ok, AllowedCL} = AcctrlMod:satisfy(read, CList, Perm),
+            % XXX get the encoding mods,
+            % XXX encode only if needed, once,
+            % XXX send multiple.
             % and send them the message
             lists:foreach(fun(#client_state{module = Mod} = CS) ->
                 Mod:send(CS, Pdu)

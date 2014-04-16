@@ -25,6 +25,8 @@
         {modules, [
                 supercast_app,
                 supercast_sup,
+                supercast_mpd_sup,
+                supercast_client_sup,
                 supercast_mpd,
                 supercast_server,
                 supercast,

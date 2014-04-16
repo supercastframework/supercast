@@ -19,37 +19,37 @@
 % You should have received a copy of the GNU General Public License
 % along with Enms.  If not, see <http://www.gnu.org/licenses/>.
 % @private
--module(supercast_sup).
+-module(supercast_mpd_sup).
 -behaviour(supervisor).
 
--export([start_link/4]).
+-export([start_link/3]).
 -export([init/1]).
 
-start_link(SrvConf, MpdConf, TcpClientConf, SslClientConf) ->
+start_link(MpdConf, TcpClientConf, SslClientConf) ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, 
-            [SrvConf, MpdConf, TcpClientConf, SslClientConf]).
+            [MpdConf, TcpClientConf, SslClientConf]).
 
-init([SrvConf, MpdConf, TcpClientConf, SslClientConf]) ->
-    SupercastServer = {
-        supercast_server,
-        {supercast_server,start_link, [SrvConf]},
+init([MpdConf, TcpClientConf, SslClientConf]) ->
+    SupercastMpd = {
+        supercast_mpd,
+        {supercast_mpd,start_link, [MpdConf]},
         permanent,
         2000,
         worker,
-        [supercast_server]
+        [supercast_mpd]
     },
-    SupercastMpdSup = {
-        supercast_mpd_sup,
-        {supercast_mpd_sup,start_link, [MpdConf, TcpClientConf, SslClientConf]},
+    ClientsSup = {
+        supercast_clients_sup,
+        {supercast_clients_sup, start_link, [TcpClientConf, SslClientConf]},
         permanent,
         infinity,
         supervisor,
-        [supercast_mpd_sup]
+        [supercast_clients_sup]
     },
 
     {ok,
         {
-            {one_for_one, 1, 300},
-            [SupercastServer, SupercastMpdSup]
+            {rest_for_one, 1, 300},
+            [SupercastMpd, ClientsSup]
         }
     }.
