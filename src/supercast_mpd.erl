@@ -239,13 +239,8 @@ handle_cast({multicast, Chan, Perm, Pdu},
         {Chan, CList} ->
             % take the list of clients wich satisfy Perm
             {ok, AllowedCL} = AcctrlMod:satisfy(read, CList, Perm),
-            % XXX get the encoding mods,
-            % XXX encode only if needed, once,
-            % XXX send multiple.
-            % and send them the message
-            lists:foreach(fun(#client_state{module = Mod} = CS) ->
-                Mod:send(CS, Pdu)
-            end, AllowedCL)
+            % encode/send
+            send(AllowedCL, Pdu)
     end,
     {noreply, S};
 
@@ -263,7 +258,36 @@ terminate(_R, _S) ->
 code_change(_O, S, _E) ->
     {ok, S}.
 
+% filter each encoding types
+send(AllowedCL, Pdu) ->
+    send(AllowedCL, Pdu, []).
+send([], Pdu, Processed) ->
+    send_type(Pdu, Processed);
+send([Client|Rest], Pdu, Processed) ->
+    #client_state{encoding_mod = Encode} = Client,
+    case lists:keyfind(Encode, 1, Processed) of
+        false ->
+            NewP = lists:keystore(Encode, 1, Processed, {Encode, [Client]}),
+            send(Rest, Pdu, NewP);
+        {Encode, Clients} ->
+            NewP = lists:keystore(Encode, 1, Processed, {Encode, [Client|Clients]}),
+            send(Rest, Pdu, NewP)
+    end.
 
+% encode once
+send_type(_, []) -> ok;
+send_type(Pdu, [CType|Clients]) ->
+    {Encode, ClientsOfType} = CType,
+    Pdu2 = Encode:encode(Pdu),
+    send_clients(Pdu2, ClientsOfType),
+    send_type(Pdu, Clients).
+
+% send multiple
+send_clients(_, []) -> ok;
+send_clients(Pdu, [Client|Others]) ->
+    #client_state{module = Mod} = Client,
+    Mod:raw_send(Client, Pdu),
+    send_clients(Pdu, Others).
 
 
 
