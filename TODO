@@ -8,3 +8,7 @@ ssl/tcp_client and supercast_channel modules.
 - Websocket/secure Websocket support,
 - Behaviour in a distributed environment with multiple supercast servers
 running?
+
+- TailSql, SQL support: one channel per table. Use the postgresql notify function to
+generate events. Allow the creation of complete applications in plsql from
+server, and javascript for client.

@@ -120,9 +120,9 @@ handle_cast({modSupercastPDU, {fromServer, {authAck,
     end, StaticChans),
     {noreply, S#clsupercast_state{roles = Roles, chans = StaticChans}};
 
-handle_cast({modTrackerPDU, {fromServer, {probeDump, 
+handle_cast({modMonitorPDU, {fromServer, {probeDump, 
     {'ProbeDump', Info, _BinFile}}}}, S) ->
-    io:format("trackerpdu probeDump ~p~n", [Info]),
+    io:format("monitorpdu probeDump ~p~n", [Info]),
     {noreply, S};
 
 %% DEFAULT

@@ -53,7 +53,7 @@
                 supercast_encoder_native,
                 'NmsPDU',
                 'ModSupercast',
-                'ModTracker'
+                'ModMonitor'
             ]},
         {registered, [
                 supercast_sup,

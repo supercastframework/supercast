@@ -57,7 +57,7 @@ clean:
 	rm -f doc/edoc-info
 	rm -f priv/asn1/build/*
 	rm -f include/ModSupercast.hrl
-	rm -f include/ModTracker.hrl
+	rm -f include/ModMonitor.hrl
 	rm -f include/ModLocator.hrl
 
 clsupercast:

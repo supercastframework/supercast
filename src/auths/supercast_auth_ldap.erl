@@ -76,7 +76,7 @@ handle_cast([{fromClient, {authRep, {ldap, Data}}}, SocketState], State) ->
             % ldap nous donne les groupes auquel apartiens l utilisateur
             Roles = ["group_a","group_b","group_c"],
             % quqchose nous donne les modules auxquels l'utilisateur a access
-            Modules = ["test_mod", "tracker"],
+            Modules = ["test_mod", "monitor"],
             NewSocketState = SocketState#client_state{user_roles=Roles, user_name=UserName},
             Mod:auth_set(auth_success, NewSocketState),
             if_switch:add_client(NewSocketState),
