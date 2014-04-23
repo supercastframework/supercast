@@ -1,4 +1,6 @@
 # in the future
+- beha_acctrl and beha_auth should be the same behaviour, (satisfy/2 depend on
+the perm record returned by auth:authenticate/2),
 - lock on subscribe rationalize (channel,client,loggers) and document. Actualy
 a channel will block wile it is synchronizing a client. It is possible to not
 block, but it vastly increase code complexity for supercast_logger,
