@@ -1,16 +1,16 @@
-# in the future
-- beha_acctrl and beha_auth should be the same behaviour, (satisfy/2 depend on
-the perm record returned by auth:authenticate/2),
-- lock on subscribe rationalize (channel,client,loggers) and document. Actualy
-a channel will block wile it is synchronizing a client. It is possible to not
-block, but it vastly increase code complexity for supercast_logger,
-ssl/tcp_client and supercast_channel modules.
-- XML  encoder support,
-- JSON encoder support,
-- Websocket/secure Websocket support,
-- Behaviour in a distributed environment with multiple supercast servers
-running?
+# todo
+1 - delayed sync included in supercast, require that every channel event is
+recognized by supercast.
+2 - remove mpd (everything done by the channel)
+3 - remove server (everything done by the client proc)
+4 - channel live update of their permissions change (unsubscribe
+   connected client not satisfying to the new permission)
 
-- TailSql, SQL support: one channel per table. Use the postgresql notify function to
-generate events. Allow the creation of complete applications in plsql from
-server, and javascript for client.
+# in the future
+1 - Behaviour in a distributed environment with multiple supercast servers
+running (see #todo 2 and 3).
+
+# usage
+1 - ROR like project builder
+2 - Example apps (risk game, chat like forum, sysmo)
+3 - Dynamic website with page has channel.

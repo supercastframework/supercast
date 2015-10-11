@@ -19,37 +19,23 @@
 % You should have received a copy of the GNU General Public License
 % along with Enms.  If not, see <http://www.gnu.org/licenses/>.
 % @private
--module(supercast_mpd_sup).
--behaviour(supervisor).
+% @doc
+% @end
+-module(supercast_auth_local).
+-behaviour(supercast_auth).
+-export([authenticate/2]).
 
--export([start_link/3]).
--export([init/1]).
-
-start_link(MpdConf, TcpClientConf, SslClientConf) ->
-    supervisor:start_link({local, ?MODULE}, ?MODULE, 
-            [MpdConf, TcpClientConf, SslClientConf]).
-
-init([MpdConf, TcpClientConf, SslClientConf]) ->
-    SupercastMpd = {
-        supercast_mpd,
-        {supercast_mpd,start_link, [MpdConf]},
-        permanent,
-        2000,
-        worker,
-        [supercast_mpd]
-    },
-    ClientsSup = {
-        supercast_clients_sup,
-        {supercast_clients_sup, start_link, [TcpClientConf, SslClientConf]},
-        permanent,
-        infinity,
-        supervisor,
-        [supercast_clients_sup]
-    },
-
-    {ok,
-        {
-            {rest_for_one, 1, 300},
-            [SupercastMpd, ClientsSup]
-        }
-    }.
+%% --------------------------------------------------------------
+%% USER API
+%% --------------------------------------------------------------
+authenticate(UName, UPass) ->
+    case {UName, UPass} of
+        {"admuser", "passwd"} ->
+            Roles = ["admin", "wheel", "other"],
+            {ok, Roles};
+        {"simpleuser", "passwd"} ->
+            Roles = ["wheel"],
+            {ok, Roles};
+        _ ->
+            fail
+    end.

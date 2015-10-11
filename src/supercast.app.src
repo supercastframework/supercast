@@ -1,0 +1,23 @@
+{application, supercast,
+    [
+        {description, "Supercast, InterFace Session/authentication"},
+        {vsn, "2.0.0"},
+        {modules, []},
+        {registered, [
+                supercast_sup,
+                supercast_server,
+                supercast_mpd,
+                ssl_client_sup,
+                ssl_server_sup,
+                ssl_listener,
+                tcp_server_sup,
+                tcp_client_sup,
+                tcp_listener
+            ]},
+        {applications,
+            [kernel, stdlib, crypto, public_key, ssl, xmerl, j_server]
+        },
+        {start_phases, []},
+        {mod, {supercast_app, []}}
+    ]
+}.

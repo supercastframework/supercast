@@ -26,14 +26,11 @@
 -export([init/1]).
 
 start_link(Encoder, Port, MaxC, SslConf) ->
-    {value, {certificate, Cert}} =
-        lists:keysearch(certificate, 1, SslConf),
-    {value, {caCertificate, CaCert}} =
-        lists:keysearch(caCertificate, 1, SslConf),
-    {value, {key, Key}} =
-        lists:keysearch(key, 1, SslConf),
-    supervisor:start_link({local, ?MODULE}, ?MODULE, 
-        [Encoder, Port, MaxC, Cert, CaCert, Key]).
+    Cert    = proplists:get_value(certificate, SslConf),
+    CaCert  = proplists:get_value(caCertificate, SslConf),
+    Key     = proplists:get_value(key, SslConf),
+    Args    = [Encoder, Port, MaxC, Cert, CaCert, Key],
+    supervisor:start_link({local, ?MODULE}, ?MODULE, Args).
 
 init([Encoder, Port, MaxC, Cert, CaCert, Key]) ->
     {ok,
@@ -50,8 +47,7 @@ init([Encoder, Port, MaxC, Cert, CaCert, Key]) ->
                 },
                 {
                     ssl_client_sup,
-                    {ssl_client_sup, start_link, 
-                        [Encoder, Key, Cert, CaCert]},
+                    {ssl_client_sup, start_link, [Encoder, Key, Cert, CaCert]},
                     permanent,
                     infinity,
                     supervisor,

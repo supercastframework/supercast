@@ -1,39 +1,42 @@
 % This file is part of "Enms" (http://sourceforge.net/projects/enms/)
 % Copyright (C) 2012 <Sébastien Serre sserre.bx@gmail.com>
-% 
+%
 % Enms is a Network Management System aimed to manage and monitor SNMP
 % targets, monitor network hosts and services, provide a consistent
 % documentation system and tools to help network professionals
 % to have a wide perspective of the networks they manage.
-% 
+%
 % Enms is free software: you can redistribute it and/or modify
 % it under the terms of the GNU General Public License as published by
 % the Free Software Foundation, either version 3 of the License, or
 % (at your option) any later version.
-% 
+%
 % Enms is distributed in the hope that it will be useful,
 % but WITHOUT ANY WARRANTY; without even the implied warranty of
 % MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
 % GNU General Public License for more details.
-% 
+%
 % You should have received a copy of the GNU General Public License
 % along with Enms.  If not, see <http://www.gnu.org/licenses/>.
 % @private
 -module(supercast_mpd).
 -behaviour(gen_server).
--include("../include/supercast.hrl").
+-include("include/supercast.hrl").
+-include_lib("common_hrl/include/logs.hrl").
+
+% TODO should use ets for state
 
 -export([
     init/1,
-    handle_call/3, 
-    handle_cast/2, 
-    handle_info/2, 
-    terminate/2, 
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    terminate/2,
     code_change/3
 ]).
 
 -export([
-    start_link/1,
+    start_link/0,
     multicast_msg/2,
     unicast_msg/2,
     subscribe_stage1/2,
@@ -41,7 +44,8 @@
     subscribe_stage3/2,
     unsubscribe/2,
     main_chans/0,
-    client_disconnect/1
+    client_disconnect/1,
+    delete_channel/1
 ]).
 
 -record(state, {
@@ -56,17 +60,20 @@
 %% API
 %%-------------------------------------------------------------
 % @private
-start_link(MpdConf) ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, MpdConf, []).
+start_link() ->
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+
+delete_channel(Channel) ->
+    gen_server:cast(?MODULE, {delete_channel, Channel}).
 
 -spec main_chans() -> [atom()].
 % @doc
 % Called by supercast_server.
-% Called at the initial connexion of a client. Give him the main (static) 
+% Called at the initial connexion of a client. Give him the main (static)
 % channels. If dynamic channels exist in the application, this is the role
 % of one of these channels to inform the client. Note that depending on the
 % supercast_channel module perm/0 function return, a client might not be able to
-% subscribe to a channel apearing here. It is checked at the 
+% subscribe to a channel apearing here. It is checked at the
 % subscribe_stage1/1 call.
 % @end
 main_chans() ->
@@ -77,14 +84,13 @@ main_chans() ->
 % Called by a client via supercast_server.
 % If return is ok, the supercast_server will then call subscribe_stage2.
 % If return is error, do nothing more.
-% In both case, supercast_server interpret the return and send subscribeErr or 
+% In both case, supercast_server interpret the return and send subscribeErr or
 % subscribeOk to the client.
 % @end
 subscribe_stage1(Channel, CState) ->
     % Does the channel exist?
-    io:format("subscribe statge1, ~p~n", [Channel]),
     Rep = supercast_channel:get_chan_perms(Channel),
-    io:format("subscribe statge1, rep, ~p~n", [Rep]),
+    ?LOG_INFO("Subscribe statge 1", {Channel, Rep}),
     case Rep of
         #perm_conf{} = Perm ->
             gen_server:call(?MODULE, {subscribe_stage1, Channel, CState, Perm});
@@ -99,10 +105,10 @@ subscribe_stage1(Channel, CState) ->
 % @end
 subscribe_stage2(Channel, CState) ->
     case gen_server:call(?MODULE, {client_is_registered, Channel, CState}) of
-        true    -> 
+        true ->
             %client allready registered do nothing
             ok;
-        false   ->
+        false ->
             try supercast_channel:synchronize(Channel, CState) of
                 ok ->
                     ok
@@ -158,18 +164,20 @@ unsubscribe(Chan, CState) ->
 %%-------------------------------------------------------------
 %% GEN_SERVER CALLBACKS
 %%-------------------------------------------------------------
-init({AcctrlMod, MainChans}) ->
+init([]) ->
+    {ok, AcctrlMod}    = application:get_env(supercast, acctrl_module),
+    {ok, MainChannels} = application:get_env(supercast, main_channels),
     {ok, #state{
-            acctrl = AcctrlMod,
-            main_chans = MainChans,
-            chans = []
+            acctrl     = AcctrlMod,
+            main_chans = MainChannels,
+            chans      = []
         }
     }.
 
 handle_call(main_chans, _F, #state{main_chans = Chans} = S) ->
     {reply, Chans, S};
 
-handle_call({client_is_registered, Chan, CState}, _F, 
+handle_call({client_is_registered, Chan, CState}, _F,
         #state{chans = Chans} = S) ->
     case lists:keyfind(Chan, 1, Chans) of
         {Chan, CList} ->
@@ -178,7 +186,7 @@ handle_call({client_is_registered, Chan, CState}, _F,
             {reply, false, S}
     end;
 
-handle_call({subscribe_stage1, _Channel, CState, PermConf},  _F, 
+handle_call({subscribe_stage1, _Channel, CState, PermConf},  _F,
         #state{acctrl = Acctrl} = S) ->
     case Acctrl:satisfy(read, [CState], PermConf) of
         {ok, []} ->
@@ -193,7 +201,6 @@ handle_call({subscribe_stage3, Channel, CState}, _F, S) ->
 
 
 handle_call({unsubscribe, Channel, CState}, _F, S) ->
-    io:format("~p call unsubscribe~n", [?MODULE]),
     Chans = del_chan_subscriber(CState, Channel, S#state.chans),
     {reply, ok, S#state{chans = Chans}};
 
@@ -209,13 +216,17 @@ handle_call(get_acctrl, _F, #state{acctrl = Acctrl} = S) ->
 handle_call(dump, _F, S) ->
     {reply, {ok, S}, S};
 
-handle_call(_R, _F, S) ->
-    io:format("handle_call ~p~p~n", [?MODULE, _R]),
+handle_call(Call, _F, S) ->
+    ?LOG_ERROR("Handle unknown call", Call),
     {reply, error, S}.
 
 % CAST
+handle_cast({delete_channel, Channel}, #state{chans=Chans} = S) ->
+    Channels = proplists:delete(Channel, Chans),
+    {noreply, S#state{chans=Channels}};
+
 % called by himself
-handle_cast({unicast, #client_state{module = CMod} = CState, Perm, Pdu}, 
+handle_cast({unicast, #client_state{module = CMod} = CState, Perm, Pdu},
     #state{acctrl = AcctrlMod} = S) ->
     case AcctrlMod:satisfy(read, [CState], Perm) of
         {ok, []} ->
@@ -225,12 +236,12 @@ handle_cast({unicast, #client_state{module = CMod} = CState, Perm, Pdu},
             {noreply, S}
     end;
 
-handle_cast({multicast, Chan, Perm, Pdu}, 
+handle_cast({multicast, Chan, Perm, Pdu},
         #state{chans = Chans, acctrl = AcctrlMod} = S) ->
     % the chan have allready been initialized?
     case lists:keyfind(Chan, 1, Chans) of
         % no do nothing
-        false -> 
+        false ->
             ok;
         % yes but is empty do nothing
         {Chan, []} ->
@@ -244,8 +255,8 @@ handle_cast({multicast, Chan, Perm, Pdu},
     end,
     {noreply, S};
 
-handle_cast(_R, S) ->
-    io:format("handle_cast ~p~p~n", [?MODULE, _R]),
+handle_cast(Cast, S) ->
+    ?LOG_ERROR("Unknown cast", Cast),
     {noreply, S}.
 
 % OTHER
@@ -308,14 +319,19 @@ new_chan_subscriber(CState, Channel, Chans) ->
             % return a new Chans list with updated tuple
             lists:keyreplace(Channel, 1, Chans, NewChan)
     end.
-            
+
 del_chan_subscriber(CState, Channel, Chans) ->
     case lists:keyfind(Channel, 1, Chans) of
-        false ->
-            Chans;
+        false -> Chans;
         {Channel, CList} ->
-            NewChan = {Channel, lists:delete(CState, CList)},
-            lists:keyreplace(Channel, 1, Chans, NewChan)
+            case lists:delete(CState, CList) of
+                [] ->
+                    % if list empty, delete the channel tuple
+                    ?LOG_INFO("Channel deleted", Channel),
+                    lists:keydelete(Channel, 1, Chans);
+                NewCList ->
+                    lists:keyreplace(Channel, 1, Chans, {Channel, NewCList})
+            end
     end.
 
 del_subscriber(CState, Chans) ->

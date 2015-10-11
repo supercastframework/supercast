@@ -23,10 +23,17 @@
 
 -export([
     filter/2,
+    satisfy/2,
     mpd_state/0,
     server_state/0
 ]).
 
+satisfy(CState, Perm) ->
+    {ok, AccCtrl} = application:get_env(supercast, acctrl_module),
+    case AccCtrl:satisfy(read, [CState], Perm) of
+        {ok, []}        -> false;
+        {ok, [CState]}  -> true
+    end.
 
 -spec filter(#client_state{}, [{#perm_conf{}, any()}]) -> [any()].
 % @doc
@@ -34,39 +41,28 @@
 % that the client defined in #client_state{} is allowed to 'read'.
 % @end
 filter(CState, Things) ->
-    {ok, Acctrl} = gen_server:call(supercast_mpd, get_acctrl),
-    filter_things_tool(CState, Things, Acctrl).
+    filter_things(CState, Things, []).
 
-filter_things_tool(CState, Pdus, Acctrl) ->
-    filter_things_tool(CState, Pdus, Acctrl, []).
-filter_things_tool(_, [], _, R) ->
+filter_things(_, [], R) ->
     R;
-filter_things_tool(CState, [{Perm, Pdu}|T], Acctrl, R) ->
-    case Acctrl:satisfy(read, [CState], Perm) of
-        {ok, []} ->
-            filter_things_tool(CState, T, Acctrl, R);
-        {ok, [CState]} ->
-            filter_things_tool(CState, T, Acctrl, [Pdu|R])
+filter_things(CState, [{Perm, Thing}|T], R) ->
+    case satisfy([CState], Perm) of
+        false ->
+            filter_things(CState, T, R);
+        true  ->
+            filter_things(CState, T, [Thing|R])
     end.
 
--spec mpd_state() -> {ok, tuple()} | error.
+-spec mpd_state() -> {ok, tuple()}.
 % @doc
 % This function return the state of the supercast_mpd gen_server module.
 % @end
 mpd_state() ->
-    R = gen_server:call(supercast_mpd, dump),
-    case R of
-        {ok, _} -> R;
-        _ -> {error, R}
-    end.
+    gen_server:call(supercast_mpd, dump).
 
--spec server_state() -> {ok, tuple()} | error.
+-spec server_state() -> {ok, tuple()}.
 % @doc
 % This function return the state of the supercast_server gen_server module.
 % @end
 server_state() ->
-    R = gen_server:call(supercast_server, dump),
-    case R of
-        {ok, _} -> R;
-        _ -> {error, R}
-    end.
+    gen_server:call(supercast_server, dump).

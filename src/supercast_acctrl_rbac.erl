@@ -22,7 +22,7 @@
 -module(supercast_acctrl_rbac).
 -behaviour(supercast_acctrl).
 
--include("../../include/supercast.hrl").
+-include("include/supercast.hrl").
 -include_lib("eunit/include/eunit.hrl").
 -compile(export_all).
 -export([satisfy/3]).

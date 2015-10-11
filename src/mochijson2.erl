@@ -1,6 +1,5 @@
 %% @author Bob Ippolito <bob@mochimedia.com>
 %% @copyright 2007 Mochi Media, Inc.
-%% @private
 
 %% @doc Yet another JSON (RFC 4627) library for Erlang. mochijson2 works
 %%      with binaries as strings, arrays as lists (without an {array, _})
@@ -37,24 +36,13 @@
 %%              or array
 %%          </li>
 %%      </ul>
-%% @end
 
--module(supercast_encoder_json).
--behaviour(supercast_encoder).
+-module(mochijson2).
 -author('bob@mochimedia.com').
--export([encoder/1, encode_mochi/1]).
--export([decoder/1, decode_mochi/1, decode_mochi/2]).
--export([digits/1, frexp/1, int_pow/2, int_ceil/1]).
+-export([encoder/1, encode/1]).
+-export([decoder/1, decode/1]).
 
-%% exports for supercast
--export([encode/1, decode/1]).
-
-%% IEEE 754 Float exponent bias
--define(FLOAT_BIAS, 1022).
--define(MIN_EXP, -1074).
--define(BIG_POW, 4503599627370496).
-
-%% This is a macro to placate syntax highlighters..
+% This is a macro to placate syntax highlighters..
 -define(Q, $\").
 -define(ADV_COL(S, N), S#decoder{offset=N+S#decoder.offset,
                                  column=N+S#decoder.column}).
@@ -76,14 +64,15 @@
 -define(IS_WHITESPACE(C),
         (C =:= $\s orelse C =:= $\t orelse C =:= $\r orelse C =:= $\n)).
 
+%% @type iolist() = [char() | binary() | iolist()]
+%% @type iodata() = iolist() | binary()
 %% @type json_string() = atom | binary()
 %% @type json_number() = integer() | float()
 %% @type json_array() = [json_term()]
 %% @type json_object() = {struct, [{json_string(), json_term()}]}
-%% @type json_eep18_object() = {[{json_string(), json_term()}]}
 %% @type json_iolist() = {json, iolist()}
 %% @type json_term() = json_string() | json_number() | json_array() |
-%%                     json_object() | json_eep18_object() | json_iolist()
+%%                     json_object() | json_iolist()
 
 -record(encoder, {handler=null,
                   utf8=false}).
@@ -94,12 +83,6 @@
                   column=1,
                   state=null}).
 
-encode(_ETerm) ->
-    {decode, {not_implemented}}.
-
-decode(_Json) ->
-    {encode, {not_implemented}}.
-
 %% @spec encoder([encoder_option()]) -> function()
 %% @doc Create an encoder/1 with the given options.
 %% @type encoder_option() = handler_option() | utf8_option()
@@ -108,9 +91,9 @@ encoder(Options) ->
     State = parse_encoder_options(Options, #encoder{}),
     fun (O) -> json_encode(O, State) end.
 
-%% @spec encode_mochi(json_term()) -> iolist()
+%% @spec encode(json_term()) -> iolist()
 %% @doc Encode the given as JSON to an iolist.
-encode_mochi(Any) ->
+encode(Any) ->
     json_encode(Any, #encoder{}).
 
 %% @spec decoder([decoder_option()]) -> function()
@@ -119,17 +102,9 @@ decoder(Options) ->
     State = parse_decoder_options(Options, #decoder{}),
     fun (O) -> json_decode(O, State) end.
 
-%% @spec decode_mochi(iolist(), [{format, proplist | eep18 | struct}]) -> json_term()
-%% @doc Decode the given iolist to Erlang terms using the given object format
-%%      for decoding, where proplist returns JSON objects as [{binary(), json_term()}]
-%%      proplists, eep18 returns JSON objects as {[binary(), json_term()]}, and struct
-%%      returns them as-is.
-decode_mochi(S, Options) ->
-    json_decode(S, parse_decoder_options(Options, #decoder{})).
-
-%% @spec decode_mochi(iolist()) -> json_term()
+%% @spec decode(iolist()) -> json_term()
 %% @doc Decode the given iolist to Erlang terms.
-decode_mochi(S) ->
+decode(S) ->
     json_decode(S, #decoder{}).
 
 %% Internal API
@@ -144,10 +119,7 @@ parse_encoder_options([{utf8, Switch} | Rest], State) ->
 parse_decoder_options([], State) ->
     State;
 parse_decoder_options([{object_hook, Hook} | Rest], State) ->
-    parse_decoder_options(Rest, State#decoder{object_hook=Hook});
-parse_decoder_options([{format, Format} | Rest], State)
-  when Format =:= struct orelse Format =:= eep18 orelse Format =:= proplist ->
-    parse_decoder_options(Rest, State#decoder{object_hook=Format}).
+    parse_decoder_options(Rest, State#decoder{object_hook=Hook}).
 
 json_encode(true, _State) ->
     <<"true">>;
@@ -158,7 +130,7 @@ json_encode(null, _State) ->
 json_encode(I, _State) when is_integer(I) ->
     integer_to_list(I);
 json_encode(F, _State) when is_float(F) ->
-    digits(F);
+    mochinum:digits(F);
 json_encode(S, State) when is_binary(S); is_atom(S) ->
     json_encode_string(S, State);
 json_encode([{K, _}|_] = Props, State) when (K =/= struct andalso
@@ -167,10 +139,6 @@ json_encode([{K, _}|_] = Props, State) when (K =/= struct andalso
     json_encode_proplist(Props, State);
 json_encode({struct, Props}, State) when is_list(Props) ->
     json_encode_proplist(Props, State);
-json_encode({Props}, State) when is_list(Props) ->
-    json_encode_proplist(Props, State);
-json_encode({}, State) ->
-    json_encode_proplist([], State);
 json_encode(Array, State) when is_list(Array) ->
     json_encode_array(Array, State);
 json_encode({array, Array}, State) when is_list(Array) ->
@@ -350,12 +318,8 @@ decode1(B, S=#decoder{state=null}) ->
             decode_object(B, S1)
     end.
 
-make_object(V, #decoder{object_hook=N}) when N =:= null orelse N =:= struct ->
+make_object(V, #decoder{object_hook=null}) ->
     V;
-make_object({struct, P}, #decoder{object_hook=eep18}) ->
-    {P};
-make_object({struct, P}, #decoder{object_hook=proplist}) ->
-    P;
 make_object(V, #decoder{object_hook=Hook}) ->
     Hook(V).
 
@@ -592,223 +556,294 @@ tokenize(B, S=#decoder{offset=O}) ->
             trim = S#decoder.state,
             {eof, S}
     end.
-
-%% @spec digits(number()) -> string()
-%% @doc  Returns a string that accurately represents the given integer or float
-%%       using a conservative amount of digits. Great for generating
-%%       human-readable output, or compact ASCII serializations for floats.
-digits(N) when is_integer(N) ->
-    integer_to_list(N);
-digits(0.0) ->
-    "0.0";
-digits(Float) ->
-    {Frac1, Exp1} = frexp_int(Float),
-    [Place0 | Digits0] = digits1(Float, Exp1, Frac1),
-    {Place, Digits} = transform_digits(Place0, Digits0),
-    R = insert_decimal(Place, Digits),
-    case Float < 0 of
-        true ->
-            [$- | R];
-        _ ->
-            R
-    end.
-
-%% @spec frexp(F::float()) -> {Frac::float(), Exp::float()}
-%% @doc  Return the fractional and exponent part of an IEEE 754 double,
-%%       equivalent to the libc function of the same name.
-%%       F = Frac * pow(2, Exp).
-frexp(F) ->
-    frexp1(unpack(F)).
-
-%% @spec int_pow(X::integer(), N::integer()) -> Y::integer()
-%% @doc  Moderately efficient way to exponentiate integers.
-%%       int_pow(10, 2) = 100.
-int_pow(_X, 0) ->
-    1;
-int_pow(X, N) when N > 0 ->
-    int_pow(X, N, 1).
-
-%% @spec int_ceil(F::float()) -> integer()
-%% @doc  Return the ceiling of F as an integer. The ceiling is defined as
-%%       F when F == trunc(F);
-%%       trunc(F) when F &lt; 0;
-%%       trunc(F) + 1 when F &gt; 0.
-int_ceil(X) ->
-    T = trunc(X),
-    case (X - T) of
-        Pos when Pos > 0 -> T + 1;
-        _ -> T
-    end.
+%%
+%% Tests
+%%
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
 
 
-%% Internal API
+%% testing constructs borrowed from the Yaws JSON implementation.
 
-int_pow(X, N, R) when N < 2 ->
-    R * X;
-int_pow(X, N, R) ->
-    int_pow(X * X, N bsr 1, case N band 1 of 1 -> R * X; 0 -> R end).
+%% Create an object from a list of Key/Value pairs.
 
-insert_decimal(0, S) ->
-    "0." ++ S;
-insert_decimal(Place, S) when Place > 0 ->
-    L = length(S),
-    case Place - L of
-         0 ->
-            S ++ ".0";
-        N when N < 0 ->
-            {S0, S1} = lists:split(L + N, S),
-            S0 ++ "." ++ S1;
-        N when N < 6 ->
-            %% More places than digits
-            S ++ lists:duplicate(N, $0) ++ ".0";
-        _ ->
-            insert_decimal_exp(Place, S)
-    end;
-insert_decimal(Place, S) when Place > -6 ->
-    "0." ++ lists:duplicate(abs(Place), $0) ++ S;
-insert_decimal(Place, S) ->
-    insert_decimal_exp(Place, S).
+obj_new() ->
+    {struct, []}.
 
-insert_decimal_exp(Place, S) ->
-    [C | S0] = S,
-    S1 = case S0 of
-             [] ->
-                 "0";
-             _ ->
-                 S0
-         end,
-    Exp = case Place < 0 of
-              true ->
-                  "e-";
-              false ->
-                  "e+"
-          end,
-    [C] ++ "." ++ S1 ++ Exp ++ integer_to_list(abs(Place - 1)).
+is_obj({struct, Props}) ->
+    F = fun ({K, _}) when is_binary(K) -> true end,
+    lists:all(F, Props).
 
+obj_from_list(Props) ->
+    Obj = {struct, Props},
+    ?assert(is_obj(Obj)),
+    Obj.
 
-digits1(Float, Exp, Frac) ->
-    Round = ((Frac band 1) =:= 0),
-    case Exp >= 0 of
-        true ->
-            BExp = 1 bsl Exp,
-            case (Frac =/= ?BIG_POW) of
-                true ->
-                    scale((Frac * BExp * 2), 2, BExp, BExp,
-                          Round, Round, Float);
-                false ->
-                    scale((Frac * BExp * 4), 4, (BExp * 2), BExp,
-                          Round, Round, Float)
-            end;
-        false ->
-            case (Exp =:= ?MIN_EXP) orelse (Frac =/= ?BIG_POW) of
-                true ->
-                    scale((Frac * 2), 1 bsl (1 - Exp), 1, 1,
-                          Round, Round, Float);
-                false ->
-                    scale((Frac * 4), 1 bsl (2 - Exp), 2, 1,
-                          Round, Round, Float)
-            end
-    end.
+%% Test for equivalence of Erlang terms.
+%% Due to arbitrary order of construction, equivalent objects might
+%% compare unequal as erlang terms, so we need to carefully recurse
+%% through aggregates (tuples and objects).
 
-scale(R, S, MPlus, MMinus, LowOk, HighOk, Float) ->
-    Est = int_ceil(math:log10(abs(Float)) - 1.0e-10),
-    %% Note that the scheme implementation uses a 326 element look-up table
-    %% for int_pow(10, N) where we do not.
-    case Est >= 0 of
-        true ->
-            fixup(R, S * int_pow(10, Est), MPlus, MMinus, Est,
-                  LowOk, HighOk);
-        false ->
-            Scale = int_pow(10, -Est),
-            fixup(R * Scale, S, MPlus * Scale, MMinus * Scale, Est,
-                  LowOk, HighOk)
-    end.
+equiv({struct, Props1}, {struct, Props2}) ->
+    equiv_object(Props1, Props2);
+equiv(L1, L2) when is_list(L1), is_list(L2) ->
+    equiv_list(L1, L2);
+equiv(N1, N2) when is_number(N1), is_number(N2) -> N1 == N2;
+equiv(B1, B2) when is_binary(B1), is_binary(B2) -> B1 == B2;
+equiv(A, A) when A =:= true orelse A =:= false orelse A =:= null -> true.
 
-fixup(R, S, MPlus, MMinus, K, LowOk, HighOk) ->
-    TooLow = case HighOk of
-                 true ->
-                     (R + MPlus) >= S;
-                 false ->
-                     (R + MPlus) > S
-             end,
-    case TooLow of
-        true ->
-            [(K + 1) | generate(R, S, MPlus, MMinus, LowOk, HighOk)];
-        false ->
-            [K | generate(R * 10, S, MPlus * 10, MMinus * 10, LowOk, HighOk)]
-    end.
+%% Object representation and traversal order is unknown.
+%% Use the sledgehammer and sort property lists.
 
-generate(R0, S, MPlus, MMinus, LowOk, HighOk) ->
-    D = R0 div S,
-    R = R0 rem S,
-    TC1 = case LowOk of
-              true ->
-                  R =< MMinus;
-              false ->
-                  R < MMinus
-          end,
-    TC2 = case HighOk of
-              true ->
-                  (R + MPlus) >= S;
-              false ->
-                  (R + MPlus) > S
-          end,
-    case TC1 of
-        false ->
-            case TC2 of
-                false ->
-                    [D | generate(R * 10, S, MPlus * 10, MMinus * 10,
-                                  LowOk, HighOk)];
-                true ->
-                    [D + 1]
-            end;
-        true ->
-            case TC2 of
-                false ->
-                    [D];
-                true ->
-                    case R * 2 < S of
-                        true ->
-                            [D];
-                        false ->
-                            [D + 1]
-                    end
-            end
-    end.
+equiv_object(Props1, Props2) ->
+    L1 = lists:keysort(1, Props1),
+    L2 = lists:keysort(1, Props2),
+    Pairs = lists:zip(L1, L2),
+    true = lists:all(fun({{K1, V1}, {K2, V2}}) ->
+                             equiv(K1, K2) and equiv(V1, V2)
+                     end, Pairs).
 
-unpack(Float) ->
-    <<Sign:1, Exp:11, Frac:52>> = <<Float:64/float>>,
-    {Sign, Exp, Frac}.
+%% Recursively compare tuple elements for equivalence.
 
-frexp1({_Sign, 0, 0}) ->
-    {0.0, 0};
-frexp1({Sign, 0, Frac}) ->
-    Exp = log2floor(Frac),
-    <<Frac1:64/float>> = <<Sign:1, ?FLOAT_BIAS:11, (Frac-1):52>>,
-    {Frac1, -(?FLOAT_BIAS) - 52 + Exp};
-frexp1({Sign, Exp, Frac}) ->
-    <<Frac1:64/float>> = <<Sign:1, ?FLOAT_BIAS:11, Frac:52>>,
-    {Frac1, Exp - ?FLOAT_BIAS}.
+equiv_list([], []) ->
+    true;
+equiv_list([V1 | L1], [V2 | L2]) ->
+    equiv(V1, V2) andalso equiv_list(L1, L2).
 
-log2floor(Int) ->
-    log2floor(Int, 0).
+decode_test() ->
+    [1199344435545.0, 1] = decode(<<"[1199344435545.0,1]">>),
+    <<16#F0,16#9D,16#9C,16#95>> = decode([34,"\\ud835","\\udf15",34]).
 
-log2floor(0, N) ->
-    N;
-log2floor(Int, N) ->
-    log2floor(Int bsr 1, 1 + N).
+e2j_vec_test() ->
+    test_one(e2j_test_vec(utf8), 1).
 
+test_one([], _N) ->
+    %% io:format("~p tests passed~n", [N-1]),
+    ok;
+test_one([{E, J} | Rest], N) ->
+    %% io:format("[~p] ~p ~p~n", [N, E, J]),
+    true = equiv(E, decode(J)),
+    true = equiv(E, decode(encode(E))),
+    test_one(Rest, 1+N).
 
-transform_digits(Place, [0 | Rest]) ->
-    transform_digits(Place, Rest);
-transform_digits(Place, Digits) ->
-    {Place, [$0 + D || D <- Digits]}.
+e2j_test_vec(utf8) ->
+    [
+     {1, "1"},
+     {3.1416, "3.14160"}, %% text representation may truncate, trail zeroes
+     {-1, "-1"},
+     {-3.1416, "-3.14160"},
+     {12.0e10, "1.20000e+11"},
+     {1.234E+10, "1.23400e+10"},
+     {-1.234E-10, "-1.23400e-10"},
+     {10.0, "1.0e+01"},
+     {123.456, "1.23456E+2"},
+     {10.0, "1e1"},
+     {<<"foo">>, "\"foo\""},
+     {<<"foo", 5, "bar">>, "\"foo\\u0005bar\""},
+     {<<"">>, "\"\""},
+     {<<"\n\n\n">>, "\"\\n\\n\\n\""},
+     {<<"\" \b\f\r\n\t\"">>, "\"\\\" \\b\\f\\r\\n\\t\\\"\""},
+     {obj_new(), "{}"},
+     {obj_from_list([{<<"foo">>, <<"bar">>}]), "{\"foo\":\"bar\"}"},
+     {obj_from_list([{<<"foo">>, <<"bar">>}, {<<"baz">>, 123}]),
+      "{\"foo\":\"bar\",\"baz\":123}"},
+     {[], "[]"},
+     {[[]], "[[]]"},
+     {[1, <<"foo">>], "[1,\"foo\"]"},
 
+     %% json array in a json object
+     {obj_from_list([{<<"foo">>, [123]}]),
+      "{\"foo\":[123]}"},
 
-frexp_int(F) ->
-    case unpack(F) of
-        {_Sign, 0, Frac} ->
-            {Frac, ?MIN_EXP};
-        {_Sign, Exp, Frac} ->
-            {Frac + (1 bsl 52), Exp - 53 - ?FLOAT_BIAS}
-    end.
+     %% json object in a json object
+     {obj_from_list([{<<"foo">>, obj_from_list([{<<"bar">>, true}])}]),
+      "{\"foo\":{\"bar\":true}}"},
+
+     %% fold evaluation order
+     {obj_from_list([{<<"foo">>, []},
+                     {<<"bar">>, obj_from_list([{<<"baz">>, true}])},
+                     {<<"alice">>, <<"bob">>}]),
+      "{\"foo\":[],\"bar\":{\"baz\":true},\"alice\":\"bob\"}"},
+
+     %% json object in a json array
+     {[-123, <<"foo">>, obj_from_list([{<<"bar">>, []}]), null],
+      "[-123,\"foo\",{\"bar\":[]},null]"}
+    ].
+
+%% test utf8 encoding
+encoder_utf8_test() ->
+    %% safe conversion case (default)
+    [34,"\\u0001","\\u0442","\\u0435","\\u0441","\\u0442",34] =
+        encode(<<1,"\321\202\320\265\321\201\321\202">>),
+
+    %% raw utf8 output (optional)
+    Enc = mochijson2:encoder([{utf8, true}]),
+    [34,"\\u0001",[209,130],[208,181],[209,129],[209,130],34] =
+        Enc(<<1,"\321\202\320\265\321\201\321\202">>).
+
+input_validation_test() ->
+    Good = [
+        {16#00A3, <<?Q, 16#C2, 16#A3, ?Q>>}, %% pound
+        {16#20AC, <<?Q, 16#E2, 16#82, 16#AC, ?Q>>}, %% euro
+        {16#10196, <<?Q, 16#F0, 16#90, 16#86, 16#96, ?Q>>} %% denarius
+    ],
+    lists:foreach(fun({CodePoint, UTF8}) ->
+        Expect = list_to_binary(xmerl_ucs:to_utf8(CodePoint)),
+        Expect = decode(UTF8)
+    end, Good),
+
+    Bad = [
+        %% 2nd, 3rd, or 4th byte of a multi-byte sequence w/o leading byte
+        <<?Q, 16#80, ?Q>>,
+        %% missing continuations, last byte in each should be 80-BF
+        <<?Q, 16#C2, 16#7F, ?Q>>,
+        <<?Q, 16#E0, 16#80,16#7F, ?Q>>,
+        <<?Q, 16#F0, 16#80, 16#80, 16#7F, ?Q>>,
+        %% we don't support code points > 10FFFF per RFC 3629
+        <<?Q, 16#F5, 16#80, 16#80, 16#80, ?Q>>,
+        %% escape characters trigger a different code path
+        <<?Q, $\\, $\n, 16#80, ?Q>>
+    ],
+    lists:foreach(
+      fun(X) ->
+              ok = try decode(X) catch invalid_utf8 -> ok end,
+              %% could be {ucs,{bad_utf8_character_code}} or
+              %%          {json_encode,{bad_char,_}}
+              {'EXIT', _} = (catch encode(X))
+      end, Bad).
+
+inline_json_test() ->
+    ?assertEqual(<<"\"iodata iodata\"">>,
+                 iolist_to_binary(
+                   encode({json, [<<"\"iodata">>, " iodata\""]}))),
+    ?assertEqual({struct, [{<<"key">>, <<"iodata iodata">>}]},
+                 decode(
+                   encode({struct,
+                           [{key, {json, [<<"\"iodata">>, " iodata\""]}}]}))),
+    ok.
+
+big_unicode_test() ->
+    UTF8Seq = list_to_binary(xmerl_ucs:to_utf8(16#0001d120)),
+    ?assertEqual(
+       <<"\"\\ud834\\udd20\"">>,
+       iolist_to_binary(encode(UTF8Seq))),
+    ?assertEqual(
+       UTF8Seq,
+       decode(iolist_to_binary(encode(UTF8Seq)))),
+    ok.
+
+custom_decoder_test() ->
+    ?assertEqual(
+       {struct, [{<<"key">>, <<"value">>}]},
+       (decoder([]))("{\"key\": \"value\"}")),
+    F = fun ({struct, [{<<"key">>, <<"value">>}]}) -> win end,
+    ?assertEqual(
+       win,
+       (decoder([{object_hook, F}]))("{\"key\": \"value\"}")),
+    ok.
+
+atom_test() ->
+    %% JSON native atoms
+    [begin
+         ?assertEqual(A, decode(atom_to_list(A))),
+         ?assertEqual(iolist_to_binary(atom_to_list(A)),
+                      iolist_to_binary(encode(A)))
+     end || A <- [true, false, null]],
+    %% Atom to string
+    ?assertEqual(
+       <<"\"foo\"">>,
+       iolist_to_binary(encode(foo))),
+    ?assertEqual(
+       <<"\"\\ud834\\udd20\"">>,
+       iolist_to_binary(encode(list_to_atom(xmerl_ucs:to_utf8(16#0001d120))))),
+    ok.
+
+key_encode_test() ->
+    %% Some forms are accepted as keys that would not be strings in other
+    %% cases
+    ?assertEqual(
+       <<"{\"foo\":1}">>,
+       iolist_to_binary(encode({struct, [{foo, 1}]}))),
+    ?assertEqual(
+       <<"{\"foo\":1}">>,
+       iolist_to_binary(encode({struct, [{<<"foo">>, 1}]}))),
+    ?assertEqual(
+       <<"{\"foo\":1}">>,
+       iolist_to_binary(encode({struct, [{"foo", 1}]}))),
+	?assertEqual(
+       <<"{\"foo\":1}">>,
+       iolist_to_binary(encode([{foo, 1}]))),
+    ?assertEqual(
+       <<"{\"foo\":1}">>,
+       iolist_to_binary(encode([{<<"foo">>, 1}]))),
+    ?assertEqual(
+       <<"{\"foo\":1}">>,
+       iolist_to_binary(encode([{"foo", 1}]))),
+    ?assertEqual(
+       <<"{\"\\ud834\\udd20\":1}">>,
+       iolist_to_binary(
+         encode({struct, [{[16#0001d120], 1}]}))),
+    ?assertEqual(
+       <<"{\"1\":1}">>,
+       iolist_to_binary(encode({struct, [{1, 1}]}))),
+    ok.
+
+unsafe_chars_test() ->
+    Chars = "\"\\\b\f\n\r\t",
+    [begin
+         ?assertEqual(false, json_string_is_safe([C])),
+         ?assertEqual(false, json_bin_is_safe(<<C>>)),
+         ?assertEqual(<<C>>, decode(encode(<<C>>)))
+     end || C <- Chars],
+    ?assertEqual(
+       false,
+       json_string_is_safe([16#0001d120])),
+    ?assertEqual(
+       false,
+       json_bin_is_safe(list_to_binary(xmerl_ucs:to_utf8(16#0001d120)))),
+    ?assertEqual(
+       [16#0001d120],
+       xmerl_ucs:from_utf8(
+         binary_to_list(
+           decode(encode(list_to_atom(xmerl_ucs:to_utf8(16#0001d120))))))),
+    ?assertEqual(
+       false,
+       json_string_is_safe([16#110000])),
+    ?assertEqual(
+       false,
+       json_bin_is_safe(list_to_binary(xmerl_ucs:to_utf8([16#110000])))),
+    %% solidus can be escaped but isn't unsafe by default
+    ?assertEqual(
+       <<"/">>,
+       decode(<<"\"\\/\"">>)),
+    ok.
+
+int_test() ->
+    ?assertEqual(0, decode("0")),
+    ?assertEqual(1, decode("1")),
+    ?assertEqual(11, decode("11")),
+    ok.
+
+large_int_test() ->
+    ?assertEqual(<<"-2147483649214748364921474836492147483649">>,
+        iolist_to_binary(encode(-2147483649214748364921474836492147483649))),
+    ?assertEqual(<<"2147483649214748364921474836492147483649">>,
+        iolist_to_binary(encode(2147483649214748364921474836492147483649))),
+    ok.
+
+float_test() ->
+    ?assertEqual(<<"-2147483649.0">>, iolist_to_binary(encode(-2147483649.0))),
+    ?assertEqual(<<"2147483648.0">>, iolist_to_binary(encode(2147483648.0))),
+    ok.
+
+handler_test() ->
+    ?assertEqual(
+       {'EXIT',{json_encode,{bad_term,{}}}},
+       catch encode({})),
+    F = fun ({}) -> [] end,
+    ?assertEqual(
+       <<"[]">>,
+       iolist_to_binary((encoder([{handler, F}]))({}))),
+    ok.
+
+-endif.

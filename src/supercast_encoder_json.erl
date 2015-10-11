@@ -19,23 +19,14 @@
 % You should have received a copy of the GNU General Public License
 % along with Enms.  If not, see <http://www.gnu.org/licenses/>.
 % @private
-% @doc
-% @end
--module(supercast_auth_local).
--behaviour(supercast_auth).
--export([authenticate/2]).
+-module(supercast_encoder_json).
+-behaviour(supercast_encoder).
+-export([encode/1, decode/1]).
 
-%% --------------------------------------------------------------
-%% USER API
-%% --------------------------------------------------------------
-authenticate(UName, UPass) ->
-    case {UName, UPass} of
-        {"admuser", "passwd"} ->
-            Roles = ["admin"],
-            {ok, Roles};
-        {"simpleuser", "passwd"} ->
-            Roles = ["wheel"],
-            {ok, Roles};
-        _ ->
-            fail
-    end.
+
+
+encode(ETerm) ->
+    mochijson2:encode(ETerm).
+
+decode(Json) ->
+    mochijson2:decode(Json).

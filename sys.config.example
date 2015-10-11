@@ -1,29 +1,27 @@
 [
     {supercast,
         [
-            {auth_module,   bsupercast_auth_local},
-            {acctrl_module, bsupercast_acctrl_rbac},
+            {auth_module,   supercast_users_xml},
+            {acctrl_module, supercast_acctrl_rbac},
 
-            % if a PDU come from client with asn_key, switch it to the module
+            % if a PDU come from client with key, switch it to the module
             % implementing the supercast_module_behaviour.
             {pdu_dispatch,
                 [
-                    % {supercast_module_behaviour, asn_key}
-                    {tracker_api, modTrackerPDU},
-                    {locator_api, modLocatorPDU}
+                    % {supercast_module_behaviour, key}
+                    {monitor_commander, "monitor"}
                 ]
             },
 
             % this is the initial list of channels for the client. It must be
             % the entry point for all other channels. For example, once
-            % the client subscribe to the tracker channel, this one will
+            % the client subscribe to the monitor channel, this one will
             % tell the client wich chan he knows about, and wich chans
             % disapear. This module can also be a simple "beha_supercast_channel"
             % module.
             {main_channels,
                 [
-                    'target-MasterChan',
-                    'locator-MasterChan'
+                    'target-MasterChan'
                 ]
             },
 
@@ -32,22 +30,25 @@
                     {enabled, true},
                     {port, 8888},
                     {maxconn, 50},
-                    {encoder, bsupercast_encoder_asn}
+                    {encoder, supercast_encoder_json}
                 ]
             },
             {ssl_client,
                 [
                     {enabled, true},
                     {ssl_conf, [
-                        {certificate,   "%INSTALL_DIR%/noctopus-server/cfg/ssl/certificate.pem"},
-                        {caCertificate, "%INSTALL_DIR%/noctopus-server/cfg/ssl/request.pem"},
-                        {key,           "%INSTALL_DIR%/noctopus-server/cfg/ssl/key.pem"}
+                        {certificate,   "etc/ssl/certificate.pem"},
+                        {caCertificate, "etc/ssl/request.pem"},
+                        {key,           "etc/ssl/key.pem"}
                     ]},
                     {port, 4443},
                     {maxconn, 50},
-                    {encoder, bsupercast_encoder_asn}
+                    {encoder, supercast_encoder_json}
                 ]
-            }
+            },
+            {http_sync_dir, "docroot"},
+            {http_port,     8080},
+            {http_use_ssl,  false}
         ]
     }
 ].

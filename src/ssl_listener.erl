@@ -66,7 +66,7 @@ start_link(Port, Module, ConnLimit) when is_integer(Port), is_atom(Module) ->
 %%----------------------------------------------------------------------
 init([Port, Module, ConnLimit]) ->
     process_flag(trap_exit, true),
-    Opts = [binary, {packet, 2}, {reuseaddr, true},
+    Opts = [binary, {packet, 4}, {reuseaddr, true},
             {keepalive, true}, {backlog, 30}, {active, false}],
     case gen_tcp:listen(Port, Opts) of
     {ok, Listen_socket} ->

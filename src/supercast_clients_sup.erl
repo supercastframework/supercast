@@ -22,67 +22,61 @@
 -module(supercast_clients_sup).
 -behaviour(supervisor).
 
--export([start_link/2]).
+-export([start_link/0]).
 -export([init/1]).
 
-start_link(TcpClientConf, SslClientConf) ->
-    supervisor:start_link({local, ?MODULE}, ?MODULE, 
-            [TcpClientConf, SslClientConf]).
+start_link() ->
+    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
-init([TcpClientConf, SslClientConf]) ->
-    ModList1 = create_ssl_client(SslClientConf, []),
-    ModList2 = create_tcp_client(TcpClientConf, ModList1),
+init([]) ->
+    {ok, SslConf} = application:get_env(supercast, ssl_client),
+    {ok, TcpConf} = application:get_env(supercast, tcp_client),
+
+    case proplists:get_value(enabled, SslConf, false) of
+        false ->
+            ML = [];
+        true ->
+            ML = [create_ssl_client(SslConf)]
+    end,
+    case proplists:get_value(enabled, TcpConf, false) of
+        false ->
+            ML2 = ML;
+        true ->
+            ML2 = [create_tcp_client(TcpConf)|ML]
+    end,
 
     {ok,
         {
             {one_for_one, 10, 60},
-            ModList2
+            ML2
         }
     }.
 
-create_ssl_client(SslClientConf, List) ->
-    case lists:keysearch(enabled, 1, SslClientConf) of
-        {value, {enabled, true}} ->
-            {value, {port,      Port}} = 
-                lists:keysearch(port, 1, SslClientConf),
-            {value, {ssl_conf,  SslConfFile}} =
-                lists:keysearch(ssl_conf, 1, SslClientConf),
-            {value, {encoder,   Encoder}} = 
-                lists:keysearch(encoder, 1, SslClientConf),
-            {value, {maxconn,   MaxConn}} = 
-                lists:keysearch(maxconn, 1, SslClientConf),
-            SupEntry = {
-                ssl_server_sup,
-                {ssl_server_sup, start_link, 
-                    [Encoder, Port, MaxConn, SslConfFile]},
-                permanent,
-                2000,
-                supervisor,
-                [ssl_server_sup]
-            },
-            [SupEntry|List];
-        _Other ->
-            List
-    end.
+create_ssl_client(Cfg) ->
+    Port = proplists:get_value(port, Cfg),
+    SslC = proplists:get_value(ssl_conf, Cfg),
+    Enc  = proplists:get_value(encoder, Cfg),
+    MaxC = proplists:get_value(maxconn, Cfg),
 
-create_tcp_client(TcpClientConf,List) ->
-    case lists:keysearch(enabled, 1, TcpClientConf) of
-        {value, {enabled, true}} ->
-            {value, {port,      Port}} = 
-                lists:keysearch(port, 1, TcpClientConf),
-            {value, {encoder,   Encoder}} = 
-                lists:keysearch(encoder, 1, TcpClientConf),
-            {value, {maxconn,   MaxConn}} = 
-                lists:keysearch(maxconn, 1, TcpClientConf),
-            SupEntry = {
-                tcp_server_sup,
-                {tcp_server_sup, start_link, [Port, Encoder, MaxConn]},
-                permanent,
-                2000,
-                supervisor,
-                [tcp_server_sup]
-            },
-            [SupEntry|List];
-        _Other ->
-            List
-    end.
+    {
+        ssl_server_sup,
+        {ssl_server_sup, start_link, [Enc, Port, MaxC, SslC]},
+        permanent,
+        2000,
+        supervisor,
+        [ssl_server_sup]
+    }.
+
+create_tcp_client(Cfg) ->
+    Port = proplists:get_value(port, Cfg),
+    Enc  = proplists:get_value(encoder, Cfg),
+    MaxC = proplists:get_value(maxconn, Cfg),
+
+    {
+        tcp_server_sup,
+        {tcp_server_sup, start_link, [Port, Enc, MaxC]},
+        permanent,
+        2000,
+        supervisor,
+        [tcp_server_sup]
+    }.
