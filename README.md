@@ -8,10 +8,11 @@ Supercast is an application framework offering authentication and access control
 TODO:
 * use the Erlang http_server module,
 * rewrite tcp_client to websocket_client,
-* rewrite Qt/Supercast in Javascript,
+* implement a SupercastClient library in Javascript (see [QtSupercast]),
+* make a websocket tutorial demo (dice war game).
 * doc,
-* make a websocket demo.
 
 Actually undocumented it is not meant to be used as such. It is developped and kept in sync from the [Sysmo-Core] repository.
 [Sysmo-Core]: https://github.com/sysmo-nms/sysmo-core
 [Sysmo]: http://www.sysmo.io/
+[QtSupercast]: https://github.com/sysmo-nms/sysmo-operator/tree/master/network
