@@ -21,8 +21,8 @@
 % @private
 -module(supercast_registrar).
 -behaviour(gen_server).
--include("include/supercast.hrl").
--include("include/logs.hrl").
+-include("supercast.hrl").
+-include("logs.hrl").
 
 -export([
     init/1,

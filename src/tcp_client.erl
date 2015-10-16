@@ -27,8 +27,8 @@
 %%% @end
 -module(tcp_client).
 -behaviour(gen_fsm).
--include("include/supercast.hrl").
--include("include/logs.hrl").
+-include("supercast.hrl").
+-include("logs.hrl").
 
 -export([
     start_link/1,

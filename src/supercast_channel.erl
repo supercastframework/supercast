@@ -21,7 +21,7 @@
 % @doc
 % @end
 -module(supercast_channel).
--include("include/supercast.hrl").
+-include("supercast.hrl").
 
 % local API
 -export([
