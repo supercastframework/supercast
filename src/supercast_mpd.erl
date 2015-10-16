@@ -22,7 +22,7 @@
 -module(supercast_mpd).
 -behaviour(gen_server).
 -include("include/supercast.hrl").
--include_lib("common_hrl/include/logs.hrl").
+-include("include/logs.hrl").
 
 % TODO should use ets for state
 

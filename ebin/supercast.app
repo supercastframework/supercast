@@ -14,7 +14,6 @@
               {registered,[supercast_sup,supercast_server,supercast_mpd,
                            ssl_client_sup,ssl_server_sup,ssl_listener,
                            tcp_server_sup,tcp_client_sup,tcp_listener]},
-              {applications,[kernel,stdlib,crypto,public_key,ssl,xmerl,
-                             j_server]},
+              {applications,[kernel,stdlib,crypto,public_key,ssl,xmerl]},
               {start_phases,[]},
               {mod,{supercast_app,[]}}]}.

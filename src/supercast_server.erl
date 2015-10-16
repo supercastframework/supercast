@@ -22,7 +22,7 @@
 -module(supercast_server).
 -behaviour(gen_server).
 -include("include/supercast.hrl").
--include_lib("common_hrl/include/logs.hrl").
+-include("include/logs.hrl").
 
 -export([
     init/1,
@@ -84,11 +84,8 @@ init([]) ->
     {ok, AuthModule}  = application:get_env(supercast, auth_module),
     {ok, PduDispatch} = application:get_env(supercast, pdu_dispatch),
     {ok, HttpUseSSL}  = application:get_env(supercast, http_use_ssl),
+    {ok, HttpPort}    = application:get_env(supercast, http_port),
 
-    %% {ok, HttpPort}    = application:get_env(supercast, http_port),
-    %% TODO use a configuration store module to avoid dependency
-    %% loop sysmo <-> supercast.
-    HttpPort = j_server:get_http_port(),
     ?LOG_INFO("Get http port", {port, HttpPort}),
 
     case HttpUseSSL of
