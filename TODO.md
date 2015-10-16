@@ -2,14 +2,17 @@ TODO
 ====
 1. delayed sync included in supercast, require that every channel event is
 recognized by supercast,
-2. remove mpd (everything done by the channel process),
-3. remove server (everything done by the client process),
-4. channel live update of their permissions change: unsubscribe connected client not satisfying to the new permission.
+2. remove **supercast_mpd.erl** (everything done by the channel process),
+3. remove **supercast_server.erl** (everything done by the client process),
+4. channel live update of their permissions change: unsubscribe connected client not satisfying to the new permission,
+5. websocket/supercast javascript library,
+6. include simple http server.
+
 
 In the future
 -------------
 Behaviour in a distributed environment with multiple supercast servers
-running (see #todo 2 and 3).
+running (see TODO 2 and 3).
 
 Usages and examples
 ------------------
