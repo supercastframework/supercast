@@ -26,27 +26,13 @@
 
 % TODO should use ets for state
 
--export([
-    init/1,
-    handle_call/3,
-    handle_cast/2,
-    handle_info/2,
-    terminate/2,
-    code_change/3
-]).
+-export([init/1, handle_call/3, handle_cast/2, handle_info/2,
+    terminate/2, code_change/3]).
 
--export([
-    start_link/0,
-    multicast_msg/2,
-    unicast_msg/2,
-    subscribe_stage1/2,
-    subscribe_stage2/2,
-    subscribe_stage3/2,
-    unsubscribe/2,
-    main_chans/0,
-    client_disconnect/1,
-    delete_channel/1
-]).
+-export([start_link/0]).
+-export([multicast_msg/2, unicast_msg/2, subscribe_stage1/2, subscribe_stage2/2,
+    subscribe_stage3/2, unsubscribe/2, main_chans/0,
+    client_disconnect/1, delete_channel/1]).
 
 -record(state, {
     acctrl,

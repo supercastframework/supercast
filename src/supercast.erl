@@ -21,12 +21,7 @@
 -module(supercast).
 -include("supercast.hrl").
 
--export([
-    filter/2,
-    satisfy/2,
-    mpd_state/0,
-    server_state/0
-]).
+-export([filter/2, satisfy/2, mpd_state/0, server_state/0]).
 
 satisfy(CState, Perm) ->
     {ok, AccCtrl} = application:get_env(supercast, acctrl_module),

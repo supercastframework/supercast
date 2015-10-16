@@ -24,25 +24,13 @@
 -include("supercast.hrl").
 -include("logs.hrl").
 
--export([
-    init/1,
-    handle_call/3,
-    handle_cast/2,
-    handle_info/2,
-    terminate/2,
-    code_change/3
-]).
+-export([init/1, handle_call/3, handle_cast/2, handle_info/2,
+    terminate/2, code_change/3]).
 
--export([
-    start_link/0,
+-export([start_link/0]).
 
-    register_name/2,
-    unregister_name/1,
-    whereis_name/1,
-    send/2,
-
-    which_module/1
-]).
+-export([register_name/2, unregister_name/1, whereis_name/1,
+    send/2, which_module/1]).
 
 register_name({Module, Name}, Pid) ->
     gen_server:call(?MODULE, {register_name, Name, Module, Pid}).

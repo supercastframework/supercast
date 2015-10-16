@@ -30,29 +30,13 @@
 -include("supercast.hrl").
 -include("logs.hrl").
 
--export([
-    start_link/1,
-    set_socket/2,
-    auth_set/2,
-    auth_set/5,
-    send/2,
-    raw_send/2
-]).
+-export([start_link/1, set_socket/2, auth_set/2, auth_set/5,
+    send/2, raw_send/2]).
 
--export([
-    init/1,
-    handle_event/3,
-    handle_sync_event/4,
-    handle_info/3,
-    terminate/3,
-    code_change/4
-]).
+-export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
+    terminate/3, code_change/4]).
 
--export([
-    'WAIT_FOR_SOCKET'/2,
-    'WAIT_FOR_CLIENT_AUTH'/2,
-    'AUTHENTICATED'/2
-]).
+-export(['WAIT_FOR_SOCKET'/2, 'WAIT_FOR_CLIENT_AUTH'/2, 'AUTHENTICATED'/2]).
 
 -define(TIMEOUT, 30000).
 -define(MAX_AUTH_ATEMPT, 3).

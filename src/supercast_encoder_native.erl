@@ -21,6 +21,7 @@
 % @private
 -module(supercast_encoder_native).
 -behaviour(supercast_encoder).
+
 -export([encode/1, decode/1]).
 
 encode(Message) ->
