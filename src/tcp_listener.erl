@@ -25,6 +25,7 @@
 %% outside to another module (defined in start_link/3).
 -module(tcp_listener).
 -behaviour(gen_server).
+-include("logs.hrl").
 
 %% External API
 -export([start_link/3]).
@@ -155,13 +156,12 @@ handle_info({inet_async, ListSock, Ref, {ok, CliSocket}},
 
                 {noreply, State#state{acceptor=NewRef}}
             catch exit:Why ->
-                error_logger:error_msg("Error in async accept: ~p.\n", [Why]),
+                ?LOG_ERROR("Error in async accept", Why),
                 {stop, Why, State}
             end;
         false ->
             gen_tcp:close(CliSocket),
-            error_logger:warning_msg("~p connexion limit exeded~n", 
-                    [CliSocket]),
+            ?LOG_WARNING("Connexion limit exeded", CliSocket),
             case prim_inet:async_accept(ListSock, -1) of
                 {ok,    NewRef} -> 
                     ok;
@@ -173,7 +173,7 @@ handle_info({inet_async, ListSock, Ref, {ok, CliSocket}},
 
 handle_info({inet_async, ListSock, Ref, Error}, 
         #state{listener=ListSock, acceptor=Ref} = State) ->
-    error_logger:error_msg("Error in socket acceptor: ~p.\n", [Error]),
+    ?LOG_ERROR("Error in socket acceptor", Error),
     {stop, Error, State};
 
 handle_info(_Info, State) ->

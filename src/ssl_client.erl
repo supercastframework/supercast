@@ -130,9 +130,8 @@ init([Encoder, {Key, Cert, CACert}]) ->
     supercast_server:client_msg(connect, NextState),
     {next_state, 'WAIT_FOR_CLIENT_AUTH', NextState, ?TIMEOUT};
 
-'WAIT_FOR_SOCKET'(Other, State) ->
-    error_logger:error_msg("State:'WAIT_FOR_SOCKET'. Unexpected message:~p\n",
-            [Other]),
+'WAIT_FOR_SOCKET'(_Other, State) ->
+    ?LOG_ERROR("State:'WAIT_FOR_SOCKET'. Unexpected message: ", _Other),
     {next_state, 'WAIT_FOR_SOCKET', State}.
 
 
@@ -201,7 +200,7 @@ init([Encoder, {Key, Cert, CACert}]) ->
     {next_state, 'AUTHENTICATED', State};
 
 'AUTHENTICATED'(timeout, State) ->
-    error_logger:error_msg("~p Timeout - closing.\n", [self()]),
+    ?LOG_ERROR("Timeout - closing:", self()),
     {stop, normal, State};
 
 'AUTHENTICATED'(_Data, State) ->
@@ -234,8 +233,7 @@ handle_event({fexec, Ref, Fun}, StateName,
 
 
 handle_event({ssl_error, Reason}, StateName, State) ->
-    error_logger:info_msg("~p ~p ssl:send/2 error: ~p",
-        [?MODULE,?LINE,Reason]),
+    ?LOG_ERROR("ssl:send/2 error: ", Reason),
     {stop, {error, Reason, StateName}, State};
 
 
@@ -257,12 +255,12 @@ handle_info({ssl,Socket, Bin}, StateName,
     ?MODULE:StateName({client_data, Bin}, StateData);
 
 handle_info({ssl_closed, Socket}, _StateName,
-            #client_state{socket=Socket, addr=Addr} = StateData) ->
-    error_logger:info_msg("~p Client ~p disconnected.\n", [self(), Addr]),
+            #client_state{socket=Socket, addr=_Addr} = StateData) ->
+    ?LOG_INFO("Client disconnected: ", [self(), _Addr]),
     {stop, normal, StateData};
 
 handle_info(_Info, StateName, StateData) ->
-    ?LOG_WARNING("Unknown info", {StateName,_Info,StateData}),
+    ?LOG_WARNING("Unknown info: ", {StateName,_Info,StateData}),
     {noreply, StateName, StateData}.
 
 
