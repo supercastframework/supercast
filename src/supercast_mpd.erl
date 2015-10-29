@@ -37,7 +37,7 @@
 -record(state, {
     acctrl,
     main_chans,
-    chans
+    chans % TODO use ets
 }).
 
 -define(CHAN_TIMEOUT, 1000).
