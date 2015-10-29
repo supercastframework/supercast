@@ -31,7 +31,7 @@ start_link() ->
 init([]) ->
     {ok,
         {
-            {all_for_one, 0, 6000},
+            {one_for_all, 0, 6000},
             [
                 {
                     supercast_registrar,
