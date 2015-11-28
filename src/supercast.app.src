@@ -15,7 +15,7 @@
                 tcp_listener
             ]},
         {applications,
-            [kernel, stdlib, crypto, public_key, ssl, xmerl]
+            [kernel, stdlib, xmerl]
         },
         {start_phases, []},
         {mod, {supercast_app, []}}

@@ -22,6 +22,26 @@
 -include("supercast.hrl").
 
 -export([filter/2, satisfy/2, mpd_state/0, server_state/0]).
+-export([start/0,stop/0]).
+
+%% @spec start() -> ok
+%% @doc Start the {{appid}} server.
+start() ->
+    ensure_started(xmerl),
+    application:start(supercast).
+
+ensure_started(App) ->
+    case application:start(App) of
+        ok ->
+            ok;
+        {error, {already_started, App}} ->
+            ok
+    end.
+
+%% @spec stop() -> ok
+%% @doc Stop the {{appid}} server.
+stop() ->
+    application:stop({{appid}}).
 
 satisfy(CState, Perm) ->
     {ok, AccCtrl} = application:get_env(supercast, acctrl_module),

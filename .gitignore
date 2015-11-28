@@ -1,5 +1,11 @@
+#vim
+*.swo
+*.swp
+
+#erlang
 /ebin
 /doc
+/deps
 
 #intellij
 *.iml
