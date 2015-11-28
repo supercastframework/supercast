@@ -25,7 +25,21 @@
 -export([start/2, stop/1]).
 
 start(_Type, _Args) ->
-    supercast_sup:start_link().
+    Ret = supercast_sup:start_link(),
+	start_listening(),
+	Ret.
 
 stop(_State) ->
 	ok.
+
+start_listening() ->
+	Dispatch = cowboy_router:compile([
+		{'_', [
+			{"/", cowboy_static, {file, "priv/index.html"}},
+			{"/websocket", websocket_endpoint, []},
+			{"/static/[...]", cowboy_static, {dir, "priv/static"}}
+		]}
+	]),
+	{ok, _} = cowboy:start_http(
+		http, 100, [{port, 8080}],
+		[{env, [{dispatch, Dispatch}]}]).

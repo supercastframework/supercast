@@ -64,6 +64,22 @@ init([]) ->
                     infinity,
                     supervisor,
                     [supercast_clients_sup]
+                },
+                {
+                    ranch_app,
+                    {ranch_app, start,[normal,[]]},
+                    permanent,
+                    2000,
+                    supervisor,
+                    [ranch_app]
+                },
+                {
+                    cowboy_app,
+                    {cowboy_app, start,[normal,[]]},
+                    permanent,
+                    2000,
+                    supervisor,
+                    [cowboy_app]
                 }
             ]
         }
