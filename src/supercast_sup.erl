@@ -58,14 +58,6 @@ init([]) ->
                     [supercast_mpd]
                 },
                 {
-                    supercast_clients_sup,
-                    {supercast_clients_sup, start_link, []},
-                    permanent,
-                    infinity,
-                    supervisor,
-                    [supercast_clients_sup]
-                },
-                {
                     ranch_app,
                     {ranch_app, start,[normal,[]]},
                     permanent,

@@ -19,39 +19,23 @@
 % You should have received a copy of the GNU General Public License
 % along with Enms.  If not, see <http://www.gnu.org/licenses/>.
 % @private
--module(tcp_server_sup).
--behaviour(supervisor).
+% @doc
+% @end
+-module(supercast_auth_dev).
+-behaviour(supercast_auth).
+-export([authenticate/2]).
 
--export([start_link/3]).
--export([init/1]).
-
--define(MAXCONN, 50).
-
-start_link(Port, Encoder, MaxConn) ->
-	supervisor:start_link({local, ?MODULE}, ?MODULE, [Port,Encoder,MaxConn]).
-
-init([Port, Encoder, MaxC]) ->
-	{ok,
-		{
-			{one_for_one, 1, 60},
-			[
-				{
-					tcp_listener,
-					{tcp_listener, start_link, 
-                        [Port, tcp_client, MaxC]},
-					permanent,
-					2000,
-					worker,
-					[tcp_listener]
-				},
-				{
-					tcp_client_sup,
-					{tcp_client_sup, start_link, [Encoder]},
-					permanent,
-					infinity,
-					supervisor,
-					[tcp_client_sup]
-				}
-			]
-		}
-	}.
+%% --------------------------------------------------------------
+%% USER API
+%% --------------------------------------------------------------
+authenticate(UName, UPass) ->
+    case {UName, UPass} of
+        {"admuser", "passwd"} ->
+            Roles = ["admin", "wheel", "other"],
+            {ok, Roles};
+        {"simpleuser", "passwd"} ->
+            Roles = ["wheel"],
+            {ok, Roles};
+        _ ->
+            fail
+    end.

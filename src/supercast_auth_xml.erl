@@ -21,21 +21,38 @@
 % @private
 % @doc
 % @end
--module(supercast_auth_local).
+-module(supercast_auth_xml).
 -behaviour(supercast_auth).
+-include_lib("xmerl/include/xmerl.hrl").
+
 -export([authenticate/2]).
+
+-define(USERS_XML, "etc/users.xml").
 
 %% --------------------------------------------------------------
 %% USER API
 %% --------------------------------------------------------------
 authenticate(UName, UPass) ->
-    case {UName, UPass} of
-        {"admuser", "passwd"} ->
-            Roles = ["admin", "wheel", "other"],
-            {ok, Roles};
-        {"simpleuser", "passwd"} ->
-            Roles = ["wheel"],
-            {ok, Roles};
+    {#xmlDocument{content=DocumentContent}, _} = xmerl_scan:file(?USERS_XML, [{document,true}]),
+    #xmlElement{content=XmlUsers} = lists:keyfind(xml_users, 2, DocumentContent),
+
+    Users = lists:filter(fun(E) -> is_record(E, xmlElement) end, XmlUsers),
+    UDefs = lists:map(fun(#xmlElement{attributes=Attr,content=GContent}) ->
+        #xmlAttribute{value=User} = lists:keyfind('Id', 2, Attr),
+        #xmlAttribute{value=Pass} = lists:keyfind('Password', 2, Attr),
+
+        Groups = lists:filter(fun(E) -> is_record(E, xmlElement) end, GContent),
+        GDefs  = lists:map(fun(#xmlElement{attributes=GAttr}) ->
+            #xmlAttribute{value=Group} = lists:keyfind('Id', 2, GAttr),
+            Group
+        end, Groups),
+        
+        {User, Pass, GDefs}
+    end, Users),
+
+    case lists:keyfind(UName, 1, UDefs) of
+        {_, UPass, Groups} ->
+            {ok, Groups};
         _ ->
             fail
     end.
