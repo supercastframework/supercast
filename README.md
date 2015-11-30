@@ -12,8 +12,7 @@ recognized by supercast,
 2. remove **supercast_mpd.erl** (everything done by **supercast_channel** processes),
 3. remove **supercast_server.erl** (everything done by **(tcp|ssl|ws|wss)_client** processes),
 4. channel live update of their permissions change: unsubscribe connected client not satisfying to the new permission,
-5. websocket/supercast javascript library,
-6. include simple http server.
+5. supercast javascript library,
 
 
 In the future
