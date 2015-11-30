@@ -74,22 +74,15 @@ handle_client_command(Mod, Msg, CState) ->
 init([]) ->
     {ok, AuthModule}  = application:get_env(supercast, auth_module),
     {ok, PduDispatch} = application:get_env(supercast, pdu_dispatch),
-    {ok, HttpUseSSL}  = application:get_env(supercast, http_use_ssl),
     {ok, HttpPort}    = application:get_env(supercast, http_port),
 
     ?LOG_INFO("Get http port", {port, HttpPort}),
 
-    case HttpUseSSL of
-        true ->
-            DataProto = "https";
-        false ->
-            DataProto = "http"
-    end,
     {ok, #state{
         auth_mod   = AuthModule,
         dispatch   = PduDispatch,
         http_port  = HttpPort,
-        http_proto = DataProto
+        http_proto = "http"
         }
     }.
 
