@@ -33,11 +33,14 @@ stop(_State) ->
 	ok.
 
 start_listening() ->
+    {ok, DocRoot} = application:get_env(supercast, http_docroot),
+    DocrootPath = filename:absname(DocRoot),
+    DocrootIndex = filename:join(DocrootPath, "index.html"),
 	Dispatch = cowboy_router:compile([
 		{'_', [
-			{"/", cowboy_static, {file, "priv/index.html"}},
-			{"/websocket", ranch_websocket_endpoint, []},
-			{"/static/[...]", cowboy_static, {dir, "priv/static"}}
+            {"/", cowboy_static, {file, DocrootIndex}},
+			{"/[...]", cowboy_static, {dir, DocrootPath}},
+			{"/websocket", ranch_websocket_endpoint, []}
 		]}
 	]),
 
