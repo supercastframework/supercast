@@ -93,10 +93,11 @@ raw_send(SockState, Pdu) ->
 %%%------------------------------------------------------------------------
 %%% Callback functions from gen_fsm
 %%%------------------------------------------------------------------------
-init([_Ref, Socket, Transport, _Opts]) ->
+init([RanchRef, Socket, Transport, _Opts]) ->
     process_flag(trap_exit, true),
     State = #client_state{
         ranch_transport = Transport,
+        ranch_ref       = RanchRef,
         encoding_mod    = ?ENCODER,
         socket          = Socket,
         ref             = make_ref(),
@@ -105,13 +106,19 @@ init([_Ref, Socket, Transport, _Opts]) ->
         authenticated   = false},
     {ok, 'WAIT_RANCH_ACK', State}.
 
-'WAIT_RANCH_ACK'({shoot, supercast_tcp, Transport, Socket, AckTimeout}, State) ->
+'WAIT_RANCH_ACK'({shoot, RanchRef, Transport, Socket, AckTimeout},
+        #client_state{ranch_ref=RanchRef} = State) ->
     Transport:accept_ack(Socket,AckTimeout),
     TCPOpts = [{reuseaddr, true}, {keepalive, true}, {packet, 4},
         {send_timeout_close, true}, {active, once}],
     Transport:setopts(Socket, TCPOpts),
     supercast_server:client_msg(connect, State),
-    {next_state, 'UNAUTHENTICATED', State, ?TIMEOUT}.
+    {next_state, 'UNAUTHENTICATED', State, ?TIMEOUT};
+
+'WAIT_RANCH_ACK'({shoot,_RanchRef,_,_,_}, State) ->
+    % ignore message for any other ranch refs
+    ?LOG_INFO("wait ack unknown ref", _RanchRef),
+    {next_state, 'WAIT_RANCH_ACK', State}.
 
 %%-------------------------------------------------------------------------
 %% process user credentials here
@@ -239,9 +246,13 @@ handle_info({tcp_closed, Socket}, _StateName,
     ?LOG_INFO("Client disconnected", [self(), _Addr]),
     {stop, normal, StateData};
 
-handle_info({shoot,_,_,_,_} = Info, StateName, StateData) ->
+handle_info({shoot,_,_,_,_} = Info, 'WAIT_RANCH_ACK', StateData) ->
     gen_fsm:send_event(self(), Info),
-    {next_state, StateName, StateData};
+    {next_state, 'WAIT_RANCH_ACK', StateData};
+handle_info({shoot,_RanchRef,_,_,_}, AnyState, StateData) ->
+    % ignore message for any other states
+    ?LOG_WARNING("shoot for unknown state", {_RanchRef, AnyState}),
+    {next_state, AnyState, StateData};
 handle_info(_Info, StateName, StateData) ->
     ?LOG_WARNING("Unknown info", {_Info,StateName,StateData}),
     {stop, StateName, StateData}.

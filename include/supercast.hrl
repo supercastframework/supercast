@@ -54,6 +54,7 @@
     communication_mod,          % must implement the X:send(Socket, Msg) fun
     authenticated,              % boolean
     ranch_transport,
+    ranch_ref,
     pid                         % pid() of the gen_server howner of the socket
 }). 
 
