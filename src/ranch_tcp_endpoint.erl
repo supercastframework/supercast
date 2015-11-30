@@ -25,125 +25,132 @@
 %%% @doc
 %%% tcp client interface
 %%% @end
--module(tcp_client).
+-module(ranch_tcp_endpoint).
 -behaviour(gen_fsm).
+-behaviour(ranch_protocol).
 -include("supercast.hrl").
 -include("logs.hrl").
 
--export([start_link/1, set_socket/2, auth_set/2, auth_set/5,
-    send/2, raw_send/2]).
+% ranch_protocol
+-export([start_link/4]).
 
--export([init/1, handle_event/3, handle_sync_event/4, handle_info/3,
-    terminate/3, code_change/4]).
+% supercast
+-export([auth_set/2,auth_set/5,send/2,raw_send/2]).
 
--export(['WAIT_FOR_SOCKET'/2, 'WAIT_FOR_CLIENT_AUTH'/2, 'AUTHENTICATED'/2]).
+% gen_fsm
+-export([init/1,handle_event/3,handle_sync_event/4,handle_info/3,
+    terminate/3,code_change/4]).
+
+% gen_fsm states
+-export(['WAIT_RANCH_ACK'/2,'UNAUTHENTICATED'/2,'AUTHENTICATED'/2]).
 
 -define(TIMEOUT, 30000).
 -define(MAX_AUTH_ATEMPT, 3).
 
+-define(ENCODER, supercast_encoder_json).
 
-start_link([Encoder]) ->
-    gen_fsm:start_link(?MODULE, [Encoder], []).
+start_link(Ref, Socket, Transport, Opts) ->
+    Ret = gen_fsm:start_link(?MODULE, [Ref, Socket, Transport, Opts], []),
+    ?LOG_INFO("ret is",Ret),
+    Ret.
 
 
 %%%------------------------------------------------------------------------
 %%% API
 %%%------------------------------------------------------------------------
-set_socket(Pid, Socket) when is_pid(Pid), is_port(Socket) ->
-    gen_fsm:send_event(Pid, {socket_ready, Socket}).
-
 auth_set(success,
     #client_state{pid = Pid, ref = Ref}, Name, Roles, AllowedMods) ->
+    ?LOG_INFO("auth set"),
     gen_fsm:send_event(Pid, {success, Ref, Name, Roles, AllowedMods}).
 
-auth_set(auth_fail,     NewState) ->
+auth_set(auth_fail, NewState) ->
+    ?LOG_INFO("auth fail", NewState),
     Pid         = NewState#client_state.pid,
     Ref         = NewState#client_state.ref,
     UserName    = NewState#client_state.user_name,
     gen_fsm:send_event(Pid, {auth_fail, Ref, UserName}).
 
 send(SockState, {function, Msg}) ->
+    ?LOG_INFO("send", Msg),
     gen_fsm:send_all_state_event(SockState#client_state.pid,
         {fexec, SockState#client_state.ref, Msg});
 
 send(SockState, {pdu, Msg}) ->
+    ?LOG_INFO("send", Msg),
     gen_fsm:send_all_state_event(SockState#client_state.pid,
         {encode_send_msg, SockState#client_state.ref, Msg});
 
 send(SockState, Msg) ->
+    ?LOG_INFO("send", Msg),
     gen_fsm:send_all_state_event(SockState#client_state.pid,
         {encode_send_msg, SockState#client_state.ref, Msg}).
 
 raw_send(SockState, Pdu) ->
+    ?LOG_INFO("raw send", Pdu),
     gen_fsm:send_all_state_event(SockState#client_state.pid,
         {send_pdu, SockState#client_state.ref, Pdu}).
 
 %%%------------------------------------------------------------------------
 %%% Callback functions from gen_fsm
 %%%------------------------------------------------------------------------
-init([Encoder]) ->
+init([_Ref, Socket, Transport, _Opts]) ->
     process_flag(trap_exit, true),
-    {ok, 'WAIT_FOR_SOCKET', #client_state{
-        encoding_mod        = Encoder,
-        communication_mod   = gen_tcp,
-        state               = 'WAIT_FOR_SOCKET'}}.
-
-
-'WAIT_FOR_SOCKET'({socket_ready, Socket}, State) when is_port(Socket) ->
-    %% Now we own the socket!
-    inet:setopts(Socket, [{active, once}]),
-    {ok, {IP, Port}} = inet:peername(Socket),
-    NextState = State#client_state{
+    State = #client_state{
+        ranch_transport = Transport,
+        encoding_mod    = ?ENCODER,
         socket          = Socket,
-        addr            = IP,
-        port            = Port,
         ref             = make_ref(),
         pid             = self(),
         module          = ?MODULE,
-        state           = 'WAIT_FOR_CLIENT_AUTH'},
-    supercast_server:client_msg(connect, NextState),
-    {next_state, 'WAIT_FOR_CLIENT_AUTH', NextState, ?TIMEOUT};
+        authenticated   = false},
+    {ok, 'WAIT_RANCH_ACK', State}.
 
-'WAIT_FOR_SOCKET'(_Other, State) ->
-    ?LOG_ERROR("State:'WAIT_FOR_SOCKET' Unexpected message", _Other),
-    {next_state, 'WAIT_FOR_SOCKET', State}.
-
+'WAIT_RANCH_ACK'({shoot, supercast_tcp, Transport, Socket, AckTimeout}, State) ->
+    Transport:accept_ack(Socket,AckTimeout),
+    TCPOpts = [{reuseaddr, true}, {keepalive, true}, {packet, 4},
+        {send_timeout_close, true}, {active, once}],
+    Transport:setopts(Socket, TCPOpts),
+    supercast_server:client_msg(connect, State),
+    {next_state, 'UNAUTHENTICATED', State, ?TIMEOUT}.
 
 %%-------------------------------------------------------------------------
 %% process user credentials here
 %%-------------------------------------------------------------------------
-'WAIT_FOR_CLIENT_AUTH'({client_data, Pdu},
-        #client_state{encoding_mod = Encoder} = State) ->
+'UNAUTHENTICATED'({client_data, Pdu},
+        #client_state{encoding_mod=Encoder} = State) ->
+    ?LOG_INFO("data received", Pdu),
     supercast_server:client_msg({message, Encoder:decode(Pdu)}, State),
-    {next_state, 'WAIT_FOR_CLIENT_AUTH', State, ?TIMEOUT};
+    {next_state, 'UNAUTHENTICATED', State, ?TIMEOUT};
 
-'WAIT_FOR_CLIENT_AUTH'({success, Ref, Name, Roles, Mods},
+'UNAUTHENTICATED'({success, Ref, Name, Roles, Mods},
         #client_state{ref = Ref} = State) ->
     NextState = State#client_state{
         user_name       = Name,
         user_roles      = Roles,
         user_modules    = Mods,
-        state           = 'AUTHENTICATED'},
+        authenticated   = true},
     {next_state, 'AUTHENTICATED', NextState};
 
-'WAIT_FOR_CLIENT_AUTH'({auth_fail, Ref, _User},
+'UNAUTHENTICATED'({auth_fail, Ref, _User},
         #client_state{ref = Ref} = State) ->
+    io:format("failed to register_user"),
     ?LOG_INFO("Failed to register use", _User),
-    {next_state, 'WAIT_FOR_CLIENT_AUTH', State, ?TIMEOUT};
+    {next_state, 'UNAUTHENTICATED', State, ?TIMEOUT};
 
-'WAIT_FOR_CLIENT_AUTH'(timeout,
+'UNAUTHENTICATED'(timeout,
         #client_state{auth_request_count = ?MAX_AUTH_ATEMPT} = State) ->
     {stop, normal, State};
 
-'WAIT_FOR_CLIENT_AUTH'(timeout, State) ->
+'UNAUTHENTICATED'(timeout, State) ->
     NextState = State#client_state{
         auth_request_count = State#client_state.auth_request_count + 1},
     supercast_server:client_msg(connect, NextState),
-    {next_state, 'WAIT_FOR_CLIENT_AUTH', NextState, ?TIMEOUT};
+    {next_state, 'UNAUTHENTICATED', NextState, ?TIMEOUT};
 
-'WAIT_FOR_CLIENT_AUTH'(_Data, State) ->
-    ?LOG_WARNING("Ignoring data", {self(), _Data}),
-    {next_state, 'WAIT_FOR_CLIENT_AUTH', State}.
+'UNAUTHENTICATED'(_Data, State) ->
+    ?LOG_INFO("Ignoring data", {self(), _Data}),
+    io:format("ignoring data"),
+    {next_state, 'UNAUTHENTICATED', State}.
 
 %%-------------------------------------------------------------------------
 %% application running
@@ -154,9 +161,10 @@ init([Encoder]) ->
     {next_state, 'AUTHENTICATED', State};
 
 'AUTHENTICATED'({synchronize_chan, Ref, Fun}, #client_state{
-        ref             = Ref,
-        socket          = Sock,
-        encoding_mod    = Encoder} = State
+        ref          = Ref,
+        ranch_transport = Transport,
+        socket       = Sock,
+        encoding_mod = Encoder} = State
     ) ->
     {ok, PduList} = Fun(),
     PduList2 = lists:filter(fun(X) ->
@@ -169,7 +177,7 @@ init([Encoder]) ->
     end, PduList),
     lists:foreach(fun(Msg) ->
         Pdu = Encoder:encode(Msg),
-        gen_tcp:send(Sock, Pdu)
+        Transport:send(Sock, Pdu)
     end, PduList2),
     {next_state, 'AUTHENTICATED', State};
 
@@ -183,19 +191,17 @@ init([Encoder]) ->
 
 
 handle_event({send_pdu, Ref, Pdu}, StateName,
-        #client_state{ref = Ref} = State) ->
-    Socket  = State#client_state.socket,
-    gen_tcp:send(Socket, Pdu),
+        #client_state{ref=Ref, ranch_transport=Transport, socket=Socket} = State) ->
+    Transport:send(Socket, Pdu),
     {next_state, StateName, State};
 handle_event({send_pdu, _, _}, StateName, State) ->
     {next_state, StateName, State};
 
 handle_event({encode_send_msg, Ref, Msg}, StateName,
-        #client_state{ref = Ref} = State) ->
-    Socket  = State#client_state.socket,
-    Encoder = State#client_state.encoding_mod,
+        #client_state{ref=Ref,socket=Socket,
+            encoding_mod=Encoder,ranch_transport=Transport} = State) ->
     Pdu = Encoder:encode(Msg),
-    gen_tcp:send(Socket, Pdu),
+    Transport:send(Socket, Pdu),
     {next_state, StateName, State};
 handle_event({encode_send_msg, _, _}, StateName, State) ->
     {next_state, StateName, State};
@@ -233,9 +239,12 @@ handle_info({tcp_closed, Socket}, _StateName,
     ?LOG_INFO("Client disconnected", [self(), _Addr]),
     {stop, normal, StateData};
 
+handle_info({shoot,_,_,_,_} = Info, StateName, StateData) ->
+    gen_fsm:send_event(self(), Info),
+    {next_state, StateName, StateData};
 handle_info(_Info, StateName, StateData) ->
     ?LOG_WARNING("Unknown info", {_Info,StateName,StateData}),
-    {noreply, StateName, StateData}.
+    {stop, StateName, StateData}.
 
 
 

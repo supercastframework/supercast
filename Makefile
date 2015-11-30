@@ -4,7 +4,7 @@ DEST   := $(PREFIX)$(PROJECT)
 .PHONY: all run clean clean-all doc app
 
 all:
-	@rebar prepare-deps
+	@rebar -D debug prepare-deps
 
 run: all
 	@erl -pa ebin -pa deps/*/ebin -config sys -eval "supercast:start()."

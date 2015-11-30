@@ -36,10 +36,15 @@ start_listening() ->
 	Dispatch = cowboy_router:compile([
 		{'_', [
 			{"/", cowboy_static, {file, "priv/index.html"}},
-			{"/websocket", websocket_endpoint, []},
+			{"/websocket", ranch_websocket_endpoint, []},
 			{"/static/[...]", cowboy_static, {dir, "priv/static"}}
 		]}
 	]),
-	{ok, _} = cowboy:start_http(
-		http, 100, [{port, 8080}],
-		[{env, [{dispatch, Dispatch}]}]).
+
+    {ok, HTTPPort} = application:get_env(supercast, http_port),
+	{ok, _} = cowboy:start_http(supercast_http, 10,
+        [{port, HTTPPort}],[{env, [{dispatch, Dispatch}]}]),
+
+	{ok, TCPPort} = application:get_env(supercast, tcp_port),
+    {ok, _} = ranch:start_listener(supercast_tcp, 10, ranch_tcp,
+        [{port, TCPPort}], ranch_tcp_endpoint, []).

@@ -30,7 +30,7 @@
 %% --------------------------------------------------------------
 authenticate(UName, UPass) ->
     case {UName, UPass} of
-        {"admuser", "passwd"} ->
+        {"admin", "password"} ->
             Roles = ["admin", "wheel", "other"],
             {ok, Roles};
         {"simpleuser", "passwd"} ->
