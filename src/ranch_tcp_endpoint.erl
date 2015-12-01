@@ -104,8 +104,9 @@ init([RanchRef, Socket, Transport, _Opts]) ->
         authenticated   = false},
     {ok, 'WAIT_RANCH_ACK', State}.
 
-'WAIT_RANCH_ACK'({shoot, RanchRef, Transport, Socket, AckTimeout},
+'WAIT_RANCH_ACK'({shoot, RanchRef, Transport, Socket, AckTimeout} = _Ack,
         #client_state{ranch_ref=RanchRef} = State) ->
+    ?LOG_INFO("ranch ack", _Ack),
     Transport:accept_ack(Socket, AckTimeout),
     TCPOpts = [{reuseaddr, true}, {keepalive, true}, {packet, 4},
         {send_timeout_close, true}, {active, once}],
@@ -138,7 +139,6 @@ init([RanchRef, Socket, Transport, _Opts]) ->
 
 'UNAUTHENTICATED'({auth_fail, Ref, _User},
         #client_state{ref = Ref} = State) ->
-    io:format("failed to register_user"),
     ?LOG_INFO("Failed to register use", _User),
     {next_state, 'UNAUTHENTICATED', State, ?TIMEOUT};
 
@@ -154,7 +154,6 @@ init([RanchRef, Socket, Transport, _Opts]) ->
 
 'UNAUTHENTICATED'(_Data, State) ->
     ?LOG_INFO("Ignoring data", {self(), _Data}),
-    io:format("ignoring data"),
     {next_state, 'UNAUTHENTICATED', State}.
 
 %%-------------------------------------------------------------------------
