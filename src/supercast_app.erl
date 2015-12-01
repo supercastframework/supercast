@@ -45,10 +45,10 @@ start_listening() ->
     ]),
 
     {ok, HTTPPort} = application:get_env(supercast, http_port),
-    %% TODO compress does not work
-    %% TODO keep-alive does not work
+
+    %% keep-alive header is not shown because it is implicit 
+    %% (HTTP1.0: close HTTP1.1: keep-alive)
     {ok, _} = cowboy:start_http(supercast_http, 50, [{port, HTTPPort}], [
-        {compress, true},
         {env, [{dispatch, Dispatch}]},
         {max_keepalive, 50}
     ]),
