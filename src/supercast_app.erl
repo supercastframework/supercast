@@ -39,7 +39,7 @@ start_listening() ->
     Dispatch = cowboy_router:compile([
         {'_', [
             {"/websocket", ranch_websocket_endpoint, []},
-            {"/", cowboy_static, {file, DocrootIndex}},
+            {"/", cowboy_static, {file, DocrootIndex, [{etag,false}]}},
             {"/[...]", cowboy_static, {dir, DocrootPath, [{etag,false}]}}
         ]}
     ]),
