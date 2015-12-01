@@ -65,12 +65,11 @@ raw_send(#client_state{pid=Pid, ref=Ref}, Pdu) ->
     erlang:send(Pid, {send, Ref, Pdu}).
 
 init({tcp, http}, _Req, _Opts) ->
-    ?LOG_ERROR("init http"),
+    ?LOG_INFO("init http"),
 	{upgrade, protocol, cowboy_websocket}.
 
 websocket_init(_TransportName, Req, _Opts) ->
-    ?LOG_ERROR("init websocket"),
-	%erlang:start_timer(1000, self(), <<"Hello!">>),
+    ?LOG_INFO("init websocket"),
     State = #client_state{
         pid           = self(),
         ref           = make_ref(),
@@ -81,24 +80,24 @@ websocket_init(_TransportName, Req, _Opts) ->
 	{ok, Req, State}.
 
 websocket_handle({binary, Pdu}, Req, State) ->
-    ?LOG_ERROR("data reivceved", {Pdu, State}),
+    ?LOG_INFO("data reivceved", {Pdu, State}),
     supercast_server:client_msg({message, ?ENCODER:decode(Pdu)}, State),
 	{ok, Req, State};
 websocket_handle(_Data, Req, State) ->
-    ?LOG_ERROR("Unknown handle", {_Data,Req,State}),
+    ?LOG_INFO("Unknown handle", {_Data,Req,State}),
 	{ok, Req, State}.
 
 websocket_info({send, Ref, Pdu}, Req, #client_state{ref=Ref} = State) ->
-    ?LOG_ERROR(" send", {Pdu, State}),
+    ?LOG_INFO(" send", {Pdu, State}),
     {reply, {binary, Pdu}, Req, State};
 websocket_info({encode_send, Ref, Msg},
         Req, #client_state{ref=Ref} = State) ->
-    ?LOG_ERROR("encode send", {Msg, State}),
+    ?LOG_INFO("encode send", {Msg, State}),
     Pdu = ?ENCODER:encode(Msg),
     {reply, {binary, Pdu}, Req, State};
 websocket_info({auth_success, Ref, Name, Roles, Mods},
         Req, #client_state{ref=Ref} = State) ->
-    ?LOG_ERROR("auth success", {Name, State}),
+    ?LOG_INFO("auth success", {Name, State}),
     NextState = State#client_state{
         user_name = Name,
         user_roles = Roles,
@@ -107,18 +106,14 @@ websocket_info({auth_success, Ref, Name, Roles, Mods},
     {ok, Req, NextState};
 websocket_info({auth_fail, Ref, _UserName},
         Req, #client_state{ref=Ref} = State) ->
-    ?LOG_ERROR("Failed to register user", _UserName),
+    ?LOG_INFO("Failed to register user", _UserName),
     {ok, Req, State};
-%websocket_info({timeout, _Ref, _Msg}, Req, State) ->
-	%erlang:start_timer(1000, self(), <<"How' you doin'?">>),
-    %{ok, Req, State};
-	%{reply, {text, Msg}, Req, State};
 websocket_info(_Info, Req, State) ->
-    ?LOG_ERROR("Unknown info", {_Info,Req,State}),
+    ?LOG_INFO("Unknown info", {_Info,Req,State}),
 	{ok, Req, State}.
 
 websocket_terminate(_Reason, _Req, State) ->
     supercast_server:client_msg(disconnect, State),
-    ?LOG_ERROR("Terminated", {_Reason,_Req,State}),
+    ?LOG_INFO("Terminated", {_Reason,_Req,State}),
 	ok.
 
