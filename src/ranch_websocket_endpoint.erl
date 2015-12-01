@@ -16,39 +16,35 @@
 %% @end
 auth_set(auth_success, #client_state{pid=Pid, ref=Ref},
         Name, Roles, AllowedMods) ->
-    Pid ! {auth_success, Ref, Name, Roles, AllowedMods},
-    ok.
+    cast(Pid, {auth_success, Ref, Name, Roles, AllowedMods}).
 
 %% @spec auth_set(success, #client_state{}) -> ok
 %% @doc
 %% Inform client of authentication failure
 %% @end
 auth_set(auth_fail, #client_state{pid=Pid, ref=Ref, user_name=UserName}) ->
-    Pid ! {auth_fail, Ref, UserName},
-    ok.
+    cast(Pid, {auth_fail, Ref, UserName}).
 
 %% @spec send(#client_state{}, {pdu, Message}) -> ok
 %% @doc
 %% Send a message to the client
 %% @end
 send(#client_state{pid=Pid, ref=Ref}, Message) ->
-    Pid ! {encode_send, Ref, Message},
-    ok.
+    cast(Pid, {encode_send, Ref, Message}).
 
 %% @spec send(#client_state{}, {pdu, Message}) -> ok
 %% @doc
 %% Send a pdu to the client
 %% @end
 raw_send(#client_state{pid=Pid, ref=Ref}, Pdu) ->
-    Pid ! {send, Ref, Pdu},
-    ok.
+    cast(Pid, {send, Ref, Pdu}).
 
 init({tcp, http}, _Req, _Opts) ->
-    io:format("hello init tcp~n"),
+    ?LOG_INFO("init http"),
 	{upgrade, protocol, cowboy_websocket}.
 
 websocket_init(_TransportName, Req, _Opts) ->
-    io:format("hello init ws~n"),
+    ?LOG_INFO("init websocket"),
 	erlang:start_timer(1000, self(), <<"Hello!">>),
     State = #client_state{pid=self(), ref=make_ref(),
         module=?MODULE, authenticated=false},
@@ -82,3 +78,5 @@ websocket_terminate(_Reason, _Req, State) ->
     supercast_server:client_msg(disconnect, State),
     ?LOG_INFO("Terminated", {_Reason,_Req,State}),
 	ok.
+
+cast(Pid, Val) -> Pid ! Val, ok.
