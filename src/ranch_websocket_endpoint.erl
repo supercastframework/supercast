@@ -77,6 +77,7 @@ websocket_init(_TransportName, Req, _Opts) ->
         module        = ?MODULE,
         encoding_mod  = ?ENCODER,
         authenticated = false},
+    supercast_server:client_msg(connect, State),
 	{ok, Req, State}.
 
 websocket_handle({binary, Pdu}, Req, State) ->

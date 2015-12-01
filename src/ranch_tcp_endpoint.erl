@@ -149,7 +149,6 @@ init([RanchRef, Socket, Transport, _Opts]) ->
 'UNAUTHENTICATED'(timeout, State) ->
     NextState = State#client_state{
         auth_request_count = State#client_state.auth_request_count + 1},
-    supercast_server:client_msg(connect, NextState),
     {next_state, 'UNAUTHENTICATED', NextState, ?TIMEOUT};
 
 'UNAUTHENTICATED'(_Data, State) ->
