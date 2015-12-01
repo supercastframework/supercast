@@ -26,28 +26,33 @@
 
 start(_Type, _Args) ->
     Ret = supercast_sup:start_link(),
-	start_listening(),
-	Ret.
+    start_listening(),
+    Ret.
 
 stop(_State) ->
-	ok.
+    ok.
 
 start_listening() ->
     {ok, DocRoot} = application:get_env(supercast, http_docroot),
     DocrootPath = filename:absname(DocRoot),
     DocrootIndex = filename:join(DocrootPath, "index.html"),
-	Dispatch = cowboy_router:compile([
-		{'_', [
-			{"/websocket", ranch_websocket_endpoint, []},
+    Dispatch = cowboy_router:compile([
+        {'_', [
+            {"/websocket", ranch_websocket_endpoint, []},
             {"/", cowboy_static, {file, DocrootIndex}},
-			{"/[...]", cowboy_static, {dir, DocrootPath}}
-		]}
-	]),
+            {"/[...]", cowboy_static, {dir, DocrootPath, [{etag,false}]}}
+        ]}
+    ]),
 
     {ok, HTTPPort} = application:get_env(supercast, http_port),
-	{ok, _} = cowboy:start_http(supercast_http, 10,
-        [{port, HTTPPort}],[{compress,true}, {env, [{dispatch, Dispatch}]}]),
+    %% TODO compress does not work
+    %% TODO keep-alive does not work
+    {ok, _} = cowboy:start_http(supercast_http, 50, [{port, HTTPPort}], [
+        {compress, true},
+        {env, [{dispatch, Dispatch}]},
+        {max_keepalive, 50}
+    ]),
 
-	{ok, TCPPort} = application:get_env(supercast, tcp_port),
+    {ok, TCPPort} = application:get_env(supercast, tcp_port),
     {ok, _} = ranch:start_listener(supercast_tcp, 10, ranch_tcp,
         [{port, TCPPort}], ranch_tcp_endpoint, []).
