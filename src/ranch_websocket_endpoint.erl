@@ -79,7 +79,7 @@ websocket_init(_TransportName, Req, _Opts) ->
     supercast_server:client_msg(connect, State),
 	{ok, Req, State}.
 
-websocket_handle({binary, Pdu}, Req, State) ->
+websocket_handle({text, Pdu}, Req, State) ->
     ?LOG_INFO("data reivceved", {Pdu, State}),
     supercast_server:client_msg({message, ?ENCODER:decode(Pdu)}, State),
 	{ok, Req, State};
@@ -89,12 +89,12 @@ websocket_handle(_Data, Req, State) ->
 
 websocket_info({send, Ref, Pdu}, Req, #client_state{ref=Ref} = State) ->
     ?LOG_INFO(" send", {Pdu, State}),
-    {reply, {binary, Pdu}, Req, State};
+    {reply, {text, Pdu}, Req, State};
 websocket_info({encode_send, Ref, Msg},
         Req, #client_state{ref=Ref} = State) ->
     ?LOG_INFO("encode send", {Msg, State}),
     Pdu = ?ENCODER:encode(Msg),
-    {reply, {binary, Pdu}, Req, State};
+    {reply, {text, Pdu}, Req, State};
 websocket_info({auth_success, Ref, Name, Roles, Mods},
         Req, #client_state{ref=Ref} = State) ->
     ?LOG_INFO("auth success", {Name, State}),
