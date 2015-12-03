@@ -20,5 +20,5 @@ clean-all: clean
 doc:
 	@rebar -r doc
 
-app:
-	@rebar -r create template=supercastapp dest=$(DEST) appid=$(PROJECT)
+#app:
+	#@rebar -r create template=supercastapp dest=$(DEST) appid=$(PROJECT)
