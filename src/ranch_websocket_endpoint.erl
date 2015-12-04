@@ -64,11 +64,11 @@ raw_send(#client_state{pid=Pid, ref=Ref}, Pdu) ->
     erlang:send(Pid, {send, Ref, Pdu}).
 
 init({tcp, http}, _Req, _Opts) ->
-    ?LOG_INFO("init http"),
+    ?SUPERCAST_LOG_INFO("init http"),
 	{upgrade, protocol, cowboy_websocket}.
 
 websocket_init(_TransportName, Req, _Opts) ->
-    ?LOG_INFO("init websocket"),
+    ?SUPERCAST_LOG_INFO("init websocket"),
     State = #client_state{
         pid           = self(),
         ref           = make_ref(),
@@ -79,24 +79,24 @@ websocket_init(_TransportName, Req, _Opts) ->
 	{ok, Req, State}.
 
 websocket_handle({text, Pdu}, Req, State) ->
-    ?LOG_INFO("data reivceved", {Pdu, State}),
+    ?SUPERCAST_LOG_INFO("data reivceved", {Pdu, State}),
     supercast_server:client_msg({message, ?ENCODER:decode(Pdu)}, State),
 	{ok, Req, State};
 websocket_handle(_Data, Req, State) ->
-    ?LOG_INFO("Unknown handle", {_Data,Req,State}),
+    ?SUPERCAST_LOG_INFO("Unknown handle", {_Data,Req,State}),
 	{ok, Req, State}.
 
 websocket_info({send, Ref, Pdu}, Req, #client_state{ref=Ref} = State) ->
-    ?LOG_INFO(" send", {Pdu, State}),
+    ?SUPERCAST_LOG_INFO(" send", {Pdu, State}),
     {reply, {text, Pdu}, Req, State};
 websocket_info({encode_send, Ref, Msg},
         Req, #client_state{ref=Ref} = State) ->
-    ?LOG_INFO("encode send", {Msg, State}),
+    ?SUPERCAST_LOG_INFO("encode send", {Msg, State}),
     Pdu = ?ENCODER:encode(Msg),
     {reply, {text, Pdu}, Req, State};
 websocket_info({auth_success, Ref, Name, Roles, Mods},
         Req, #client_state{ref=Ref} = State) ->
-    ?LOG_INFO("auth success", {Name, State}),
+    ?SUPERCAST_LOG_INFO("auth success", {Name, State}),
     NextState = State#client_state{
         user_name = Name,
         user_roles = Roles,
@@ -105,14 +105,14 @@ websocket_info({auth_success, Ref, Name, Roles, Mods},
     {ok, Req, NextState};
 websocket_info({auth_fail, Ref, _UserName},
         Req, #client_state{ref=Ref} = State) ->
-    ?LOG_INFO("Failed to register user", _UserName),
+    ?SUPERCAST_LOG_INFO("Failed to register user", _UserName),
     {ok, Req, State};
 websocket_info(_Info, Req, State) ->
-    ?LOG_INFO("Unknown info", {_Info,Req,State}),
+    ?SUPERCAST_LOG_INFO("Unknown info", {_Info,Req,State}),
 	{ok, Req, State}.
 
 websocket_terminate(_Reason, _Req, State) ->
     supercast_server:client_msg(disconnect, State),
-    ?LOG_INFO("Terminated", {_Reason,_Req,State}),
+    ?SUPERCAST_LOG_INFO("Terminated", {_Reason,_Req,State}),
 	ok.
 

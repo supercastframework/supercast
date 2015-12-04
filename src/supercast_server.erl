@@ -74,7 +74,7 @@ init([]) ->
     {ok, PduDispatch} = application:get_env(supercast, pdu_dispatch),
     {ok, HttpPort}    = application:get_env(supercast, http_port),
 
-    ?LOG_INFO("Get http port", {port, HttpPort}),
+    ?SUPERCAST_LOG_INFO("Get http port", {port, HttpPort}),
 
     {ok, #state{
         auth_mod   = AuthModule,
@@ -106,13 +106,13 @@ handle_call({get, auth_mod}, _F, #state{auth_mod = AuthMod} = S) ->
 
 % CLIENT RELATED CALLS
 handle_call(_Call, _F, S) ->
-    ?LOG_WARNING("Unknown call", _Call),
+    ?SUPERCAST_LOG_WARNING("Unknown call", _Call),
     {noreply, S}.
 
 % CAST
 % @private
 handle_cast(_Cast, S) ->
-    ?LOG_WARNING("Unknown cast", _Cast),
+    ?SUPERCAST_LOG_WARNING("Unknown cast", _Cast),
     {noreply, S}.
 
 % OTHER
@@ -157,7 +157,7 @@ handle_client_msg({"supercast", "subscribe", Contents}, ClientState) ->
     Channel =  binary_to_list(proplists:get_value(<<"channel">>, Values)),
     case supercast_registrar:whereis_name(Channel) of
         undefined ->
-            ?LOG_ERROR("Unknown chan name", Channel),
+            ?SUPERCAST_LOG_ERROR("Unknown chan name", Channel),
             send(ClientState, pdu(subscribeErr, {QueryId, Channel}));
         _ ->
             case supercast_mpd:subscribe_stage1(Channel, ClientState) of

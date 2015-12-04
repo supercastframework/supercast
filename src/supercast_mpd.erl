@@ -75,7 +75,7 @@ main_chans() ->
 subscribe_stage1(Channel, CState) ->
     % Does the channel exist?
     Rep = supercast_channel:get_chan_perms(Channel),
-    ?LOG_INFO("Subscribe statge 1", {Channel, Rep}),
+    ?SUPERCAST_LOG_INFO("Subscribe statge 1", {Channel, Rep}),
     case Rep of
         #perm_conf{} = Perm ->
             gen_server:call(?MODULE, {subscribe_stage1, Channel, CState, Perm});
@@ -202,7 +202,7 @@ handle_call(dump, _F, S) ->
     {reply, {ok, S}, S};
 
 handle_call(Call, _F, S) ->
-    ?LOG_ERROR("Handle unknown call", Call),
+    ?SUPERCAST_LOG_ERROR("Handle unknown call", Call),
     {reply, error, S}.
 
 % CAST
@@ -241,7 +241,7 @@ handle_cast({multicast, Chan, Perm, Pdu},
     {noreply, S};
 
 handle_cast(Cast, S) ->
-    ?LOG_ERROR("Unknown cast", Cast),
+    ?SUPERCAST_LOG_ERROR("Unknown cast", Cast),
     {noreply, S}.
 
 % OTHER
@@ -312,7 +312,7 @@ del_chan_subscriber(CState, Channel, Chans) ->
             case lists:delete(CState, CList) of
                 [] ->
                     % if list empty, delete the channel tuple
-                    ?LOG_INFO("Channel deleted", Channel),
+                    ?SUPERCAST_LOG_INFO("Channel deleted", Channel),
                     lists:keydelete(Channel, 1, Chans);
                 NewCList ->
                     lists:keyreplace(Channel, 1, Chans, {Channel, NewCList})

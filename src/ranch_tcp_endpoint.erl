@@ -57,33 +57,33 @@ start_link(Ref, Socket, Transport, Opts) ->
 %%%------------------------------------------------------------------------
 auth_set(success,
     #client_state{pid = Pid, ref = Ref}, Name, Roles, AllowedMods) ->
-    ?LOG_INFO("auth set"),
+    ?SUPERCAST_LOG_INFO("auth set"),
     gen_fsm:send_event(Pid, {success, Ref, Name, Roles, AllowedMods}).
 
 auth_set(auth_fail, NewState) ->
-    ?LOG_INFO("auth fail", NewState),
+    ?SUPERCAST_LOG_INFO("auth fail", NewState),
     Pid         = NewState#client_state.pid,
     Ref         = NewState#client_state.ref,
     UserName    = NewState#client_state.user_name,
     gen_fsm:send_event(Pid, {auth_fail, Ref, UserName}).
 
 send(SockState, {function, Msg}) ->
-    ?LOG_INFO("send", Msg),
+    ?SUPERCAST_LOG_INFO("send", Msg),
     gen_fsm:send_all_state_event(SockState#client_state.pid,
         {fexec, SockState#client_state.ref, Msg});
 
 send(SockState, {pdu, Msg}) ->
-    ?LOG_INFO("send", Msg),
+    ?SUPERCAST_LOG_INFO("send", Msg),
     gen_fsm:send_all_state_event(SockState#client_state.pid,
         {encode_send_msg, SockState#client_state.ref, Msg});
 
 send(SockState, Msg) ->
-    ?LOG_INFO("send", Msg),
+    ?SUPERCAST_LOG_INFO("send", Msg),
     gen_fsm:send_all_state_event(SockState#client_state.pid,
         {encode_send_msg, SockState#client_state.ref, Msg}).
 
 raw_send(SockState, Pdu) ->
-    ?LOG_INFO("raw send", Pdu),
+    ?SUPERCAST_LOG_INFO("raw send", Pdu),
     gen_fsm:send_all_state_event(SockState#client_state.pid,
         {send_pdu, SockState#client_state.ref, Pdu}).
 
@@ -105,7 +105,7 @@ init([RanchRef, Socket, Transport, _Opts]) ->
 
 'WAIT_RANCH_ACK'({shoot, RanchRef, Transport, Socket, AckTimeout} = _Ack,
         #client_state{ranch_ref=RanchRef} = State) ->
-    ?LOG_INFO("ranch ack", _Ack),
+    ?SUPERCAST_LOG_INFO("ranch ack", _Ack),
     Transport:accept_ack(Socket, AckTimeout),
     TCPOpts = [{reuseaddr, true}, {keepalive, true}, {packet, 4},
         {send_timeout_close, true}, {active, once}],
@@ -115,7 +115,7 @@ init([RanchRef, Socket, Transport, _Opts]) ->
 
 'WAIT_RANCH_ACK'({shoot,_RanchRef,_,_,_}, State) ->
     % ignore message for any other ranch refs
-    ?LOG_INFO("wait ack unknown ref", _RanchRef),
+    ?SUPERCAST_LOG_INFO("wait ack unknown ref", _RanchRef),
     {next_state, 'WAIT_RANCH_ACK', State}.
 
 %%-------------------------------------------------------------------------
@@ -123,7 +123,7 @@ init([RanchRef, Socket, Transport, _Opts]) ->
 %%-------------------------------------------------------------------------
 'UNAUTHENTICATED'({client_data, Pdu},
         #client_state{encoding_mod=Encoder} = State) ->
-    ?LOG_INFO("data received", Pdu),
+    ?SUPERCAST_LOG_INFO("data received", Pdu),
     supercast_server:client_msg({message, Encoder:decode(Pdu)}, State),
     {next_state, 'UNAUTHENTICATED', State, ?TIMEOUT};
 
@@ -138,7 +138,7 @@ init([RanchRef, Socket, Transport, _Opts]) ->
 
 'UNAUTHENTICATED'({auth_fail, Ref, _User},
         #client_state{ref = Ref} = State) ->
-    ?LOG_INFO("Failed to register use", _User),
+    ?SUPERCAST_LOG_INFO("Failed to register use", _User),
     {next_state, 'UNAUTHENTICATED', State, ?TIMEOUT};
 
 'UNAUTHENTICATED'(timeout,
@@ -151,7 +151,7 @@ init([RanchRef, Socket, Transport, _Opts]) ->
     {next_state, 'UNAUTHENTICATED', NextState, ?TIMEOUT};
 
 'UNAUTHENTICATED'(_Data, State) ->
-    ?LOG_INFO("Ignoring data", {self(), _Data}),
+    ?SUPERCAST_LOG_INFO("Ignoring data", {self(), _Data}),
     {next_state, 'UNAUTHENTICATED', State}.
 
 %%-------------------------------------------------------------------------
@@ -181,11 +181,11 @@ init([RanchRef, Socket, Transport, _Opts]) ->
     {next_state, 'AUTHENTICATED', State};
 
 'AUTHENTICATED'(timeout, State) ->
-    ?LOG_ERROR("Timeout - closing", self()),
+    ?SUPERCAST_LOG_ERROR("Timeout - closing", self()),
     {stop, normal, State};
 
 'AUTHENTICATED'(_Data, State) ->
-    ?LOG_WARNING("Running Ignoring data", {self(), _Data}),
+    ?SUPERCAST_LOG_WARNING("Running Ignoring data", {self(), _Data}),
     {next_state, 'AUTHENTICATED', State}.
 
 
@@ -212,18 +212,18 @@ handle_event({fexec, Ref, Fun}, StateName,
 
 
 handle_event({tcp_error, Reason}, StateName, State) ->
-    ?LOG_ERROR("gen_tcp:send/2 error", Reason),
+    ?SUPERCAST_LOG_ERROR("gen_tcp:send/2 error", Reason),
     {stop, {error, Reason, StateName}, State};
 
 
 handle_event(Event, StateName, StateData) ->
-    ?LOG_WARNING("Unknonw event type", {Event, StateName, StateData}),
+    ?SUPERCAST_LOG_WARNING("Unknonw event type", {Event, StateName, StateData}),
     {stop, {StateName, undefined_event, Event}, StateData}.
 
 
 
 handle_sync_event(Event, _From, StateName, StateData) ->
-    ?LOG_WARNING("Unknonw event type", {Event, StateName, StateData}),
+    ?SUPERCAST_LOG_WARNING("Unknonw event type", {Event, StateName, StateData}),
     {stop, {StateName, undefined_event, Event}, StateData}.
 
 
@@ -239,22 +239,22 @@ handle_info({shoot,_,_,_,_} = Info, 'WAIT_RANCH_ACK', StateData) ->
 
 handle_info({tcp_closed, Socket}, _StateName,
             #client_state{socket=Socket, addr=_Addr} = StateData) ->
-    ?LOG_INFO("Client disconnected", [self(), _Addr]),
+    ?SUPERCAST_LOG_INFO("Client disconnected", [self(), _Addr]),
     {stop, normal, StateData};
 
 handle_info({shoot,_RanchRef,_,_,_}, AnyState, StateData) ->
     % ignore message for any other states
-    ?LOG_WARNING("shoot for unknown state", {_RanchRef, AnyState}),
+    ?SUPERCAST_LOG_WARNING("shoot for unknown state", {_RanchRef, AnyState}),
     {next_state, AnyState, StateData};
 
 handle_info(_Info, StateName, StateData) ->
-    ?LOG_WARNING("Unknown info", {_Info,StateName,StateData}),
+    ?SUPERCAST_LOG_WARNING("Unknown info", {_Info,StateName,StateData}),
     {stop, StateName, StateData}.
 
 
 
 terminate(_Reason, _StateName, State) ->
-    ?LOG_INFO("Terminate", {_StateName, _Reason, State}),
+    ?SUPERCAST_LOG_INFO("Terminate", {_StateName, _Reason, State}),
     supercast_server:client_msg(disconnect, State),
     ok.
 
