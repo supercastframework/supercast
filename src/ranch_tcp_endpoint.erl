@@ -29,7 +29,6 @@
 -behaviour(gen_fsm).
 -behaviour(ranch_protocol).
 -include("supercast.hrl").
--include("logs.hrl").
 
 % ranch_protocol
 -export([start_link/4]).
@@ -47,7 +46,7 @@
 -define(TIMEOUT, 30000).
 -define(MAX_AUTH_ATEMPT, 3).
 
--define(ENCODER, supercast_encoder_json).
+-define(ENCODER, jsx).
 
 start_link(Ref, Socket, Transport, Opts) ->
     gen_fsm:start_link(?MODULE, [Ref, Socket, Transport, Opts], []).

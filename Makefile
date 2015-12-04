@@ -1,24 +1,30 @@
 PREFIX := ../
 DEST   := $(PREFIX)$(PROJECT)
 
+REBAR = rebar
+
 .PHONY: all run clean clean-all doc app
 
 all:
-	@rebar -D debug prepare-deps
+	@$(REBAR) -D debug prepare-deps
+
+edoc: all
+	@$(REBAR) doc
 
 run: all
 	@erl -pa ebin -pa deps/*/ebin -config sys -eval "supercast:start()."
 
+test:
+	@rm -rf .eunit
+	@mkdir -p .eunit
+	@$(REBAR) eunit
+
 clean:
-	@rebar clean
+	@$(REBAR) clean
 
-clean-all: clean
-	@rm -rf deps
-	@rm -rf ebin
-	@rm -rf doc
+clean-deps: clean
+	@$(REBAR) delete-deps
 
-doc:
-	@rebar -r doc
-
-#app:
-	#@rebar -r create template=supercastapp dest=$(DEST) appid=$(PROJECT)
+app:
+	@[ -z "$(PROJECT)" ] && echo "ERROR: required variable PROJECT missing" 1>&2 && exit 1 || true
+	@$(REBAR) -r create template=supercastapp dest=$(DEST) appid=$(PROJECT)

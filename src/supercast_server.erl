@@ -22,7 +22,6 @@
 -module(supercast_server).
 -behaviour(gen_server).
 -include("supercast.hrl").
--include("logs.hrl").
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
     terminate/2, code_change/3]).
@@ -56,12 +55,11 @@ client_msg(connect, ClientState) ->
 client_msg(disconnect, ClientState) ->
     handle_client_msg(disconnect, ClientState);
 client_msg({message, Json}, ClientState) ->
-    {struct, Contents} = Json,
 
-    From = binary_to_list(proplists:get_value(<<"from">>, Contents)),
-    Type = binary_to_list(proplists:get_value(<<"type">>, Contents)),
+    From = binary_to_list(proplists:get_value(<<"from">>, Json)),
+    Type = binary_to_list(proplists:get_value(<<"type">>, Json)),
 
-    handle_client_msg({From, Type, Contents}, ClientState).
+    handle_client_msg({From, Type, Json}, ClientState).
 
 % from himself
 handle_client_command(Mod, Msg, CState) ->
@@ -139,7 +137,7 @@ handle_client_msg(disconnect, ClientState) ->
     supercast_mpd:client_disconnect(ClientState);
 
 handle_client_msg({"supercast", "authResp", Contents}, ClientState) ->
-    {struct, Values} = proplists:get_value(<<"value">>, Contents),
+    Values = proplists:get_value(<<"value">>, Contents),
     Name = binary_to_list(proplists:get_value(<<"name">>,     Values)),
     Pass = binary_to_list(proplists:get_value(<<"password">>, Values)),
     CMod = ClientState#client_state.module,
@@ -154,7 +152,7 @@ handle_client_msg({"supercast", "authResp", Contents}, ClientState) ->
     end;
 
 handle_client_msg({"supercast", "subscribe", Contents}, ClientState) ->
-    {struct, Values} = proplists:get_value(<<"value">>, Contents),
+    Values = proplists:get_value(<<"value">>, Contents),
     QueryId = proplists:get_value(<<"queryId">>, Values),
     Channel =  binary_to_list(proplists:get_value(<<"channel">>, Values)),
     case supercast_registrar:whereis_name(Channel) of
@@ -172,7 +170,7 @@ handle_client_msg({"supercast", "subscribe", Contents}, ClientState) ->
     end;
 
 handle_client_msg({"supercast", "unsubscribe", Contents}, ClientState) ->
-    {struct, Values} = proplists:get_value(<<"value">>, Contents),
+    Values = proplists:get_value(<<"value">>, Contents),
     QueryId = proplists:get_value(<<"queryId">>, Values),
     Channel =  binary_to_list(proplists:get_value(<<"channel">>, Values)),
     ok = supercast_mpd:unsubscribe(Channel, ClientState),
@@ -184,92 +182,78 @@ handle_client_msg({OtherMod, Type, Contents}, ClientState) ->
 % server PDUs
 % @private
 pdu(serverInfo, {AuthType, DataPort, DataProto}) ->
-    {struct,
-        [
-            {<<"from">>, <<"supercast">>},
-            {<<"type">>, <<"serverInfo">>},
-            {<<"value">>, {struct, [
-                {<<"dataPort">>,  DataPort},
-                {<<"dataProto">>, list_to_binary(DataProto)},
-                {<<"authType">>,  list_to_binary(AuthType)}]}
-            }
-        ]
-    };
+    [
+        {<<"from">>, <<"supercast">>},
+        {<<"type">>, <<"serverInfo">>},
+        {<<"value">>, [
+            {<<"dataPort">>,  DataPort},
+            {<<"dataProto">>, list_to_binary(DataProto)},
+            {<<"authType">>,  list_to_binary(AuthType)}]
+        }
+    ];
 
 pdu(authAck, {Groups, StaticChans}) ->
     BinGroups       = [list_to_binary(G) || G <- Groups],
     BinStaticChans  = [atom_to_binary(G, utf8) || G <- StaticChans],
-    {struct,
         [
             {<<"from">>, <<"supercast">>},
             {<<"type">>, <<"authAck">>},
-            {<<"value">>, {struct, [
-                {<<"groups">>, {array, BinGroups}},
-                {<<"staticChans">>, {array, BinStaticChans}}]}
+            {<<"value">>, [
+                {<<"groups">>,      BinGroups},
+                {<<"staticChans">>, BinStaticChans}]
             }
-        ]
-    };
+        ];
 
 pdu(authErr, {Name, Password}) ->
-    {struct,
         [
             {<<"from">>, <<"supercast">>},
             {<<"type">>, <<"authErr">>},
-            {<<"value">>, {struct, [
+            {<<"value">>, [
                 {<<"error">>, <<"Bad password">>},
                 {<<"name">>, list_to_binary(Name)},
-                {<<"password">>, list_to_binary(Password)}]}
+                {<<"password">>, list_to_binary(Password)}]
             }
-        ]
-    };
+        ];
 
 pdu(subscribeOk, {QueryId, Channel}) ->
-    {struct,
         [
             {<<"from">>, <<"supercast">>},
             {<<"type">>, <<"subscribeOk">>},
-            {<<"value">>, {struct, [
+            {<<"value">>, [
                 {<<"queryId">>, QueryId},
-                {<<"channel">>, list_to_binary(Channel)}]}
+                {<<"channel">>, list_to_binary(Channel)}]
             }
-        ]
-    };
+        ];
 
 pdu(subscribeErr, {QueryId, Channel}) ->
-    {struct,
         [
             {<<"from">>, <<"supercast">>},
             {<<"type">>, <<"subscribeErr">>},
-            {<<"value">>, {struct, [
+            {<<"value">>, [
                 {<<"queryId">>, QueryId},
-                {<<"channel">>, list_to_binary(Channel)}]}
+                {<<"channel">>, list_to_binary(Channel)}]
             }
-        ]
-    };
+        ];
 
 pdu(unsubscribeOk, {QueryId, Channel}) ->
-    {struct,
         [
             {<<"from">>, <<"supercast">>},
             {<<"type">>, <<"unsubscribeOk">>},
-            {<<"value">>, {struct, [
+            {<<"value">>, [
                 {<<"queryId">>, QueryId},
-                {<<"channel">>, list_to_binary(Channel)}]}
+                {<<"channel">>, list_to_binary(Channel)}]
             }
-        ]
-    };
+        ];
 
 pdu(unsubscribeErr, {QueryId, Channel}) ->
-    {struct,
         [
             {<<"from">>, <<"supercast">>},
             {<<"type">>, <<"unsubscribeOk">>},
-            {<<"value">>, {struct, [
+            {<<"value">>, [
                 {<<"queryId">>, QueryId},
-                {<<"channel">>, list_to_binary(Channel)}]}
+                {<<"channel">>, list_to_binary(Channel)}]
             }
-        ]
-    }.
+        ].
 
 send(#client_state{module = CMod} = ClientState, Msg) ->
     CMod:send(ClientState, Msg).
