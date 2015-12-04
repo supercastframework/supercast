@@ -1,0 +1,12 @@
+%% -*- erlang -*-
+{variables, [{appid,  "supercastapp"},
+             {version,"0.1"},
+             {port,    8080},
+             {dest, "{{appid}}"}]}.
+{dir, "{{dest}}"}.
+{template, "supercastapp_skell/src/supercastapp.app.src", "{{dest}}/src/{{appid}}.app.src"}.
+{template, "supercastapp_skell/src/supercastapp.erl", "{{dest}}/src/{{appid}}.erl"}.
+{template, "supercastapp_skell/start-dev.sh", "{{dest}}/start-dev.sh"}.
+{template, "supercastapp_skell/Makefile", "{{dest}}/Makefile"}.
+{file,     "supercastapp_skell/rebar.config", "{{dest}}/rebar.config"}.
+{chmod, 8#755, "{{dest}}/start-dev.sh"}.
