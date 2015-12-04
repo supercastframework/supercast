@@ -1,3 +1,4 @@
+[![Build Status](https://travis-ci.org/sysmo-nms/supercast.svg)](https://travis-ci.org/sysmo-nms/supercast)
 Supercast
 =========
 
