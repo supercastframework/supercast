@@ -102,7 +102,7 @@ function log_in () {
 
 function handleOpenEvent() {
     connected = true;
-    showScreen('<span style="color: green;">CONNECTED </span>');
+    showScreen('<span>CONNECTED</span>');
     $("#connected").fadeIn('slow');
     $("#content").fadeIn('slow');
 };
@@ -111,11 +111,11 @@ function handleCloseEvent() {
     connected = false;
     ws_worker.terminate();
     ws_worker = undefined;
-    showScreen('<span style="color: red;">DISCONNECTED </span>');
+    showScreen('<span>DISCONNECTED</span>');
 };
 
 function handleMessageEvent(obj) {
-    showScreen('<span style="color: blue;">MESSAGE: ' + JSON.stringify(obj) + '</span>');
+    showScreen('<span>MESSAGE: ' + JSON.stringify(obj) + '</span>');
     if (obj['from'] == "supercast") {
         if (obj['type'] == "serverInfo") {
             data_port = obj['value']['dataPort'];
@@ -126,12 +126,12 @@ function handleMessageEvent(obj) {
 };
 
 function handleErrorEvent(data) {
-    showScreen('<span style="color: red;">ERROR: ' + data+ '</span>');
+    showScreen('<span>' + data+ '</span>');
 };
 
 
 function showScreen(txt) {
-    $('#output').prepend('<p>' + txt + '</p>');
+    $('#output').prepend(txt + '<br/>');
 };
 
 function clearScreen() {

@@ -1,0 +1,80 @@
+div, dl, dt, dd, ul, ol, li, h1, h2, h3, h4, h5, h6, pre, form, p, blockquote, th, td {
+    margin: 0px;
+    padding: 0px;
+}
+
+body {
+    font-family: "Helvetica Neue",Helvetica,Roboto,Arial,sans-serif;
+    font-weight: normal;
+    line-height: 1.5;
+    color: #0A0A0A;
+}
+
+html, body {
+    font-size: 100%;
+    height: 100%;
+}
+
+html {
+    font-family: sans-serif;
+}
+
+.docs-code .bash {
+    border: 0px none;
+    background: #333 none repeat scroll 0% 0%;
+    color: #FFF;
+    border-radius: 4px;
+    position: relative;
+    padding-top: 2rem;
+    height: 300px;
+    width: 900px;
+}
+
+.docs-code, pre {
+    position: relative;
+}
+
+.docs-code code, pre code {
+    display: block;
+    overflow-x: auto;
+    padding: 1rem;
+    background: #F9F9F9 none repeat scroll 0% 0%;
+    margin-bottom: 1.5rem;
+}
+
+code {
+    font-family: Consolas,"Liberation Mono",Courier,monospace;
+    font-weight: 100;
+    color: #0A0A0A;
+    background-color: #E6E6E6;
+    border: 1px solid #CACACA;
+    padding: 0.125rem 0.3125rem 0.0625rem;
+}
+
+code, kbd, pre, samp {
+    font-family: monospace,monospace;
+    font-size: x-small;
+}
+
+pre {
+    overflow: auto;
+}
+
+*, *::before, *::after {
+    box-sizing: inherit;
+}
+
+body {
+    font-family: "Helvetica Neue",Helvetica,Roboto,Arial,sans-serif;
+    font-weight: normal;
+    line-height: 1.5;
+    color: #0A0A0A;
+}
+
+html, body {
+    font-size: 100%;
+}
+
+html {
+    font-family: sans-serif;
+}
