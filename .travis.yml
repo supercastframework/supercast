@@ -1,0 +1,5 @@
+language: erlang
+
+sudo: false
+
+script: "rebar prepare-deps && rebar skip_deps=true eunit"
