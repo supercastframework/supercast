@@ -5,7 +5,6 @@
         {modules, []},
         {registered, [
                 supercast_sup,
-                supercast_server,
                 supercast_mpd
             ]},
 
