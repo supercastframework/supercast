@@ -75,12 +75,12 @@ websocket_init(_TransportName, Req, _Opts) ->
         module        = ?MODULE,
         encoding_mod  = ?ENCODER,
         authenticated = false},
-    supercast_server:client_msg(connect, State),
+    ?MODULE:send(State, supercast_endpoint:init_pdu()),
 	{ok, Req, State}.
 
 websocket_handle({text, Pdu}, Req, State) ->
     ?SUPERCAST_LOG_INFO("data reivceved", {Pdu, State}),
-    supercast_server:client_msg({message, ?ENCODER:decode(Pdu)}, State),
+    supercast_endpoint:handle_message(?ENCODER:decode(Pdu), State),
 	{ok, Req, State};
 websocket_handle(_Data, Req, State) ->
     ?SUPERCAST_LOG_INFO("Unknown handle", {_Data,Req,State}),
@@ -112,7 +112,7 @@ websocket_info(_Info, Req, State) ->
 	{ok, Req, State}.
 
 websocket_terminate(_Reason, _Req, State) ->
-    supercast_server:client_msg(disconnect, State),
+    supercast_endpoint:client_disconnected(State),
     ?SUPERCAST_LOG_INFO("Terminated", {_Reason,_Req,State}),
 	ok.
 

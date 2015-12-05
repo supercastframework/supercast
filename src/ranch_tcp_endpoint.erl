@@ -110,7 +110,8 @@ init([RanchRef, Socket, Transport, _Opts]) ->
     TCPOpts = [{reuseaddr, true}, {keepalive, true}, {packet, 4},
         {send_timeout_close, true}, {active, once}],
     Transport:setopts(Socket, TCPOpts),
-    supercast_server:client_msg(connect, State),
+    PduTerm = supercast_endpoint:init_pdu(),
+    Transport:send(?ENCODER:encode(PduTerm), Socket),
     {next_state, 'UNAUTHENTICATED', State, ?TIMEOUT};
 
 'WAIT_RANCH_ACK'({shoot,_RanchRef,_,_,_}, State) ->
@@ -124,7 +125,7 @@ init([RanchRef, Socket, Transport, _Opts]) ->
 'UNAUTHENTICATED'({client_data, Pdu},
         #client_state{encoding_mod=Encoder} = State) ->
     ?SUPERCAST_LOG_INFO("data received", Pdu),
-    supercast_server:client_msg({message, Encoder:decode(Pdu)}, State),
+    supercast_endpoint:handle_message(Encoder:decode(Pdu), State),
     {next_state, 'UNAUTHENTICATED', State, ?TIMEOUT};
 
 'UNAUTHENTICATED'({success, Ref, Name, Roles, Mods},
@@ -159,7 +160,7 @@ init([RanchRef, Socket, Transport, _Opts]) ->
 %%-------------------------------------------------------------------------
 'AUTHENTICATED'({client_data, Pdu},
         #client_state{encoding_mod=Encoder} = State) ->
-    supercast_server:client_msg({message, Encoder:decode(Pdu)}, State),
+    supercast_endpoint:handle_message(Encoder:decode(Pdu), State),
     {next_state, 'AUTHENTICATED', State};
 
 'AUTHENTICATED'({synchronize_chan, Ref, Fun},
@@ -255,7 +256,7 @@ handle_info(_Info, StateName, StateData) ->
 
 terminate(_Reason, _StateName, State) ->
     ?SUPERCAST_LOG_INFO("Terminate", {_StateName, _Reason, State}),
-    supercast_server:client_msg(disconnect, State),
+    supercast_endpoint:client_disconnected(State),
     ok.
 
 

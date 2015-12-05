@@ -42,14 +42,6 @@ init([]) ->
                     [supercast_registrar]
                 },
                 {
-                    supercast_server,
-                    {supercast_server,start_link, []},
-                    permanent,
-                    2000,
-                    worker,
-                    [supercast_server]
-                },
-                {
                     supercast_mpd,
                     {supercast_mpd,start_link, []},
                     permanent,
