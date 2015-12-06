@@ -17,7 +17,7 @@ run: compile
 test: compile
 	@rm -rf .eunit
 	@mkdir -p .eunit
-	@$(REBAR) eunit
+	@$(REBAR) skip_deps=true eunit
 
 clean:
 	@$(REBAR) clean
