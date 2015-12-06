@@ -14,7 +14,7 @@ edoc:
 run: compile
 	@erl -pa ebin -pa deps/*/ebin -config sys -eval "supercast:start()."
 
-test:
+test: compile
 	@rm -rf .eunit
 	@mkdir -p .eunit
 	@$(REBAR) eunit
