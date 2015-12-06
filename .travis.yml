@@ -5,4 +5,4 @@ otp_release:
 
 sudo: false
 
-script: "rebar prepare-deps && rebar skip_deps=true eunit"
+script: "make test"

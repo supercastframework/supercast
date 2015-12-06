@@ -5,13 +5,13 @@ REBAR = rebar
 
 .PHONY: all run clean clean-all doc app
 
-all:
+compile:
 	@$(REBAR) -D debug prepare-deps
 
-edoc: all
+edoc:
 	@$(REBAR) doc
 
-run: all
+run: compile
 	@erl -pa ebin -pa deps/*/ebin -config sys -eval "supercast:start()."
 
 test:
@@ -22,6 +22,7 @@ test:
 clean:
 	@$(REBAR) clean
 	@rm -rf doc
+	@rm -rf ebin
 
 clean-deps: clean
 	@$(REBAR) delete-deps
