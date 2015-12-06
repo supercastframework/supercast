@@ -40,7 +40,7 @@ ensure_started(App) ->
 %% @spec stop() -> ok
 %% @doc Stop the supercast server.
 stop() ->
-    application:stop({{appid}}).
+    application:stop(supercast).
 
 %% @spec satisfy(CState, Perm) -> true | false
 %%      CState = #client_state{}
