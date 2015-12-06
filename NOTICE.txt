@@ -17,17 +17,3 @@
 %% under the License.
 %% -------------------------------------------------------------------
 
-%% @doc
-%% A module implementing this behaviour must export the function statisfy/3.
-%% statisfy/2 must take as arguments read | write a list of #client_state
-%% and a term().
-%% Return a list of #client_state wich satisfy with the access control
-%% constraint defined by term().
-%% term() is dependant on the return of beha_supercast_auth module wich is used by
-%% the application.
-%% @end
--module(supercast_acctrl).
-
--callback satisfy(Mod :: read | write, Things::[any()], PermConf::any()) ->
-    {ok, Allowed::[any()]} |
-    {ok, Allowed::[]}.
