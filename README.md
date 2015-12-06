@@ -1,6 +1,6 @@
-[![Build Status](https://travis-ci.org/sysmo-nms/supercast.svg)](https://travis-ci.org/sysmo-nms/supercast)
 Supercast
 =========
+[![Build Status](https://travis-ci.org/sysmo-nms/supercast.svg)](https://travis-ci.org/sysmo-nms/supercast)
 
 Actually undocumented Supercast is not meant to be used as such. It isdevelopped and kept in sync from the [Sysmo-Core] repository.
 
