@@ -1,46 +1,45 @@
-% This file is part of "Enms" (http://sourceforge.net/projects/enms/)
-% Based on the work from Serge Aleynikov <saleyn at gmail.com> on the article
-% www.trapexit.org/Building_a_Non-blocking_TCP_server_using_OTP_principles
-% Copyright (C) 2012 <Sébastien Serre sserre.bx@gmail.com>
-%
-% Enms is a Network Management System aimed to manage and monitor SNMP
-% targets, monitor network hosts and services, provide a consistent
-% documentation system and tools to help network professionals
-% to have a wide perspective of the networks they manage.
-%
-% Enms is free software: you can redistribute it and/or modify
-% it under the terms of the GNU General Public License as published by
-% the Free Software Foundation, either version 3 of the License, or
-% (at your option) any later version.
-%
-% Enms is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-%
-% You should have received a copy of the GNU General Public License
-% along with Enms.  If not, see <http://www.gnu.org/licenses/>.
-
-%%% @private
-%%% @doc
-%%% tcp client interface
-%%% @end
+%% This file is part of "Enms" (http://sourceforge.net/projects/enms/)
+%% Based on the work from Serge Aleynikov <saleyn at gmail.com> on the article
+%% www.trapexit.org/Building_a_Non-blocking_TCP_server_using_OTP_principles
+%% Copyright (C) 2012 <Sébastien Serre sserre.bx@gmail.com>
+%%
+%% Enms is a Network Management System aimed to manage and monitor SNMP
+%% targets, monitor network hosts and services, provide a consistent
+%% documentation system and tools to help network professionals
+%% to have a wide perspective of the networks they manage.
+%%
+%% Enms is free software: you can redistribute it and/or modify
+%% it under the terms of the GNU General Public License as published by
+%% the Free Software Foundation, either version 3 of the License, or
+%% (at your option) any later version.
+%%
+%% Enms is distributed in the hope that it will be useful,
+%% but WITHOUT ANY WARRANTY; without even the implied warranty of
+%% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%% GNU General Public License for more details.
+%%
+%% You should have received a copy of the GNU General Public License
+%% along with Enms.  If not, see <http://www.gnu.org/licenses/>.
+%% @private
+%% @doc
+%% tcp client interface
+%% @end
 -module(ranch_tcp_endpoint).
 -behaviour(gen_fsm).
 -behaviour(ranch_protocol).
 -include("supercast.hrl").
 
-% ranch_protocol
+%% ranch_protocol
 -export([start_link/4]).
 
-% supercast
+%% supercast
 -export([auth_set/2,auth_set/5,send/2,raw_send/2]).
 
-% gen_fsm
+%% gen_fsm
 -export([init/1,handle_event/3,handle_sync_event/4,handle_info/3,
     terminate/3,code_change/4]).
 
-% gen_fsm states
+%% gen_fsm states
 -export(['WAIT_RANCH_ACK'/2,'UNAUTHENTICATED'/2,'AUTHENTICATED'/2]).
 
 -define(TIMEOUT, 30000).

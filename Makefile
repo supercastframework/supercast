@@ -21,6 +21,7 @@ test:
 
 clean:
 	@$(REBAR) clean
+	@rm -rf doc
 
 clean-deps: clean
 	@$(REBAR) delete-deps

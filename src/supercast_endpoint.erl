@@ -18,7 +18,6 @@
 %
 % You should have received a copy of the GNU General Public License
 % along with Enms.  If not, see <http://www.gnu.org/licenses/>.
-% @private
 -module(supercast_endpoint).
 -include("supercast.hrl").
 
@@ -27,13 +26,14 @@
 %% for spawn
 -export([handle_client_message/2]).
 
-%% @spec handle_message(Json::term(), Client::#client_state{}) -> ok.
+%% @spec handle_message(Json::term(), Client::#client_state{}) -> ok
 %% @doc
 %% Handle client messages.
 %% @end
 handle_message(Json, Client) ->
     erlang:spawn(?MODULE, handle_client_message, [Json, Client]).
 
+%% @private
 handle_client_message(Json, Client) ->
     From = binary_to_list(proplists:get_value(<<"from">>, Json)),
     Type = binary_to_list(proplists:get_value(<<"type">>, Json)),
@@ -78,6 +78,7 @@ handle_client_message("supercast", "unsubscribe", Contents, ClientState) ->
 handle_client_message(OtherMod, Type, Contents, ClientState) ->
     handle_other_control(OtherMod, {Type, Contents}, ClientState).
 
+%% @private
 handle_other_control(ModKey, Msg, ClientState) ->
     Dispatch = get_env(pdu_dispatch),
     case lists:keyfind(ModKey, 2, Dispatch) of
@@ -86,25 +87,21 @@ handle_other_control(ModKey, Msg, ClientState) ->
             Mod:handle_command(Msg, ClientState)
     end.
 
-%% @spec get_init_pdu() {ok, term()}
-%% @doc
-%% Return an Pdu to send to the client containing initialisation data.
-%% @end
+%% @spec init_pdu() -> {ok, term()}
+%% @doc Return an Pdu to send to the client containing initialisation data.
 init_pdu() ->
     pdu(serverInfo, {"local", get_env(http_port), "http"}).
 
-%% @spec client_disconnected(#client_state{}) -> ok.
-%% @doc
-%% Must be send by the endpoint when the connexion is closed.
-%% @end
+%% @spec client_disconnected(#client_state{}) -> ok
+%% @doc Must be send by the endpoint when the connexion is closed.
 client_disconnected(ClientState) ->
     supercast_mpd:client_disconnect(ClientState).
 
 
-%% @spec pdu(Type::atom(), Any:term()) -> term()
-%% @doc
-%% Return a pdu of type Type.
-%% @end
+%% @spec pdu(Type, Any) -> term()
+%%  Type = atom()
+%%  Any = term()
+%% @doc Return a pdu of type Type.
 pdu(serverInfo, {AuthType, DataPort, DataProto}) ->
     [
         {<<"from">>, <<"supercast">>},

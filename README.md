@@ -11,15 +11,14 @@ TODO
 1. delayed sync included in supercast, require that every channel event is
 recognized by supercast,
 2. remove **supercast_mpd.erl** (everything done by **supercast_channel** processes),
-3. remove **supercast_server.erl** (everything done by **(tcp|ssl|ws|wss)_client** processes),
-4. channel live update of their permissions change: unsubscribe connected client not satisfying to the new permission,
-5. supercast javascript library,
+3. channel live update of their permissions change: unsubscribe connected client not satisfying to the new permission,
+4. supercast javascript library,
 
 
 In the future
 -------------
 Behaviour in a distributed environment with multiple supercast servers
-running (see **TODO 2** and **TODO 3**).
+running (see **TODO 2**).
 
 Usages and examples
 ------------------

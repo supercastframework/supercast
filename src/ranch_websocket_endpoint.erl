@@ -1,26 +1,26 @@
-% This file is part of "Enms" (http://sourceforge.net/projects/enms/)
-% Based on the work from Serge Aleynikov <saleyn at gmail.com> on the article
-% www.trapexit.org/Building_a_Non-blocking_TCP_server_using_OTP_principles
-% Copyright (C) 2012 <Sébastien Serre sserre.bx@gmail.com>
-%
-% Enms is a Network Management System aimed to manage and monitor SNMP
-% targets, monitor network hosts and services, provide a consistent
-% documentation system and tools to help network professionals
-% to have a wide perspective of the networks they manage.
-%
-% Enms is free software: you can redistribute it and/or modify
-% it under the terms of the GNU General Public License as published by
-% the Free Software Foundation, either version 3 of the License, or
-% (at your option) any later version.
-%
-% Enms is distributed in the hope that it will be useful,
-% but WITHOUT ANY WARRANTY; without even the implied warranty of
-% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-% GNU General Public License for more details.
-%
-% You should have received a copy of the GNU General Public License
-% along with Enms.  If not, see <http://www.gnu.org/licenses/>.
-%%% @private
+%% This file is part of "Enms" (http://sourceforge.net/projects/enms/)
+%% Based on the work from Serge Aleynikov <saleyn at gmail.com> on the article
+%% www.trapexit.org/Building_a_Non-blocking_TCP_server_using_OTP_principles
+%% Copyright (C) 2012 <Sébastien Serre sserre.bx@gmail.com>
+%%
+%% Enms is a Network Management System aimed to manage and monitor SNMP
+%% targets, monitor network hosts and services, provide a consistent
+%% documentation system and tools to help network professionals
+%% to have a wide perspective of the networks they manage.
+%%
+%% Enms is free software: you can redistribute it and/or modify
+%% it under the terms of the GNU General Public License as published by
+%% the Free Software Foundation, either version 3 of the License, or
+%% (at your option) any later version.
+%%
+%% Enms is distributed in the hope that it will be useful,
+%% but WITHOUT ANY WARRANTY; without even the implied warranty of
+%% MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+%% GNU General Public License for more details.
+%%
+%% You should have received a copy of the GNU General Public License
+%% along with Enms.  If not, see <http://www.gnu.org/licenses/>.
+%% @private
 -module(ranch_websocket_endpoint).
 -behaviour(cowboy_websocket_handler).
 -include("supercast.hrl").
@@ -35,31 +35,25 @@
 -define(ENCODER, jsx).
 
 %% @spec auth_set(success, #client_state{}, Name, Roles, AllowedMods) -> ok
-%% @doc
-%% Set the client authentication tokens
-%% @end
+%% @doc Set the client authentication tokens
 auth_set(success, #client_state{pid=Pid, ref=Ref},
         Name, Roles, AllowedMods) ->
     erlang:send(Pid, {auth_success, Ref, Name, Roles, AllowedMods}).
 
 %% @spec auth_set(success, #client_state{}) -> ok
-%% @doc
-%% Inform client of authentication failure
-%% @end
+%% @doc Inform client of authentication failure
 auth_set(auth_fail, #client_state{pid=Pid, ref=Ref, user_name=UserName}) ->
     erlang:send(Pid, {auth_fail, Ref, UserName}).
 
 %% @spec send(#client_state{}, {pdu, Message}) -> ok
-%% @doc
-%% Send a message to the client
-%% @end
+%%  Message = term()
+%% @doc Send a message to the client
 send(#client_state{pid=Pid, ref=Ref}, Message) ->
     erlang:send(Pid, {encode_send, Ref, Message}).
 
-%% @spec send(#client_state{}, {pdu, Message}) -> ok
-%% @doc
-%% Send a pdu to the client
-%% @end
+%% @spec raw_send(#client_state{}, {pdu, Message}) -> ok
+%%  Message = binary()
+%% @doc Send a pdu to the client
 raw_send(#client_state{pid=Pid, ref=Ref}, Pdu) ->
     erlang:send(Pid, {send, Ref, Pdu}).
 
