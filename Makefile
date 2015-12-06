@@ -22,11 +22,9 @@ test: compile
 clean:
 	@$(REBAR) clean
 	@rm -rf doc
-	@rm -rf ebin
 
 clean-deps: clean
 	@$(REBAR) delete-deps
-	@rm -rf deps
 
 app:
 	@[ -z "$(PROJECT)" ] && echo "ERROR: required variable PROJECT missing" 1>&2 && exit 1 || true
@@ -50,3 +48,16 @@ update-license:
 		mv temp.txt $$i; \
 	done
 	@ rm -f temp.awk temp.txt
+
+# dialyzer
+APPS = kernel stdlib sasl erts ssl tools os_mon runtime_tools crypto inets \
+	xmerl webtool snmp public_key mnesia eunit syntax_tools compiler
+DEPS = deps/cowboy/ebin deps/cowlib/ebin deps/ranch/ebin deps/jsx/ebin
+
+PLT = $(HOME)/.supercast_dialyzer_plt
+$(PLT): compile
+	dialyzer --build_plt --output_plt $(PLT) --apps $(APPS) $(DEPS) ebin
+	dialyzer --check_plt --plt $(PLT) --apps $(APPS) $(DEPS) ebin
+dialyzer: $(PLT)
+	dialyzer -Wno_return --plt $(PLT) ebin
+
