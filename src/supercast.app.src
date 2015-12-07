@@ -1,7 +1,7 @@
 {application, supercast,
     [
         {description, "Supercast, InterFace Session/authentication"},
-        {vsn, "1.0.0"},
+        {vsn, "0.3.0"},
         {modules, []},
         {registered, [
                 supercast_sup,
