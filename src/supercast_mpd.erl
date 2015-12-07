@@ -31,7 +31,7 @@
 -export([multicast_msg/2, unicast_msg/2, subscribe_stage1/2, subscribe_stage2/2,
     subscribe_stage3/2, unsubscribe/2, client_disconnect/1, delete_channel/1]).
 
--record(state, {acctrl, chans}).
+-record(state, {chans}).
 
 -define(CHAN_TIMEOUT, 1000).
 
@@ -130,12 +130,7 @@ unsubscribe(Chan, CState) ->
 %% GEN_SERVER CALLBACKS
 %%-------------------------------------------------------------
 init([]) ->
-    {ok, AcctrlMod}    = application:get_env(supercast, acctrl_module),
-    {ok, #state{
-            acctrl     = AcctrlMod,
-            chans      = []
-        }
-    }.
+    {ok, #state{chans = []}}.
 
 handle_call({client_is_registered, Chan, CState}, _F,
         #state{chans = Chans} = S) ->
@@ -146,8 +141,8 @@ handle_call({client_is_registered, Chan, CState}, _F,
             {reply, false, S}
     end;
 
-handle_call({subscribe_stage1, _Channel, CState, PermConf},  _F,
-        #state{acctrl = Acctrl} = S) ->
+handle_call({subscribe_stage1, _Channel, CState, PermConf},  _F, S) ->
+    Acctrl = get_acctrl(),
     case Acctrl:satisfy(read, [CState], PermConf) of
         {ok, []} ->
             {reply, error, S};
@@ -170,9 +165,6 @@ handle_call({client_disconnect, CState}, _F, S) ->
     Chans = del_subscriber(CState, S#state.chans),
     {reply, ok, S#state{chans = Chans}};
 
-handle_call(get_acctrl, _F, #state{acctrl = Acctrl} = S) ->
-    {reply, {ok, Acctrl}, S};
-
 handle_call(dump, _F, S) ->
     {reply, {ok, S}, S};
 
@@ -186,9 +178,9 @@ handle_cast({delete_channel, Channel}, #state{chans=Chans} = S) ->
     {noreply, S#state{chans=Channels}};
 
 %% called by himself
-handle_cast({unicast, #client_state{module = CMod} = CState, Perm, Pdu},
-    #state{acctrl = AcctrlMod} = S) ->
-    case AcctrlMod:satisfy(read, [CState], Perm) of
+handle_cast({unicast, #client_state{module = CMod} = CState, Perm, Pdu}, S) ->
+    Acctrl = get_acctrl(),
+    case Acctrl:satisfy(read, [CState], Perm) of
         {ok, []} ->
             {noreply, S};
         {ok, [CState]} ->
@@ -196,8 +188,7 @@ handle_cast({unicast, #client_state{module = CMod} = CState, Perm, Pdu},
             {noreply, S}
     end;
 
-handle_cast({multicast, Chan, Perm, Pdu},
-        #state{chans = Chans, acctrl = AcctrlMod} = S) ->
+handle_cast({multicast, Chan, Perm, Pdu}, #state{chans = Chans} = S) ->
     % the chan have allready been initialized?
     case lists:keyfind(Chan, 1, Chans) of
         % no do nothing
@@ -208,8 +199,9 @@ handle_cast({multicast, Chan, Perm, Pdu},
             ok;
         % yes then filter with satisfy:
         {Chan, CList} ->
+            Acctrl = get_acctrl(),
             % take the list of clients wich satisfy Perm
-            {ok, AllowedCL} = AcctrlMod:satisfy(read, CList, Perm),
+            {ok, AllowedCL} = Acctrl:satisfy(read, CList, Perm),
             % encode/send
             send(AllowedCL, Pdu)
     end,
@@ -299,3 +291,6 @@ del_subscriber(CState, Chans) ->
         N = lists:delete(CState, CList),
         [{Id, N} | Acc]
     end, [], Chans).
+
+get_acctrl() ->
+    {ok, V} = application:get_env(supercast, acctrl_module), V.
