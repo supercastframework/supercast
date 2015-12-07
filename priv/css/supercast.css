@@ -26,8 +26,8 @@ html {
     border-radius: 4px;
     position: relative;
     padding-top: 2rem;
-    height: 300px;
-    width: 900px;
+    height: 40%;
+    width: 70%;
 }
 
 .docs-code, pre {
@@ -40,6 +40,10 @@ html {
     padding: 1rem;
     background: #F9F9F9 none repeat scroll 0% 0%;
     margin-bottom: 1.5rem;
+}
+
+.supercastlink {
+    font-size: x-small;
 }
 
 code {
