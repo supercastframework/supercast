@@ -29,14 +29,9 @@
 
 -export([start_link/0]).
 -export([multicast_msg/2, unicast_msg/2, subscribe_stage1/2, subscribe_stage2/2,
-    subscribe_stage3/2, unsubscribe/2, main_chans/0,
-    client_disconnect/1, delete_channel/1]).
+    subscribe_stage3/2, unsubscribe/2, client_disconnect/1, delete_channel/1]).
 
--record(state, {
-    acctrl,
-    main_chans,
-    chans
-}).
+-record(state, {acctrl, chans}).
 
 -define(CHAN_TIMEOUT, 1000).
 
@@ -49,18 +44,6 @@ start_link() ->
 
 delete_channel(Channel) ->
     gen_server:cast(?MODULE, {delete_channel, Channel}).
-
-%% @spec main_chans() -> [atom()]
-%% @doc Called by supercast_endpoint.
-%% Called at the initial connexion of a client. Give him the main (static)
-%% channels. If dynamic channels exist in the application, this is the role
-%% of one of these channels to inform the client. Note that depending on the
-%% supercast_channel module perm/0 function return, a client might not be able to
-%% subscribe to a channel apearing here. It is checked at the
-%% subscribe_stage1/1 call.
-%% @end
-main_chans() ->
-    gen_server:call(?MODULE, main_chans).
 
 %% @spec subscribe_stage1(atom(), #client_state{}) -> ok | error
 %% @doc Called by a client via supercast_endpoint.
@@ -148,16 +131,11 @@ unsubscribe(Chan, CState) ->
 %%-------------------------------------------------------------
 init([]) ->
     {ok, AcctrlMod}    = application:get_env(supercast, acctrl_module),
-    {ok, MainChannels} = application:get_env(supercast, main_channels),
     {ok, #state{
             acctrl     = AcctrlMod,
-            main_chans = MainChannels,
             chans      = []
         }
     }.
-
-handle_call(main_chans, _F, #state{main_chans = Chans} = S) ->
-    {reply, Chans, S};
 
 handle_call({client_is_registered, Chan, CState}, _F,
         #state{chans = Chans} = S) ->

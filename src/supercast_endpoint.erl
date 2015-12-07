@@ -45,7 +45,7 @@ handle_client_message("supercast", "authResp", Contents, ClientState) ->
     AuthMod = get_env(auth_module),
     case AuthMod:authenticate(Name, Pass) of
         {ok, Groups} ->
-            MainChans = supercast_mpd:main_chans(),
+            {ok, MainChans} = application:get_env(supercast, main_channels),
             CMod:auth_set(success, ClientState, Name, Groups, MainChans),
             send_pdu(ClientState,pdu(authAck, {Groups, MainChans}));
         fail ->
