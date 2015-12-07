@@ -22,7 +22,7 @@
 -behaviour(gen_server).
 -include("supercast.hrl").
 
-%% @TODO should use ets for state
+%% @TODO should use ets for chan state
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
     terminate/2, code_change/3]).
@@ -35,7 +35,7 @@
 -record(state, {
     acctrl,
     main_chans,
-    chans % TODO use ets
+    chans
 }).
 
 -define(CHAN_TIMEOUT, 1000).
