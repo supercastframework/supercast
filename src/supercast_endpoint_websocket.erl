@@ -18,9 +18,11 @@
 %% -------------------------------------------------------------------
 
 %% @private
--module(ranch_websocket_endpoint).
+-module(supercast_endpoint_websocket).
 -behaviour(cowboy_websocket_handler).
 -include("supercast.hrl").
+
+%% @TODO maybe use ninenines/bullet
 
 -export([init/3]).
 % cowboy_ewebsocket_handler

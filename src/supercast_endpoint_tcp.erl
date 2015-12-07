@@ -21,7 +21,7 @@
 %% @doc
 %% tcp client interface
 %% @end
--module(ranch_tcp_endpoint).
+-module(supercast_endpoint_tcp).
 -behaviour(gen_fsm).
 -behaviour(ranch_protocol).
 -include("supercast.hrl").

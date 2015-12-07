@@ -37,7 +37,7 @@ start_listening() ->
     DocrootIndex = filename:join(DocrootPath, "index.html"),
     Dispatch = cowboy_router:compile([
         {'_', [
-            {"/websocket", ranch_websocket_endpoint, []},
+            {"/websocket", supercast_endpoint_websocket, []},
             {"/", cowboy_static, {file, DocrootIndex, [{etag,false}]}},
             {"/[...]", cowboy_static, {dir, DocrootPath, [{etag,false}]}}
         ]}
@@ -54,4 +54,4 @@ start_listening() ->
 
     {ok, TCPPort} = application:get_env(supercast, tcp_port),
     {ok, _} = ranch:start_listener(supercast_tcp, 10, ranch_tcp,
-        [{port, TCPPort}], ranch_tcp_endpoint, []).
+        [{port, TCPPort}], supercast_endpoint_tcp, []).
