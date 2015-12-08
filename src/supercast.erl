@@ -25,7 +25,10 @@
 -export([start/0,stop/0]).
 
 -spec start() -> ok.
-%% @doc Start the supercast server.
+%% @doc Localy start the supercast server.
+%% This is an utility function, wich automaticaly call supercast:listen().
+%% You should embed supercast in your application.
+%% @end
 start() ->
     ensure_started(xmerl),
     application:start(supercast),
@@ -45,6 +48,7 @@ stop() ->
     application:stop(supercast).
 
 -spec listen() -> ok.
+%% @doc start listening for client connexion.
 listen() ->
     {ok, DocRoot} = application:get_env(supercast, http_docroot),
     DocrootPath = filename:absname(DocRoot),
