@@ -22,10 +22,7 @@
 %% authenticate clients. The return will be used by the beha_supercast_acctrl
 %% module used by the application
 %% 
-%% == authenticate/2 ==
-%%
 %% The only function to be exported is <em>authenticate/2</em>.
-%%
 %% <code>
 %% authenticate(Uname, UPass) -> Any::term() | fail
 %% </code>
