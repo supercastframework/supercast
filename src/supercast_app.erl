@@ -18,22 +18,20 @@
 %% -------------------------------------------------------------------
 
 %% @private
-%% @doc Supercast application.
-%% Include a start phase to start the application without listening.
-%% The application including Supercast can initialize himself safely.
-%% @end
 -module(supercast_app).
 -behaviour(application).
--include("supercast.hrl").
 
--export([start/2, start_phase/3, stop/1]).
+-export([start/2, stop/1]).
 
 start(_Type, _Args) ->
-    ?SUPERCAST_LOG_INFO("Start normal"),
-    supercast_sup:start_link().
+    Ret = supercast_sup:start_link(),
+    start_listening(),
+    Ret.
 
-start_phase(listen, _Type, _Args) ->
-    ?SUPERCAST_LOG_INFO("Start listen"),
+stop(_State) ->
+    ok.
+
+start_listening() ->
     {ok, DocRoot} = application:get_env(supercast, http_docroot),
     DocrootPath = filename:absname(DocRoot),
     DocrootIndex = filename:join(DocrootPath, "index.html"),
@@ -47,7 +45,7 @@ start_phase(listen, _Type, _Args) ->
 
     {ok, HTTPPort} = application:get_env(supercast, http_port),
 
-    %% keep-alive header is not shown because it is implicit
+    %% keep-alive header is not shown because it is implicit 
     %% (HTTP1.0: close HTTP1.1: keep-alive)
     {ok, _} = cowboy:start_http(supercast_http, 50, [{port, HTTPPort}], [
         {env, [{dispatch, Dispatch}]},
@@ -56,9 +54,4 @@ start_phase(listen, _Type, _Args) ->
 
     {ok, TCPPort} = application:get_env(supercast, tcp_port),
     {ok, _} = ranch:start_listener(supercast_tcp, 10, ranch_tcp,
-        [{port, TCPPort}], supercast_endpoint_tcp, []),
-    ok.
-
-stop(_State) ->
-    ok.
-
+        [{port, TCPPort}], supercast_endpoint_tcp, []).

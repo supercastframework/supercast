@@ -9,7 +9,6 @@
             ]},
 
         {included_applications, [ranch, cowboy]},
-        {start_phases, [{listen, []}]},
         {applications,
             [kernel, stdlib, xmerl]
         },
