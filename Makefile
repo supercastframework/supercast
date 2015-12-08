@@ -10,6 +10,8 @@ compile:
 
 edoc:
 	@$(REBAR) doc
+	@printf "\nbody {font-family: \"Helvetica Neue\",Helvetica,Roboto,Arial,sans-serif;}\n" \
+		>> doc/stylesheet.css
 
 run: compile
 	@erl -pa ebin -pa deps/*/ebin -config sys -eval "supercast:start()."
