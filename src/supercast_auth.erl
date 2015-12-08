@@ -28,12 +28,10 @@
 %%
 %% <code>
 %% authenticate(Uname, UPass) -> Any::term() | fail
-%% 
-%% <p>
-%% Note that the returned term() can be anything but must be understandable 
-%% by the beha_supercast_acctrl module used by the application.
-%% </p>
 %% </code>
+%%
+%% Note that the returned term() can be anything but must be understandable
+%% by the beha_supercast_acctrl module used by the application.
 %% @end
 -module(supercast_auth).
 
