@@ -49,20 +49,20 @@ init([]) ->
                     [supercast_mpd]
                 },
                 {
-                    ranch_app,
-                    {ranch_app, start,[normal,[]]},
+                    ranch_sup,
+                    {ranch_sup, start_link,[]},
                     permanent,
                     2000,
                     supervisor,
-                    [ranch_app]
+                    [ranch_sup]
                 },
                 {
-                    cowboy_app,
-                    {cowboy_app, start,[normal,[]]},
+                    cowboy_sup,
+                    {cowboy_sup, start_link, []},
                     permanent,
                     2000,
                     supervisor,
-                    [cowboy_app]
+                    [cowboy_sup]
                 }
             ]
         }
