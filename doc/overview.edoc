@@ -2,7 +2,7 @@
 
 @author Sebastien Serre <ssbx@supercastframework.org>
 @copyright 2015 Sebastien Serre
-@title Erlang Supercast application framework documentation
+@title Supercast Documentation
 @doc `supercast' is an application framework introducing the concept of 'channels' to facilitate the creation of soft real time user interfaces.
 @TODO simpler API.
 @TODO allow implementation of channels without pid identity.
