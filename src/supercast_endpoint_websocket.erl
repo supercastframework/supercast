@@ -19,11 +19,11 @@
 
 %% @private
 %% @doc Websocket client implementation.
+%% @TODO maybe use ninenines/bullet
 -module(supercast_endpoint_websocket).
 -behaviour(cowboy_websocket_handler).
 -include("supercast.hrl").
 
-%% @TODO maybe use ninenines/bullet
 
 -export([init/3]).
 % cowboy_ewebsocket_handler

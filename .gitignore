@@ -4,9 +4,10 @@
 
 #erlang
 /ebin
-/doc
 /deps
 /.eunit
+/doc/*
+!/doc/overview.edoc
 
 #intellij
 *.iml

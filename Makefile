@@ -23,7 +23,7 @@ test: compile
 
 clean:
 	@$(REBAR) clean
-	@rm -rf doc
+	@find doc/ ! -name overview.edoc -type f -delete
 
 clean-deps: clean
 	@$(REBAR) delete-deps

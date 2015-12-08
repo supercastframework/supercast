@@ -18,11 +18,11 @@
 %% -------------------------------------------------------------------
 
 %% @doc Filter and deliver multicast and unicast messages to clients.
+%% @TODO should use ets for chan state
 -module(supercast_mpd).
 -behaviour(gen_server).
 -include("supercast.hrl").
 
-%% @TODO should use ets for chan state
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
     terminate/2, code_change/3]).
