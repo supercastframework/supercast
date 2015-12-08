@@ -17,6 +17,7 @@
 %% under the License.
 %% -------------------------------------------------------------------
 
+%% @doc Shared functions used by supercast_endpoint_tcp|websocket|...
 -module(supercast_endpoint).
 -include("supercast.hrl").
 
@@ -25,10 +26,8 @@
 %% for spawn
 -export([handle_client_message/2]).
 
-%% @spec handle_message(Json::term(), Client::#client_state{}) -> ok
-%% @doc
-%% Handle client messages.
-%% @end
+-spec handle_message(Json::term(), Client::#client_state{}) -> ok.
+%% @doc Handle a client messages.
 handle_message(Json, Client) ->
     erlang:spawn(?MODULE, handle_client_message, [Json, Client]).
 
@@ -86,20 +85,18 @@ handle_other_control(ModKey, Msg, ClientState) ->
             Mod:handle_command(Msg, ClientState)
     end.
 
-%% @spec init_pdu() -> {ok, term()}
+-spec init_pdu() -> {ok, term()}.
 %% @doc Return an Pdu to send to the client containing initialisation data.
 init_pdu() ->
     pdu(serverInfo, {"local", get_env(http_port), "http"}).
 
-%% @spec client_disconnected(#client_state{}) -> ok
+-spec client_disconnected(#client_state{}) -> ok.
 %% @doc Must be send by the endpoint when the connexion is closed.
 client_disconnected(ClientState) ->
     supercast_mpd:client_disconnect(ClientState).
 
 
-%% @spec pdu(Type, Any) -> term()
-%%  Type = atom()
-%%  Any = term()
+-spec pdu(Type::atom(), Any::term()) -> term().
 %% @doc Return a pdu of type Type.
 pdu(serverInfo, {AuthType, DataPort, DataProto}) ->
     [

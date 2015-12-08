@@ -18,6 +18,7 @@
 %% -------------------------------------------------------------------
 
 %% @private
+%% @doc Websocket client implementation.
 -module(supercast_endpoint_websocket).
 -behaviour(cowboy_websocket_handler).
 -include("supercast.hrl").
@@ -33,33 +34,34 @@
 
 -define(ENCODER, jsx).
 
-%% @spec auth_set(success, #client_state{}, Name, Roles, AllowedMods) -> ok
+-spec auth_set(success, #client_state{}, Name::string(),
+            Roles::[string()], AllowedMods::[string()]) -> ok.
 %% @doc Set the client authentication tokens
 auth_set(success, #client_state{pid=Pid, ref=Ref},
         Name, Roles, AllowedMods) ->
     erlang:send(Pid, {auth_success, Ref, Name, Roles, AllowedMods}).
 
-%% @spec auth_set(success, #client_state{}) -> ok
+-spec auth_set(auth_fail, #client_state{}) -> ok.
 %% @doc Inform client of authentication failure
 auth_set(auth_fail, #client_state{pid=Pid, ref=Ref, user_name=UserName}) ->
     erlang:send(Pid, {auth_fail, Ref, UserName}).
 
-%% @spec send(#client_state{}, {pdu, Message}) -> ok
-%%  Message = term()
+-spec send(#client_state{}, {pdu, Message::term()}) -> ok.
 %% @doc Send a message to the client
 send(#client_state{pid=Pid, ref=Ref}, Message) ->
     erlang:send(Pid, {encode_send, Ref, Message}).
 
-%% @spec raw_send(#client_state{}, {pdu, Message}) -> ok
-%%  Message = binary()
+-spec raw_send(#client_state{}, {pdu, Message::binary()}) -> ok.
 %% @doc Send a pdu to the client
 raw_send(#client_state{pid=Pid, ref=Ref}, Pdu) ->
     erlang:send(Pid, {send, Ref, Pdu}).
 
+%% @private
 init({tcp, http}, _Req, _Opts) ->
     ?SUPERCAST_LOG_INFO("init http"),
 	{upgrade, protocol, cowboy_websocket}.
 
+%% @private
 websocket_init(_TransportName, Req, _Opts) ->
     ?SUPERCAST_LOG_INFO("init websocket"),
     State = #client_state{
@@ -71,6 +73,7 @@ websocket_init(_TransportName, Req, _Opts) ->
     ?MODULE:send(State, supercast_endpoint:init_pdu()),
 	{ok, Req, State}.
 
+%% @private
 websocket_handle({text, Pdu}, Req, State) ->
     ?SUPERCAST_LOG_INFO("data reivceved", {Pdu, State}),
     supercast_endpoint:handle_message(?ENCODER:decode(Pdu), State),
@@ -79,6 +82,7 @@ websocket_handle(_Data, Req, State) ->
     ?SUPERCAST_LOG_INFO("Unknown handle", {_Data,Req,State}),
 	{ok, Req, State}.
 
+%% @private
 websocket_info({send, Ref, Pdu}, Req, #client_state{ref=Ref} = State) ->
     ?SUPERCAST_LOG_INFO(" send", {Pdu, State}),
     {reply, {text, Pdu}, Req, State};
@@ -104,6 +108,7 @@ websocket_info(_Info, Req, State) ->
     ?SUPERCAST_LOG_INFO("Unknown info", {_Info,Req,State}),
 	{ok, Req, State}.
 
+%% @private
 websocket_terminate(_Reason, _Req, State) ->
     supercast_endpoint:client_disconnected(State),
     ?SUPERCAST_LOG_INFO("Terminated", {_Reason,_Req,State}),

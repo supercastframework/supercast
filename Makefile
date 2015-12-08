@@ -3,7 +3,7 @@ DEST   := $(PREFIX)$(PROJECT)
 
 REBAR = rebar
 
-.PHONY: all run clean clean-all doc app
+.PHONY: all run clean clean-deps edoc app
 
 compile:
 	@$(REBAR) -D debug prepare-deps

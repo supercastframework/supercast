@@ -17,7 +17,6 @@
 %% under the License.
 %% -------------------------------------------------------------------
 
-%% @private
 %% @doc Simple authentication module reading "etc/users.xml" file.
 -module(supercast_auth_xml).
 -behaviour(supercast_auth).
@@ -27,6 +26,8 @@
 
 -define(USERS_XML, "etc/users.xml").
 
+-spec authenticate(UName::string(), UPass::string()) ->
+        Reply::fail | {ok, Groups::[string()]}.
 authenticate(UName, UPass) ->
     {#xmlDocument{content=DocumentContent}, _} = xmerl_scan:file(?USERS_XML, [{document,true}]),
     #xmlElement{content=XmlUsers} = lists:keyfind(xml_users, 2, DocumentContent),

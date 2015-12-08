@@ -17,7 +17,7 @@
 %% under the License.
 %% -------------------------------------------------------------------
 
-%% @private
+%% @doc Filter and deliver multicast and unicast messages to clients.
 -module(supercast_mpd).
 -behaviour(gen_server).
 -include("supercast.hrl").
@@ -42,11 +42,14 @@
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
+-spec delete_channel(Channel::string()) -> ok.
+%% @doc Remove channel.
 delete_channel(Channel) ->
     gen_server:cast(?MODULE, {delete_channel, Channel}).
 
-%% @spec subscribe_stage1(atom(), #client_state{}) -> ok | error
-%% @doc Called by a client via supercast_endpoint.
+-spec subscribe_stage1(atom(), #client_state{}) -> ok | error.
+%% @doc First subscribe stage.
+%% Called by a client via the supercast_endpoint module.
 %% If return is ok, supercast_endpoint will then call subscribe_stage2.
 %% If return is error, do nothing more.
 %% In both case, supercast_endpoint interpret the return and send subscribeErr or
@@ -63,10 +66,10 @@ subscribe_stage1(Channel, CState) ->
             error
     end.
 
-%% @spec subscribe_stage2(atom(), #client_state{}) -> ok
-%% @doc
-%% Called by supercast_endpoint after a supercast_mpd:subscribe_stage1/2 success. The call
-%% will trigger a subscribe_stage3/2 called by the channel. sync sync.
+-spec subscribe_stage2(atom(), #client_state{}) -> ok.
+%% @doc Second subscribe stage.
+%% Called by supercast_endpoint after a supercast_mpd:subscribe_stage1/2 success.
+%% The call will trigger a subscribe_stage3/2 called by the channel. sync sync.
 %% @end
 subscribe_stage2(Channel, CState) ->
     case gen_server:call(?MODULE, {client_is_registered, Channel, CState}) of
@@ -82,25 +85,24 @@ subscribe_stage2(Channel, CState) ->
             end
     end.
 
-%% @spec subscribe_stage3(atom(), #client_state{}) -> ok
-%% @doc
+-spec subscribe_stage3(atom(), #client_state{}) -> ok.
+%% @doc Third.
 %% Called by a channel after a supercast_mpd:subscribe_stage2/2 success.
 %% In fact, the client will really be subscribed here by the channel.
 %% @end
 subscribe_stage3(Channel, CState) ->
     gen_server:call(?MODULE, {subscribe_stage3, Channel, CState}).
 
-%% @spec multicast_msg(atom(), {#perm_conf{}, tuple()}) -> ok
-%% @doc
-%% Called by a supercast_channel module with a message that can be of interest for
-%% clients that have subscribed to the channel.
-%% Will be send depending of the right of the user.
+-spec multicast_msg(atom(), {#perm_conf{}, tuple()}) -> ok.
+%% @doc Send a message to all connected clients.
+%% Called by a supercast_channel module.
+%% Will be send depending of the permissions of the users.
 %% @end
 multicast_msg(Chan, {Perm, Pdu}) ->
     gen_server:cast(?MODULE, {multicast, Chan, Perm, Pdu}).
 
-%% @spec unicast_msg(#client_state{}, tuple()) -> ok
-%% @doc
+-spec unicast_msg(#client_state{}, tuple()) -> ok.
+%% @doc Send a message to a single client.
 %% Called by a supercast_channel module with a message for a single client. Message
 %% will or will not be sent to the client depending on the permissions.
 %% Note that the channel is not checked. Thus a client wich is not subscriber
@@ -111,16 +113,16 @@ multicast_msg(Chan, {Perm, Pdu}) ->
 unicast_msg(CState, {Perm, Pdu}) ->
     gen_server:cast(?MODULE, {unicast, CState, Perm, Pdu}).
 
-%% @spec client_disconnect(#client_state{}) -> ok
-%% @doc
+-spec client_disconnect(#client_state{}) -> ok.
+%% @doc Cleanup client related states.
 %% Called by supercast_endpoint when the client disconnect.
 %% Result in removing the client state from all the initialized channels.
 %% @end
 client_disconnect(CState) ->
     gen_server:call(?MODULE, {client_disconnect, CState}).
 
-%% @spec unsubscribe(atom(), #client_state{}) -> ok
-%% @doc
+-spec unsubscribe(string(), #client_state{}) -> ok.
+%% @doc Unsubscribe client from channel.
 %% Called by a client using the supercast asn API via supercast_endpoint.
 %% @end
 unsubscribe(Chan, CState) ->
@@ -129,9 +131,11 @@ unsubscribe(Chan, CState) ->
 %%-------------------------------------------------------------
 %% GEN_SERVER CALLBACKS
 %%-------------------------------------------------------------
+%% @private
 init([]) ->
     {ok, #state{chans = []}}.
 
+%% @private
 handle_call({client_is_registered, Chan, CState}, _F,
         #state{chans = Chans} = S) ->
     case lists:keyfind(Chan, 1, Chans) of
@@ -173,6 +177,7 @@ handle_call(Call, _F, S) ->
     {reply, error, S}.
 
 %% CAST
+%% @private
 handle_cast({delete_channel, Channel}, #state{chans=Chans} = S) ->
     Channels = proplists:delete(Channel, Chans),
     {noreply, S#state{chans=Channels}};
@@ -212,12 +217,15 @@ handle_cast(Cast, S) ->
     {noreply, S}.
 
 %% OTHER
+%% @private
 handle_info(_I, S) ->
     {noreply, S}.
 
+%% @private
 terminate(_R, _S) ->
     normal.
 
+%% @private
 code_change(_O, S, _E) ->
     {ok, S}.
 
@@ -252,11 +260,6 @@ send_clients(Pdu, [Client|Others]) ->
     Mod:raw_send(Client, Pdu),
     send_clients(Pdu, Others).
 
-
-
-
-
-%% PRIVATE
 new_chan_subscriber(CState, Channel, Chans) ->
     % does the chan allready exist?
     case lists:keyfind(Channel, 1, Chans) of

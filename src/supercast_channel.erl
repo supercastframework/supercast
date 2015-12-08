@@ -17,8 +17,7 @@
 %% under the License.
 %% -------------------------------------------------------------------
 
-%% @doc
-%% @end
+%% @doc Supercast channel behaviour.
 -module(supercast_channel).
 -include("supercast.hrl").
 
@@ -40,7 +39,7 @@
 %% supercast_channel behaviour callbacks
 %% -------------------------------------------------------------------
 -callback get_perms(Channel::string()) -> #perm_conf{}.
-%% @doc
+%% @doc Return permissions for the given channel.
 %% The module implementing supercast_channel behaviour must return the #perm_conf{}
 %% defining the authorisation to subscribe to him.
 %% Triggered on a client call to sync_request, supercast define if the user
@@ -48,7 +47,7 @@
 %% @end
 
 -callback sync_request(Channel::string(), CState::#client_state{}) -> ok.
-%% @doc
+%% @doc Client request for synchronizing to the channel.
 %% This call is triggered when a client allowed to subscribe to the channel.
 %% - The sync_request must include a supercast_channel:subscribe/2 if the channel want
 %% to forward future messages to the client.
@@ -91,26 +90,22 @@ synchronize(Channel, CState) ->
 %% -------------------------------------------------------------------
 %% channels API
 %% -------------------------------------------------------------------
-%% @spec subscribe(Channel::string(), CState::#client_state{}) -> ok
-%% @doc
-%% Called by a channel to subscribe a client to himself. Every following
-%% emit/2 messages will then be delivered to the client.
-%% This function is typicaly called in the sync_request/2 callback.
+-spec subscribe(Channel::string(), CState::#client_state{}) -> ok.
+%% @doc Called by a channel to subscribe a client to himself.
+%% Every following emit/2 messages will then be delivered to the client.
+%% This function must be called in the sync_request/2 callback to effectively
+%% subscribe the client.
 %% @end
 subscribe(Channel, CState) ->
     supercast_mpd:subscribe_stage3(Channel, CState).
 
-%% @spec emit(Channel::string(), {PermConf::#perm_conf{}, Pdu::tuple()}) -> ok
-%% @doc
-%% Used by a channel to send a message to all sbscribers.
-%% @end
+-spec emit(Channel::string(), PduDef::{PermConf::#perm_conf{}, Pdu::tuple()}) -> ok.
+%% @doc Used by a channel to send a message to all sbscribers.
 emit(Channel, {Perms, Pdu}) ->
     supercast_mpd:multicast_msg(Channel, {Perms, Pdu}).
 
-%% @spec unicast(CState, [Msg]) -> ok
-%%      CState = #client_state{}
-%%      Msg = {function, fun()} | {pdu, tuple()}
-%% @doc
+-spec unicast(Client::#client_state{}, [Msg::{function, fun()} | {pdu, tuple()}]) -> ok.
+%% @doc Send a message to an unique client.
 %% Used by a channel to send a list of message or funs to a single client
 %% identified by CState wich is a #client_state.
 %% fun() will just be executed as is in the client loop with #client_state{}

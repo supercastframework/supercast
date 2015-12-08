@@ -17,14 +17,16 @@
 %% under the License.
 %% -------------------------------------------------------------------
 
-%% @private
+%% @doc Dummy encoder/decoder.
 -module(supercast_encoder_native).
 -behaviour(supercast_encoder).
 
 -export([encode/1, decode/1]).
 
+-spec encode(Message::tuple()) -> Message::tuple().
 encode(Message) ->
     Message.
 
+-spec decode(Pdu::tuple()) -> Pdu::tuple().
 decode(Pdu) ->
     Pdu.

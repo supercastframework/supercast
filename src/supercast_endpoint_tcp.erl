@@ -17,10 +17,7 @@
 %% under the License.
 %% -------------------------------------------------------------------
 
-%% @private
-%% @doc
-%% tcp client interface
-%% @end
+%% @doc Tcp client interface
 -module(supercast_endpoint_tcp).
 -behaviour(gen_fsm).
 -behaviour(ranch_protocol).

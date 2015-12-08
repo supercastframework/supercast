@@ -17,7 +17,6 @@
 %% under the License.
 %% -------------------------------------------------------------------
 
-%% @private
 -module(supercast_acctrl_rbac).
 -behaviour(supercast_acctrl).
 
@@ -25,10 +24,9 @@
 -include_lib("eunit/include/eunit.hrl").
 -export([satisfy/3]).
 
-%% @spec satisfy(read | write, [#client_state{}], #perm_conf{}) ->
-%%              {ok, [#client_state{}]}
-%% @private
-%% @doc
+-spec satisfy(Mode::read | write, [#client_state{}], #perm_conf{}) ->
+                                                    {ok, [#client_state{}]}.
+%% @doc Get permissions for a given client list.
 %% Givent a list of client and a perm conf, return a list of allowed
 %% clients or an empty list.
 %% @end
@@ -38,9 +36,8 @@ satisfy(write, ClientList, #perm_conf{write = WriteList}) ->
     {ok, satisfy_pass(WriteList, ClientList, [])}.
 
 
-%% @private
-%% @spec satisfy_pass([atom()], [#client_state{}], [#client_state{}]) ->
-%%      [#client_state{}]
+-spec satisfy_pass([atom()], [#client_state{}], [#client_state{}]) ->
+                                                            [#client_state{}].
 satisfy_pass(_ReadList, [], AllowedClientList) ->
     AllowedClientList;
 
@@ -55,7 +52,7 @@ satisfy_pass(ReadList,
     end.
 
 %% @private
-%% @spec satisfy_bool([term()], [term()]) -> true | false
+-spec satisfy_bool([term()], [term()]) -> true | false.
 satisfy_bool([], _RoleListTwo) ->
     false;
 satisfy_bool([R | RoleListOne], RoleListTwo) ->

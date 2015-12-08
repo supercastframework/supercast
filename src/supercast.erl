@@ -23,7 +23,7 @@
 -export([filter/2, satisfy/2, mpd_state/0]).
 -export([start/0,stop/0]).
 
-%% @spec start() -> ok
+-spec start() -> ok.
 %% @doc Start the supercast server.
 start() ->
     ensure_started(xmerl),
@@ -37,14 +37,12 @@ ensure_started(App) ->
             ok
     end.
 
-%% @spec stop() -> ok
+-spec stop() -> ok.
 %% @doc Stop the supercast server.
 stop() ->
     application:stop(supercast).
 
-%% @spec satisfy(CState, Perm) -> true | false
-%%      CState = #client_state{}
-%%      Perm = term()
+-spec satisfy(CState::#client_state{}, Perm::tuple()) -> true | false.
 %% @doc Return true if the user is allowed to read the ressource.
 satisfy(CState, Perm) ->
     {ok, AccCtrl} = application:get_env(supercast, acctrl_module),
@@ -53,10 +51,8 @@ satisfy(CState, Perm) ->
         {ok, [CState]}  -> true
     end.
 
-%% @spec filter(CState, Values) -> [Things]
-%%      CState = #client_state{}
-%%      Values = [{#perm_conf{}, Things}]
-%%      Things = term()
+-spec filter(CState::#client_state{}, Values::[{#perm_conf{},
+        Things::term()}]) -> [Things::term()].
 %% @doc Called by external modules to filter things. It will return any "things",
 %% that the client defined in #client_state{} is allowed to 'read'.
 filter(CState, Values) ->
@@ -73,7 +69,7 @@ filter_things(CState, [{Perm, Thing}|T], R) ->
     end.
 
 %% @private
-%% @spec mpd_state() -> {ok, tuple()}
+-spec mpd_state() -> {ok, tuple()}.
 %% @doc This function return the state of the supercast_mpd gen_server module.
 mpd_state() ->
     gen_server:call(supercast_mpd, dump).

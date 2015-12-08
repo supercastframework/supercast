@@ -17,9 +17,9 @@
 %% under the License.
 %% -------------------------------------------------------------------
 
-%% @private
 %% @doc Development authentication module always
 %% returning {ok, ["admin","wheel","other"]}
+%% @end
 -module(supercast_auth_dev).
 -behaviour(supercast_auth).
 -export([authenticate/2]).
@@ -27,5 +27,7 @@
 %% --------------------------------------------------------------
 %% USER API
 %% --------------------------------------------------------------
+-spec authenticate(UName::string(), UPass::string()) ->
+        Reply::fail | {ok, Groups::[string()]}.
 authenticate(_AnyName, _AnyPass) ->
     {ok, ["admin", "wheel", "other"]}.

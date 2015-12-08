@@ -18,7 +18,9 @@
 %% -------------------------------------------------------------------
 
 %% @doc Encoder behaviour.
+%% Encode erlang tuples and decode client payloads to tuples.
+%% @end
 -module(supercast_encoder).
 
--callback encode(Message :: tuple())    -> PDU      :: any().
--callback decode(PDU :: any())          -> Message  :: tuple().
+-callback encode(Message::tuple()) -> Pdu::any().
+-callback decode(Pdu::any()) -> Message::tuple().

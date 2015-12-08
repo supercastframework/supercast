@@ -17,7 +17,12 @@
 %% under the License.
 %% -------------------------------------------------------------------
 
-%% @private
+%% @doc Keep a state of channel pids.
+%% Because channel names is dynamic, we can not store these values in atoms
+%% because they are limited and not garbage collected. This module implement
+%% the required functions to implement a local pid registry using strings as
+%% pid name.
+%% @end
 -module(supercast_registrar).
 -behaviour(gen_server).
 -include("supercast.hrl").
