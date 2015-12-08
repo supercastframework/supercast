@@ -9,9 +9,7 @@
             ]},
 
         {included_applications, [ranch, cowboy]},
-        {applications,
-            [kernel, stdlib, xmerl]
-        },
+        {applications, [kernel, stdlib, xmerl]},
         {start_phases, []},
         {mod, {supercast_app, []}}
     ]

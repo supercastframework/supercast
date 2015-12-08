@@ -20,6 +20,7 @@
 -module(supercast).
 -include("supercast.hrl").
 
+-export([listen/0]).
 -export([filter/2, satisfy/2, mpd_state/0]).
 -export([start/0,stop/0]).
 
@@ -27,7 +28,8 @@
 %% @doc Start the supercast server.
 start() ->
     ensure_started(xmerl),
-    application:start(supercast).
+    application:start(supercast),
+    supercast:listen().
 
 ensure_started(App) ->
     case application:start(App) of
@@ -41,6 +43,33 @@ ensure_started(App) ->
 %% @doc Stop the supercast server.
 stop() ->
     application:stop(supercast).
+
+-spec listen() -> ok.
+listen() ->
+    {ok, DocRoot} = application:get_env(supercast, http_docroot),
+    DocrootPath = filename:absname(DocRoot),
+    DocrootIndex = filename:join(DocrootPath, "index.html"),
+    Dispatch = cowboy_router:compile([
+        {'_', [
+            {"/websocket", supercast_endpoint_websocket, []},
+            {"/", cowboy_static, {file, DocrootIndex, [{etag,false}]}},
+            {"/[...]", cowboy_static, {dir, DocrootPath, [{etag,false}]}}
+        ]}
+    ]),
+
+    {ok, HTTPPort} = application:get_env(supercast, http_port),
+
+    %% keep-alive header is not shown because it is implicit
+    %% (HTTP1.0: close HTTP1.1: keep-alive)
+    {ok, _} = cowboy:start_http(supercast_http, 50, [{port, HTTPPort}], [
+        {env, [{dispatch, Dispatch}]},
+        {max_keepalive, 50}
+    ]),
+
+    {ok, TCPPort} = application:get_env(supercast, tcp_port),
+    {ok, _} = ranch:start_listener(supercast_tcp, 10, ranch_tcp,
+        [{port, TCPPort}], supercast_endpoint_tcp, []),
+    ok.
 
 -spec satisfy(CState::#client_state{}, Perm::tuple()) -> true | false.
 %% @doc Return true if the user is allowed to read the ressource.
