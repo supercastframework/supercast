@@ -22,18 +22,10 @@
 -include("supercast.hrl").
 
 %% local API
--export([
-    get_chan_perms/1,
-    synchronize/2
-]).
+-export([get_chan_perms/1,synchronize/2]).
 
 %% users API
--export([
-    subscribe/2,
-    emit/2,
-    unicast/2,
-    delete/1
-]).
+-export([subscribe/2,emit/2,unicast/2,delete/1]).
 
 %% -------------------------------------------------------------------
 %% supercast_channel behaviour callbacks
