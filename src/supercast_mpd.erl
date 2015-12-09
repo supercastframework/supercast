@@ -18,7 +18,12 @@
 %% -------------------------------------------------------------------
 
 %% @doc Filter and deliver multicast and unicast messages to clients.
-%% @TODO should use ets for chan state
+%% @TODO Should use ets for chan state.
+%% A table with a registered name, containing records, allowing concurrent
+%% read/write, optimized for concurrent read should look like:
+%% <pre>ets:new(Name, [set, public, named_table, {write_concurrency, false},
+%%      {read_concurrency, true}, {keypos, 2}]).</pre>
+%% @end
 -module(supercast_mpd).
 -behaviour(gen_server).
 -include("supercast.hrl").
