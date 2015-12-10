@@ -8,11 +8,11 @@
 -export([start_link/1]).
 -export([broadcast/3, unicast/3]).
 
-%% called from supercast_endpoint module
--export([subscribe/2]).
+-export([subscribe/2, subscribe1/2,subscribe2/2,subscribe3/3]).
 
 %% called from supercast module
 -export([delete/1]).
+
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2,
@@ -25,10 +25,11 @@
 
 start_link(ChanName) ->
     gen_server:start_link({via, supercast_reg, ChanName},
-                                        ?MODULE, ChanName, []).
+                                                        ?MODULE, ChanName, []).
 
 -spec subscribe(CState::#client_state{}, Channel::string()) -> ok | error.
-subscribe(CState, Channel) ->
+%% @doc called from the socket
+subscribe1(CState, Channel) ->
     %% does the channel exist?
     case ets:lookup(?ETS_CHAN_STATES, Channel) of
         [] -> %% no
@@ -44,17 +45,26 @@ subscribe(CState, Channel) ->
                     case supercast_reg:whereis_name(Channel) of
                         undefined -> %% no
                             supercast_relay_sup:start_child([Channel,CState]),
-                            subscribe2(Channel, CState),
+                            subscribe1(Channel, CState),
                             ok;
                         _ -> %% yes
-                            subscribe2(Channel, CState)
+                            subscribe1(Channel, CState)
                     end
             end
     end.
 
 -spec subscribe2(Channel::string(), CState::#client_state{}) -> ok | error.
-subscribe2(Channel, CState) ->
-    gen_server:call({via, supercast_reg, Channel}, {subscribe2, CState}).
+%% @doc called from supercast_endpoint
+subscribe1(Channel, CState) ->
+    gen_server:call({via, supercast_reg, Channel}, {subscribe1, CState}).
+
+-spec subscribe3(Channel::string(), CState::#client_state{},
+        Pdus::[term()]) -> ok.
+%% @doc called from the supercast_channel process
+subscribe3(Channel, CState, Pdus) ->
+    %% effectively registered here
+    gen_server:cast({via, supercast_reg, Channel}, {subscribe3, CState, Pdus}).
+
 
 -spec delete(Channel::string()) -> ok.
 delete(Channel) ->
@@ -87,16 +97,23 @@ init([ChanName, InitialClient]) ->
             {ok, #state{chan_name=ChanName,clients=[InitialClient]}}
     end.
 
-handle_call({subscribe2, _CState}, _From, State) ->
-    %% @TODO get synchro info from ?ETS_CHAN_STATES#chan_state.module:join
-    Pdus = [],
-    {reply, {ok, Pdus}, State};
+handle_call({subscribe2, CState}, _From, State) ->
+    gen_server:cast(self(), {subscribe3, CState}),
+    {reply, ok, State};
 handle_call(_Request, _From, State) ->
     {reply, ok, State}.
 
-handle_cast(delete, #state{clients=_Clients,chan_name=Name} = S) ->
+handle_cast(delete, #state{clients=_Clients,chan_name=Name} = State) ->
     %% @TODO send a unsubscribeOk message to all clients.
-    {stop, {"Channel deleted", Name}, S};
+    {stop, {"Channel deleted", Name}, State};
+handle_cast({subscribe3, CState}, #state{chan_name = Name} = State) ->
+    case ets:lookup(?ETS_CHAN_STATES, Name) of
+        [] -> %% vanished
+            ok;
+        [#chan_state{name=Name,module=Mod,args=Args}] ->
+            erlang:spawn(fun() -> Mod:join(Name, Args, CState) end)
+    end,
+    {noreply, State};
 handle_cast(_Request, State) ->
     {noreply, State}.
 

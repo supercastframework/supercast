@@ -21,7 +21,7 @@
 -module(supercast_channel).
 -include("supercast.hrl").
 
--callback join(Channel::string(), Args::any(), CState::#client_state{}) ->
+-callback sync(Channel::string(), Args::any(), CState::#client_state{}) ->
         ok | {ok, Messages::[supercast_msg()]} | {error, Reason::term()}.
 %% @doc Client join request.
 %%
@@ -30,6 +30,8 @@
 %%
 %% For client synchronization purpose, the callback can return any
 %% number of Pdus.
+%%
+%% Must call supercast:sync_ack/2 before the end of the call.
 %%
 %% <em>Args<em> is the term set at supercast:create/4.
 %% @end

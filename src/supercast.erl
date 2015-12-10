@@ -21,7 +21,7 @@
 -include("supercast.hrl").
 
 %% API
--export([new/4,delete/1,emit/3,send/3]).
+-export([new/4,delete/1,emit/3,send/3,sync_ack/3]).
 
 %% utils
 -export([filter/2, satisfy/2]).
@@ -43,6 +43,10 @@ delete(ChanName) ->
     end.
 
 
+-spec sync_ack(Channel::string(), CState::#client_state{},
+        Pdus::[term()]) -> ok.
+sync_ack(Channel, CState, Pdus) ->
+    supercast_relay:acknowledge(Channel, CState, Pdus).
 
 -spec send(Channel::string(),
     To::#client_state{}, Messages::[supercast_msg()]) -> ok.

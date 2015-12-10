@@ -24,25 +24,21 @@
 -export([handle_message/2,init_pdu/0,client_disconnected/1]).
 
 %% for spawn
--export([handle_client_message/2]).
+-export([handle_other_control/3]).
 
 
 -spec handle_message(Json::term(), Client::#client_state{}) -> ok.
 %% @doc Handle a client messages.
-handle_message(Json, Client) ->
-    erlang:spawn(?MODULE, handle_client_message, [Json, Client]).
-
-
 %% @private
-handle_client_message(Json, Client) ->
+handle_message(Json, Client) ->
 
     From = prop_str_val(<<"from">>, Json),
     Type = prop_str_val(<<"type">>, Json),
 
-    handle_client_message(From, Type, Json, Client).
+    handle_message(From, Type, Json, Client).
 
 
-handle_client_message("supercast", "authResp", Contents, CState) ->
+handle_message("supercast", "authResp", Contents, CState) ->
 
     Values  = prop_val(<<"value">>, Contents),
     Name    = prop_str_val(<<"name">>, Values),
@@ -59,7 +55,7 @@ handle_client_message("supercast", "authResp", Contents, CState) ->
             send_pdu(CState, pdu(authErr, {Name, Pass}))
     end;
 
-handle_client_message("supercast", "subscribe", Contents, CState) ->
+handle_message("supercast", "subscribe", Contents, CState) ->
 
     Values  = prop_val(<<"value">>, Contents),
     QueryId = prop_val(<<"queryId">>, Values),
@@ -98,7 +94,7 @@ handle_client_message("supercast", "subscribe", Contents, CState) ->
             end
     end;
 
-handle_client_message("supercast", "unsubscribe", Contents, CState) ->
+handle_message("supercast", "unsubscribe", Contents, CState) ->
 
     Values  = prop_val(<<"value">>, Contents),
     QueryId = prop_val(<<"queryId">>, Values),
@@ -107,8 +103,9 @@ handle_client_message("supercast", "unsubscribe", Contents, CState) ->
     ok = supercast_mpd:unsubscribe(Channel, CState),
     send_pdu(CState, pdu(unsubscribeOk, {QueryId, Channel}));
 
-handle_client_message(OtherMod, Type, Contents, CState) ->
-    handle_other_control(OtherMod, {Type, Contents}, CState).
+handle_message(OtherMod, Type, Contents, CState) ->
+    erlang:spawn(?MODULE, handle_other_control, [OtherMod, {Type,Contents}, CState]),
+    ok.
 
 
 %% @private
