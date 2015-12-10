@@ -33,20 +33,12 @@ init([]) ->
             {one_for_all, 0, 6000},
             [
                 {
-                    supercast_registrar,
-                    {supercast_registrar,start_link, []},
+                    supercast_channel_sup,
+                    {supercast_channel_sup,start_link, []},
                     permanent,
                     2000,
-                    worker,
-                    [supercast_registrar]
-                },
-                {
-                    supercast_mpd,
-                    {supercast_mpd,start_link, []},
-                    permanent,
-                    2000,
-                    worker,
-                    [supercast_mpd]
+                    supervisor,
+                    [supercast_channel_sup]
                 },
                 {
                     ranch_sup,
@@ -67,3 +59,4 @@ init([]) ->
             ]
         }
     }.
+

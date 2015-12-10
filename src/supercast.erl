@@ -20,9 +20,37 @@
 -module(supercast).
 -include("supercast.hrl").
 
--export([listen/0]).
--export([filter/2, satisfy/2, mpd_state/0]).
--export([start/0,stop/0]).
+%% API
+-export([new/4,delete/1,emit/3,send/3]).
+
+%% utils
+-export([filter/2, satisfy/2]).
+-export([start/0,listen/0,stop/0]).
+
+-spec new(ChanName::string(), Module::atom(), Opts::any(),
+                            Perm::#perm_conf{}) -> ok | {error, Reason::term()}.
+new(_ChanName, _Module, _Opts, _Perm) -> ok.
+
+-spec delete(ChannName::string()) -> ok.
+delete(_ChannName) -> ok.
+
+
+
+
+
+
+-spec send(Channel::string(),
+    To::#client_state{}, Msgs::[supercast_msg()]) -> ok.
+send(_Channel, _To, _Msgs) -> ok.
+
+-spec emit(Channel::string(), Messages::[supercast_msg()],
+                                CustomPerm::default | #perm_conf{}) -> ok.
+emit(_Channel, _Messages, _Perm) -> ok.
+
+
+
+
+
 
 -spec start() -> ok.
 %% @doc Localy start the supercast server.
@@ -30,17 +58,10 @@
 %% You should embed supercast in your application.
 %% @end
 start() ->
-    ensure_started(xmerl),
+    application:start(xmerl),
     application:start(supercast),
     supercast:listen().
 
-ensure_started(App) ->
-    case application:start(App) of
-        ok ->
-            ok;
-        {error, {already_started, App}} ->
-            ok
-    end.
 
 -spec stop() -> ok.
 %% @doc Stop the supercast server.
@@ -100,9 +121,3 @@ filter_things(CState, [{Perm, Thing}|T], R) ->
         true  ->
             filter_things(CState, T, [Thing|R])
     end.
-
-%% @private
--spec mpd_state() -> {ok, tuple()}.
-%% @doc This function return the state of the supercast_mpd gen_server module.
-mpd_state() ->
-    gen_server:call(supercast_mpd, dump).

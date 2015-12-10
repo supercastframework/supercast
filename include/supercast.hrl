@@ -17,7 +17,9 @@
 %% under the License.
 %% -------------------------------------------------------------------
 
--type   supercast_msg()     ::  {function, fun()} | {pdu, tuple()}.
+-type supercast_msg() ::
+    {function, fun()} | {pdu, tuple()} | {file, Path::string()}.
+
 -record(perm_conf, {
     read    = []    :: [term()],
     write   = []    :: [term()]

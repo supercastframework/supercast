@@ -5,10 +5,11 @@
 -export([start/0, stop/0]).
 
 %% supercast channel behaviour
--export([synchronize/3,disconnect/3]).
+-behaviour(supercast_channel).
+-export([join/3,leave/3]).
 
 %% user test
--export([broadcast/2, unicast/2]).
+-export([emit/2, send/2]).
 
 %% @spec start() -> ok
 %% @doc Start the {{appid}} server.
@@ -18,8 +19,8 @@ start() ->
     ok = supercast:listen(),
     ChanName = "{{appid}}",
     Perm = undefined,
-    Opts = [],
-    ok = supercast:create(ChanName, ?MODULE, Opts, Perm).
+    Args = [],
+    ok = supercast:new(ChanName, ?MODULE, Args, Perm).
 
 stop() ->
     ChanName = "{{appid}}",
@@ -33,9 +34,9 @@ stop() ->
 %% Wait for reply to the channel_worker process (wich will not emit data
 %% because he is himself locking the channel.
 %% @end
-synchronize("{{appid}}", _Opts, _CState) ->
+join("{{appid}}", _Args, _CState) ->
     {ok, ["hello from jojo", "you should be synchro now"]};
-synchronize(_, _, _) ->
+join(_, _, _) ->
     {error, "unknown channel"}.
 
 %% @spec leave(Channel, Opts, CState) ->
@@ -43,21 +44,21 @@ synchronize(_, _, _) ->
 %% @doc
 %% Return without waiting reply
 %% @end
-disconnect("{{appid}}", _Opts, _CState) -> ok;
-disconnect(_Channel, _Opts, _CState) -> {error, "unknown channel"}.
+leave("{{appid}}", _Args, _CState) -> ok;
+leave(_Channel, _Opts, _CState) -> {error, "unknown channel"}.
 
 
 %% @spec send_broadcast(Messages::[term()], Perm::any()) -> ok
-broadcast(Messages, undefined) ->
+emit(Messages, undefined) ->
     Channel = "{{appid}}",
-    supercast:broadcast(Channel, Messages);
-broadcast(Messages, CustomPerm) ->
+    supercast:emit(Channel, Messages);
+emit(Messages, CustomPerm) ->
     Channel = "{{appid}}",
-    supercast:broadcast(Channel, Messages, CustomPerm).
+    supercast:emit(Channel, Messages, CustomPerm).
 
 %% @spec send_unicast(Messages::[term()], CState) -> ok
-unicast(Messages, CState) ->
+send(Messages, CState) ->
     Channel = "{{appid}}",
-    supercast:unicast(Channel, Messages, CState).
+    supercast:send(Channel, Messages, CState).
 
 

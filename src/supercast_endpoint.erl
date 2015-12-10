@@ -54,7 +54,7 @@ handle_client_message("supercast", "subscribe", Contents, ClientState) ->
     Values = proplists:get_value(<<"value">>, Contents),
     QueryId = proplists:get_value(<<"queryId">>, Values),
     Channel =  binary_to_list(proplists:get_value(<<"channel">>, Values)),
-    case supercast_registrar:whereis_name(Channel) of
+    case supercast_reg:whereis_name(Channel) of
         undefined ->
             ?SUPERCAST_LOG_ERROR("Unknown chan name", Channel),
             send_pdu(ClientState, pdu(subscribeErr, {QueryId, Channel}));

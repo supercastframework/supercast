@@ -24,6 +24,20 @@
 -export([start/2, stop/1]).
 
 start(_Type, _Args) ->
+    init_relay_ets(),
+    init_chan_ets(),
     supercast_sup:start_link().
 
 stop(_State) -> ok.
+
+%% @doc Initialize ets used by supercast_reg module to store
+%% supercast_relay pids.
+%% @end
+init_relay_ets() ->
+    ets:new(relay_register, [set, public, named_table,{write_concurrency, false},
+        {read_concurrency, true}, {keypos, 1}]).
+
+%% @doc Initialize ets used to store channel subscribers to a channel.
+init_chan_ets() ->
+    ets:new(chan_state, [set, public, named_table,{write_concurrency, false},
+        {read_concurrency, true}, {keypos, 2}]).
