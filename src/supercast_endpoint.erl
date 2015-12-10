@@ -26,77 +26,120 @@
 %% for spawn
 -export([handle_client_message/2]).
 
+
 -spec handle_message(Json::term(), Client::#client_state{}) -> ok.
 %% @doc Handle a client messages.
 handle_message(Json, Client) ->
     erlang:spawn(?MODULE, handle_client_message, [Json, Client]).
 
+
 %% @private
 handle_client_message(Json, Client) ->
-    From = binary_to_list(proplists:get_value(<<"from">>, Json)),
-    Type = binary_to_list(proplists:get_value(<<"type">>, Json)),
+
+    From = prop_str_val(<<"from">>, Json),
+    Type = prop_str_val(<<"type">>, Json),
+
     handle_client_message(From, Type, Json, Client).
-handle_client_message("supercast", "authResp", Contents, ClientState) ->
-    Values = proplists:get_value(<<"value">>, Contents),
-    Name   = binary_to_list(proplists:get_value(<<"name">>,     Values)),
-    Pass   = binary_to_list(proplists:get_value(<<"password">>, Values)),
-    CMod   = ClientState#client_state.module,
+
+
+handle_client_message("supercast", "authResp", Contents, CState) ->
+
+    Values  = prop_val(<<"value">>, Contents),
+    Name    = prop_str_val(<<"name">>, Values),
+    Pass    = prop_str_val(<<"password">>, Values),
+    CMod    = CState#client_state.module,
     AuthMod = get_env(auth_module),
+
     case AuthMod:authenticate(Name, Pass) of
         {ok, Groups} ->
-            {ok, MainChans} = application:get_env(supercast, main_channels),
-            CMod:auth_set(success, ClientState, Name, Groups, MainChans),
-            send_pdu(ClientState,pdu(authAck, {Groups, MainChans}));
+            MainChans = get_env(main_channels),
+            CMod:auth_set(success, CState, Name, Groups, MainChans),
+            send_pdu(CState,pdu(authAck, {Groups, MainChans}));
         fail ->
-            send_pdu(ClientState, pdu(authErr, {Name, Pass}))
+            send_pdu(CState, pdu(authErr, {Name, Pass}))
     end;
-handle_client_message("supercast", "subscribe", Contents, ClientState) ->
-    Values = proplists:get_value(<<"value">>, Contents),
-    QueryId = proplists:get_value(<<"queryId">>, Values),
-    Channel =  binary_to_list(proplists:get_value(<<"channel">>, Values)),
+
+handle_client_message("supercast", "subscribe", Contents, CState) ->
+
+    Values  = prop_val(<<"value">>, Contents),
+    QueryId = prop_val(<<"queryId">>, Values),
+    Channel = prop_str_val(<<"channel">>, Values),
+    AuthMod = get_env(auth_module),
+
+    case supercast_relay:subscribe(CState) of
+        ok    -> send_pdu(CState, pdu(subscribeOk, {QueryId, Channel}));
+        error -> send_pdu(CState, pdu(subscribeErr, {QueryId, Channel}))
+    end,
+
+    case ets:lookup(?ETS_CHAN_STATES, Channel) of
+        [] ->
+            ?SUPERCAST_LOG_ERROR("Unknown chan name", Channel),
+            send_pdu(CState, pdu(subscribeErr, {QueryId, Channel}));
+        [#chan_state{perm=Perm}] ->
+            case AuthMod:satisfy(read, [CState], Perm) of
+                {ok, []} ->
+                    send_pdu(CState, pdu(subscribeErr, {QueryId, Channel}));
+                _ ->
+                    supercast_relay:subscribe(),
+                    send_pdu(CState, pdu(subscribeOk, {QueryId, Channel}))
+            end
+    end,
     case supercast_reg:whereis_name(Channel) of
         undefined ->
             ?SUPERCAST_LOG_ERROR("Unknown chan name", Channel),
-            send_pdu(ClientState, pdu(subscribeErr, {QueryId, Channel}));
+            send_pdu(CState, pdu(subscribeErr, {QueryId, Channel}));
         _ ->
-            case supercast_mpd:subscribe_stage1(Channel, ClientState) of
+            case supercast_mpd:subscribe_stage1(Channel, CState) of
                 error ->
-                    send_pdu(ClientState, pdu(subscribeErr, {QueryId, Channel}));
+                    send_pdu(CState, pdu(subscribeErr, {QueryId, Channel}));
                 ok ->
-                    send_pdu(ClientState, pdu(subscribeOk, {QueryId, Channel})),
-                    supercast_mpd:subscribe_stage2(Channel,ClientState)
+                    send_pdu(CState, pdu(subscribeOk, {QueryId, Channel})),
+                    supercast_mpd:subscribe_stage2(Channel,CState)
             end
     end;
-handle_client_message("supercast", "unsubscribe", Contents, ClientState) ->
-    Values = proplists:get_value(<<"value">>, Contents),
-    QueryId = proplists:get_value(<<"queryId">>, Values),
-    Channel =  binary_to_list(proplists:get_value(<<"channel">>, Values)),
-    ok = supercast_mpd:unsubscribe(Channel, ClientState),
-    send_pdu(ClientState, pdu(unsubscribeOk, {QueryId, Channel}));
-handle_client_message(OtherMod, Type, Contents, ClientState) ->
-    handle_other_control(OtherMod, {Type, Contents}, ClientState).
+
+handle_client_message("supercast", "unsubscribe", Contents, CState) ->
+
+    Values  = prop_val(<<"value">>, Contents),
+    QueryId = prop_val(<<"queryId">>, Values),
+    Channel = prop_str_val(<<"channel">>, Values),
+
+    ok = supercast_mpd:unsubscribe(Channel, CState),
+    send_pdu(CState, pdu(unsubscribeOk, {QueryId, Channel}));
+
+handle_client_message(OtherMod, Type, Contents, CState) ->
+    handle_other_control(OtherMod, {Type, Contents}, CState).
+
 
 %% @private
-handle_other_control(ModKey, Msg, ClientState) ->
+handle_other_control(ModKey, Msg, CState) ->
     Dispatch = get_env(pdu_dispatch),
     case lists:keyfind(ModKey, 2, Dispatch) of
         false -> {error, no_such_controler};
         {Mod, ModKey} ->
-            Mod:handle_command(Msg, ClientState)
+            Mod:handle_command(Msg, CState)
     end.
+
+
 
 -spec init_pdu() -> {ok, term()}.
 %% @doc Return an Pdu to send to the client containing initialisation data.
+%% Called from supercast_endpoint_* modules.
+%% @end
 init_pdu() ->
     pdu(serverInfo, {"local", get_env(http_port), "http"}).
 
+
 -spec client_disconnected(#client_state{}) -> ok.
 %% @doc Must be send by the endpoint when the connexion is closed.
-client_disconnected(ClientState) ->
-    supercast_mpd:client_disconnect(ClientState).
+%% Called from supercast_endpoint_* modules.
+%% @end
+client_disconnected(CState) ->
+    supercast_mpd:client_disconnect(CState).
 
 
 -spec pdu(Type::atom(), Any::term()) -> term().
+%% @private
 %% @doc Return a pdu of type Type.
 pdu(serverInfo, {AuthType, DataPort, DataProto}) ->
     [
@@ -174,3 +217,6 @@ pdu(unsubscribeErr, {QueryId, Channel}) ->
 
 get_env(Key) -> {ok, Val} = application:get_env(supercast, Key), Val.
 send_pdu(#client_state{module=Mod} = CS, Msg) -> Mod:send(CS, Msg).
+
+prop_str_val(Key, Contents) -> binary_to_list(prop_val(Key, Contents)).
+prop_val(Key, Contents) -> proplists:get_value(Key, Contents).

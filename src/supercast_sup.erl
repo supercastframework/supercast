@@ -33,12 +33,12 @@ init([]) ->
             {one_for_all, 0, 6000},
             [
                 {
-                    supercast_channel_sup,
-                    {supercast_channel_sup,start_link, []},
+                    supercast_relay_sup,
+                    {supercast_relay_sup,start_link, []},
                     permanent,
                     2000,
                     supervisor,
-                    [supercast_channel_sup]
+                    [supercast_relay_sup]
                 },
                 {
                     ranch_sup,

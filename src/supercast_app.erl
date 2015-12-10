@@ -20,6 +20,7 @@
 %% @private
 -module(supercast_app).
 -behaviour(application).
+-include("supercast.hrl").
 
 -export([start/2, stop/1]).
 
@@ -34,10 +35,10 @@ stop(_State) -> ok.
 %% supercast_relay pids.
 %% @end
 init_relay_ets() ->
-    ets:new(relay_register, [set, public, named_table,{write_concurrency, false},
-        {read_concurrency, true}, {keypos, 1}]).
+    ets:new(?ETS_RELAYS_REGISTER, [set, public, named_table,
+        {write_concurrency, false}, {read_concurrency, true}, {keypos, 1}]).
 
 %% @doc Initialize ets used to store channel subscribers to a channel.
 init_chan_ets() ->
-    ets:new(chan_state, [set, public, named_table,{write_concurrency, false},
-        {read_concurrency, true}, {keypos, 2}]).
+    ets:new(?ETS_CHAN_STATES, [set, public, named_table,
+        {write_concurrency, false}, {read_concurrency, true}, {keypos, 2}]).

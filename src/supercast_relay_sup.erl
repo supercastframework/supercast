@@ -1,5 +1,5 @@
 
--module(supercast_channel_sup).
+-module(supercast_relay_sup).
 -behaviour(supervisor).
 
 %% API
@@ -10,8 +10,8 @@
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
-start_child(Args) ->
-    supervisor:start_child(?MODULE, Args).
+start_child(Chan) ->
+    supervisor:start_child(?MODULE, Chan).
 
 init([]) ->
     {ok,
@@ -21,7 +21,7 @@ init([]) ->
                 {
                     supercast_relay,
                     {supercast_relay,start_link,[]},
-                    transiant,
+                    transient,
                     2000,
                     worker,
                     [supercast_relay]

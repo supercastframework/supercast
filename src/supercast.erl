@@ -28,24 +28,38 @@
 -export([start/0,listen/0,stop/0]).
 
 -spec new(ChanName::string(), Module::atom(), Opts::any(),
-                            Perm::#perm_conf{}) -> ok | {error, Reason::term()}.
-new(_ChanName, _Module, _Opts, _Perm) -> ok.
+                                                    Perm::#perm_conf{}) -> ok.
+new(ChanName, Module, Args, Perm) ->
+    ets:insert(?ETS_CHAN_STATES,
+        #chan_state{name=ChanName,module=Module,perm=Perm,args=Args}),
+    ok.
 
 -spec delete(ChannName::string()) -> ok.
-delete(_ChannName) -> ok.
-
-
-
+delete(ChanName) ->
+    ets:delete(?ETS_CHAN_STATES, ChanName),
+    case supercast_reg:whereis_name(ChanName) of
+        undefined -> ok;
+        Pid       -> supercast_relay:delete(Pid)
+    end.
 
 
 
 -spec send(Channel::string(),
-    To::#client_state{}, Msgs::[supercast_msg()]) -> ok.
-send(_Channel, _To, _Msgs) -> ok.
+    To::#client_state{}, Messages::[supercast_msg()]) -> ok.
+send(Channel, To, Messages) ->
+    case supercast_reg:whereis_name(Channel) of
+        undefined -> ok;
+        Pid       -> supercast_relay:unicast(Pid, To, Messages)
+    end.
+
 
 -spec emit(Channel::string(), Messages::[supercast_msg()],
                                 CustomPerm::default | #perm_conf{}) -> ok.
-emit(_Channel, _Messages, _Perm) -> ok.
+emit(Channel, Messages, Perm) ->
+    case supercast_reg:whereis_name(Channel) of
+        undefined -> ok;
+        Pid       -> supercast_relay:broadcast(Pid, Messages, Perm)
+    end.
 
 
 

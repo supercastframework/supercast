@@ -27,31 +27,43 @@
 -module(supercast_reg).
 -include("supercast.hrl").
 
-%% ETS_RELAY_REGISTER initialized in supercast_app module
--define(ETS_RELAY_REGISTER, relay_register).
-
 -export([register_name/2,unregister_name/1,whereis_name/1,send/2]).
 
 -spec register_name(Name::string(), Pid::pid()) -> yes | no.
 register_name(Name, Pid) ->
-    true = ets:insert(?ETS_RELAY_REGISTER, {Name, Pid}),
-    yes.
+    case where(Name) of
+        undefined ->
+            true = ets:insert(?ETS_RELAYS_REGISTER, {Name, Pid}),
+            yes;
+        _ ->
+            no
+    end.
 
--spec unregister_name(Name::string()) -> yes | no.
+-spec unregister_name(Name::string()) -> Name::string().
 unregister_name(Name) ->
-    true = ets:delete(?ETS_RELAY_REGISTER, Name),
-    yes.
+    true = ets:delete(?ETS_RELAYS_REGISTER, Name),
+    Name.
 
 -spec whereis_name(Name::string()) -> pid() | undefined.
-whereis_name(Name) ->
-    case ets:lookup(?ETS_RELAY_REGISTER, Name) of
-        []           -> undefined;
-        [{Name,Pid}] -> Pid
+whereis_name(Name) -> where(Name).
+where(Name) ->
+    case ets:lookup(?ETS_RELAYS_REGISTER, Name) of
+        [{Name,Pid}] ->
+            case is_process_alive(Pid) of
+                true  -> Pid;
+                false -> undefined
+            end;
+        [] -> undefined
     end.
 
 -spec send(Name::string, Msg::term()) -> pid().
-send(Name,Msg) ->
-    case whereis_name(Name) of
-        undefined -> exit({badarg, {Name,Msg}});
-        Pid       -> Pid ! Msg, Pid
+send(Name, Msg) ->
+    case where(Name) of
+        Pid when is_pid(Pid) ->
+            Pid ! Msg,
+            Pid;
+        undefined ->
+            exit({badarg, {Name, Msg}})
     end.
+
+
