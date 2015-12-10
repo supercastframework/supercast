@@ -2,7 +2,7 @@
 
 -module({{appid}}).
 -author("{{author}}").
--export([init/0]).
+-export([start/0, stop/0]).
 
 %% supercast channel behaviour
 -export([synchronize/3,disconnect/3]).
@@ -19,12 +19,20 @@ start() ->
     ChanName = "{{appid}}",
     Perm = undefined,
     Opts = [],
-    ok = supercast:create(ChanName, ?MODULE, Opts, Perm),
-    %% ok = supercast:set_opts(ChanName, Opts),
-    %% ok = supercast:delete(ChanName)
+    ok = supercast:create(ChanName, ?MODULE, Opts, Perm).
+
+stop() ->
+    ChanName = "{{appid}}",
+    supercast:delete(ChanName),
+    init:stop().
+
 
 %% @spec synchronize(ChanName::string(), Opts::any(), ClientState::any()) ->
 %%      {ok, Pdus::[term()]} | {error, Reason::term()}
+%% @doc
+%% Wait for reply to the channel_worker process (wich will not emit data
+%% because he is himself locking the channel.
+%% @end
 synchronize("{{appid}}", _Opts, _CState) ->
     {ok, ["hello from jojo", "you should be synchro now"]};
 synchronize(_, _, _) ->
@@ -32,6 +40,9 @@ synchronize(_, _, _) ->
 
 %% @spec leave(Channel, Opts, CState) ->
 %%      ok | {error, Reason::string()}
+%% @doc
+%% Return without waiting reply
+%% @end
 disconnect("{{appid}}", _Opts, _CState) -> ok;
 disconnect(_Channel, _Opts, _CState) -> {error, "unknown channel"}.
 
