@@ -20,6 +20,7 @@
 %% @private
 -module(supercast_app).
 -behaviour(application).
+-include("supercast.hrl").
 
 -export([start/2, stop/1]).
 
@@ -27,3 +28,4 @@ start(_Type, _Args) ->
     supercast_sup:start_link().
 
 stop(_State) -> ok.
+

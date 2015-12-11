@@ -18,124 +18,52 @@
 %% -------------------------------------------------------------------
 
 %% @doc Keep a state of channel pids.
-%% Channel names are dynamic, so we can not store these values with atoms
-%% because they are not garbage collected. This module implement
+%% Channel names are dynamic. We can not store these values with atoms
+%% because they are not garbage collected and limited. This module implement
 %% the required functions to implement a local pid registry using strings as
 %% pid name.
 %% @end
 
-%% @TODO maybe use binaries
-%% @TODO use ets
-
 -module(supercast_registrar).
--behaviour(gen_server).
 -include("supercast.hrl").
 
--export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-    terminate/2, code_change/3]).
+-export([register_name/2,unregister_name/1,whereis_name/1,send/2]).
 
--export([start_link/0]).
+-spec register_name(Name::string(), Pid::pid()) -> yes | no.
+register_name(Name, Pid) ->
+    case where(Name) of
+        undefined ->
+            true = ets:insert(?ETS_RELAYS_REGISTER, {Name, Pid}),
+            yes;
+        _ ->
+            no
+    end.
 
--export([register_name/2, unregister_name/1, whereis_name/1,
-    send/2, which_module/1]).
-
-register_name({Module, Name}, Pid) ->
-    gen_server:call(?MODULE, {register_name, Name, Module, Pid}).
-
+-spec unregister_name(Name::string()) -> Name::string().
 unregister_name(Name) ->
-    gen_server:call(?MODULE, {unregister_name, Name}).
+    true = ets:delete(?ETS_RELAYS_REGISTER, Name),
+    Name.
 
-whereis_name(Name) ->
-    gen_server:call(?MODULE, {whereis_name, Name}).
+-spec whereis_name(Name::string()) -> pid() | undefined.
+whereis_name(Name) -> where(Name).
+where(Name) ->
+    case ets:lookup(?ETS_RELAYS_REGISTER, Name) of
+        [{Name,Pid}] ->
+            case is_process_alive(Pid) of
+                true  -> Pid;
+                false -> undefined
+            end;
+        [] -> undefined
+    end.
 
-which_module(Name) ->
-    gen_server:call(?MODULE, {which_module, Name}).
-
-send(Name,Msg) ->
-    case whereis_name(Name) of
+-spec send(Name::string, Msg::term()) -> pid().
+send(Name, Msg) ->
+    case where(Name) of
         Pid when is_pid(Pid) ->
             Pid ! Msg,
             Pid;
         undefined ->
-            exit({badarg, {Name,Msg}})
+            exit({badarg, {Name, Msg}})
     end.
 
-%%-------------------------------------------------------------
-%% API
-%%-------------------------------------------------------------
-%% @private
-start_link() ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
-%%-------------------------------------------------------------
-%% GEN_SERVER CALLBACKS
-%%-------------------------------------------------------------
-%% @private
-init([]) ->
-    {ok, []}.
-
-%% @private
-handle_call({register_name, Name, Module, Pid}, _F, R) ->
-    case lists:keymember(Name,2,R) of
-        true ->
-            {reply, no, R};
-        false ->
-            case lists:keymember(Pid,3,R) of
-                true ->
-                    {reply, no, R};
-                false ->
-                    NewEntry = #registered_chan{
-                        name    = Name,
-                        pid     = Pid,
-                        module  = Module
-                    },
-                    {reply, yes, [NewEntry|R]}
-        end
-    end;
-
-handle_call({unregister_name, Name}, _F, R) ->
-    case lists:keytake(Name,2,R) of
-        false ->
-            {reply, Name, R};
-        {value,_,NewR} ->
-            {reply, Name, NewR}
-    end;
-
-handle_call({whereis_name, Name}, _F, R) ->
-    case lists:keyfind(Name,2,R) of
-        false ->
-            {reply, undefined, R};
-        #registered_chan{pid=Pid} ->
-            {reply, Pid, R}
-    end;
-
-handle_call({which_module, Name}, _F, R) ->
-    case lists:keyfind(Name, 2, R) of
-        false ->
-            {reply, error, R};
-        #registered_chan{module=Mod} ->
-            {reply, Mod, R}
-    end;
-
-handle_call(_Call, _F, S) ->
-    ?SUPERCAST_LOG_WARNING("Unknown call", _Call),
-    {noreply, S}.
-
-%% CAST
-%% @private
-handle_cast(_Cast, S) ->
-    ?SUPERCAST_LOG_WARNING("Unknown cast", _Cast),
-    {noreply, S}.
-
-%% OTHER
-%% @private
-handle_info(_I, S) ->
-    {noreply, S}.
-
-%% @private
-terminate(_R, _S) ->
-    normal.
-
-%% @private
-code_change(_O, S, _E) ->
-    {ok, S}.
