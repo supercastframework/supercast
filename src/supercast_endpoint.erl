@@ -50,7 +50,7 @@ handle_message("supercast", "authResp", Contents, CState) ->
     case AuthMod:authenticate(Name, Pass) of
         {ok, Groups} ->
             MainChans = get_env(main_channels),
-            CMod:auth_set(success, CState, Name, Groups, MainChans),
+            CMod:auth_success(success, CState, Name, Groups),
             send_pdu(CState,pdu(authAck, {Groups, MainChans}));
         fail ->
             send_pdu(CState, pdu(authErr, {Name, Pass}))

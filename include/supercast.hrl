@@ -36,45 +36,14 @@
     args
 }).
 
--record(registered_chan, {
-    name,
-    pid,
-    module
-}).
-
--record(chan, {
-    id          = undefined :: atom(),
-    perm        = undefined :: undefined | #perm_conf{}
-}).
-
 -record(client_state,  {
-    socket,                     % client socket
-    addr,                       % client address
-    port,                       % client port
-    certificate,                % ssl certificate
-    ca_certificate,             % for self signed certs
-    key,                        % ssl key
-    ref,                        % reference ovoiding socket swap in the 
-                                % middle of a async call
-    user_name = [],             % user attached to the socket
-    user_roles = [],            % groups wich the user belong
-    user_modules,               % modules allowed at client connexion
-    auth_request_count = 1,     % used by max request count
-    module,                     % callback mod to send data
-    encoding_mod,               %
-    communication_mod,          % must implement the X:send(Socket, Msg) fun
-    authenticated,              % boolean
-    ranch_transport,
-    ranch_ref,
-    pid                         % pid() of the gen_server howner of the socket
-}). 
-
--record(supercast_module, {
-    name        = undefined :: atom(),
-    callback    = undefined :: module(),
-    asnkey      = undefined :: atom(),
-    static_chan = undefined :: pid() | reference(),
-    perm        = []        :: [string()]
+    pid,
+    ref,
+    user_name = "",
+    user_roles = [],
+    module,
+    authenticated = false,
+    data
 }).
 
 
