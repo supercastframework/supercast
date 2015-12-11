@@ -17,22 +17,10 @@
 %% under the License.
 %% -------------------------------------------------------------------
 
--type supercast_msg() ::
-    {function, fun()} | {pdu, tuple()} | {file, Path::string()}.
-
--define(ETS_CHAN_STATES, chan_states).
--define(ETS_RELAYS_REGISTER, relays_register).
-
+-type   supercast_msg()     ::  {function, fun()} | {pdu, tuple()}.
 -record(perm_conf, {
     read    = []    :: [term()],
     write   = []    :: [term()]
-}).
-
--record(chan_state, {
-    name,
-    perm,
-    module,
-    args
 }).
 
 -record(registered_chan, {
