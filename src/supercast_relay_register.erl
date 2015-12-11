@@ -24,7 +24,7 @@
 %% pid name.
 %% @end
 
--module(supercast_reg).
+-module(supercast_relay_register).
 -include("supercast.hrl").
 
 -export([register_name/2,unregister_name/1,whereis_name/1,send/2]).

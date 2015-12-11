@@ -64,20 +64,6 @@ handle_message("supercast", "subscribe", Contents, CState) ->
     case supercast_relay:subscribe(CState, Channel) of
         ok    -> send_pdu(CState, pdu(subscribeOk, {QueryId, Channel}));
         error -> send_pdu(CState, pdu(subscribeErr, {QueryId, Channel}))
-    end,
-
-    case supercast_reg:whereis_name(Channel) of
-        undefined ->
-            ?SUPERCAST_LOG_ERROR("Unknown chan name", Channel),
-            send_pdu(CState, pdu(subscribeErr, {QueryId, Channel}));
-        _ ->
-            case supercast_mpd:subscribe_stage1(Channel, CState) of
-                error ->
-                    send_pdu(CState, pdu(subscribeErr, {QueryId, Channel}));
-                ok ->
-                    send_pdu(CState, pdu(subscribeOk, {QueryId, Channel})),
-                    supercast_mpd:subscribe_stage2(Channel,CState)
-            end
     end;
 
 handle_message("supercast", "unsubscribe", Contents, CState) ->

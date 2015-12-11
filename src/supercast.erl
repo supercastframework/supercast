@@ -21,30 +21,31 @@
 -include("supercast.hrl").
 
 %% API
--export([new/4,delete/1,unicast/3,multicast/3,broadcast/2,ack/1,ack/2]).
+-export([new_channel/4,delete_channel/1,unicast/3,
+            multicast/3,broadcast/2,ack/1,ack/2]).
 
 %% utils
 -export([filter/2, satisfy/2]).
 -export([start/0,listen/0,stop/0]).
 
--spec new(ChanName::string(), Module::atom(), Opts::any(),
+-spec new_channel(ChanName::string(), Module::atom(), Opts::any(),
                                                     Perm::#perm_conf{}) -> ok.
-new(ChanName, Module, Args, Perm) ->
+new_channel(ChanName, Module, Args, Perm) ->
     ets:insert(?ETS_CHAN_STATES,
         #chan_state{name=ChanName,module=Module,perm=Perm,args=Args}),
     ok.
 
--spec delete(ChannName::string()) -> ok.
-delete(ChanName) ->
+-spec delete_channel(ChannName::string()) -> ok.
+delete_channel(ChanName) ->
     ets:delete(?ETS_CHAN_STATES, ChanName),
-    case supercast_reg:whereis_name(ChanName) of
+    case supercast_relay_register:whereis_name(ChanName) of
         undefined -> ok;
         Pid       -> supercast_relay:delete(Pid)
     end.
 
 
 -spec ack(Ref::reference()) -> ok.
-%% @equiv ack(Channel, CState, []).
+%% @equiv ack(Ref, []).
 ack(Ref) -> ack(Ref, []).
 
 -spec ack(Ref::reference(), Pdus::[term()]) -> ok.
@@ -56,7 +57,7 @@ ack(Ref, Pdus) ->
 -spec unicast(Channel::string(),
     To::#client_state{}, Messages::[supercast_msg()]) -> ok.
 unicast(Channel, To, Messages) ->
-    case supercast_reg:whereis_name(Channel) of
+    case supercast_relay_register:whereis_name(Channel) of
         undefined -> ok;
         Pid       -> supercast_relay:unicast(Pid, To, Messages)
     end.
@@ -65,7 +66,7 @@ unicast(Channel, To, Messages) ->
 -spec multicast(Channel::string(), Messages::[supercast_msg()],
                                 CustomPerm::default | #perm_conf{}) -> ok.
 multicast(Channel, Messages, Perm) ->
-    case supercast_reg:whereis_name(Channel) of
+    case supercast_relay_register:whereis_name(Channel) of
         undefined -> ok;
         Pid       -> supercast_relay:multicast(Pid, Messages, Perm)
     end.

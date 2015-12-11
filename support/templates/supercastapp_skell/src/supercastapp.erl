@@ -20,11 +20,11 @@ start() ->
     ChanName = "{{appid}}",
     Perm = undefined,
     Args = [],
-    ok = supercast:new(ChanName, ?MODULE, Args, Perm).
+    ok = supercast:new_channel(ChanName, ?MODULE, Args, Perm).
 
 stop() ->
     ChanName = "{{appid}}",
-    supercast:delete(ChanName),
+    supercast:delete_channel(ChanName),
     init:stop().
 
 
@@ -38,7 +38,7 @@ syn("{{appid}}", _Args, _CState, Ref) ->
     Pdus = ["hello from jojo", "you should be synchro now"],
     supercast:ack(Ref, Pdus);
 
-syn(_, _, _) ->
+syn(_, _, _, _) ->
     {error, "unknown channel"}.
 
 %% @spec leave(Channel, Opts, CState) ->

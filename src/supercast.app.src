@@ -5,7 +5,7 @@
         {modules, []},
         {registered, [
                 supercast_sup,
-                supercast_mpd
+                supercast_relay_sup
             ]},
 
         {included_applications, [ranch, cowboy]},

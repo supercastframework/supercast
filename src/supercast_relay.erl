@@ -26,7 +26,7 @@
 }).
 
 start_link(Name) ->
-    gen_server:start_link({via, supercast_reg, Name}, ?MODULE, Name, []).
+    gen_server:start_link({via, supercast_relay_register, Name}, ?MODULE, Name, []).
 
 -spec subscribe(CState::#client_state{}, Channel::string()) -> ok | error.
 %% @doc called from the socket
@@ -54,7 +54,7 @@ subscribe(CState, Channel) ->
 -spec subscribe_stage1(Channel::string(), CState::#client_state{}) -> ok | error.
 %% @doc called from supercast_endpoint to initialize a client subscription.
 subscribe_stage1(Channel, CState) ->
-    gen_server:cast({via, supercast_reg, Channel}, {subscribe_stage1, CState}).
+    gen_server:cast({via, supercast_relay_register, Channel}, {subscribe_stage1, CState}).
 
 -spec subscribe_stage2(Ref::reference(), Pdus::[term()]) -> ok.
 %% @doc called from the supercast_channel process
@@ -64,7 +64,7 @@ subscribe_stage2(Ref, Pdus) ->
         [] -> ok;
         [{_, Channel, CState}] ->
             %% effectively registered here
-            gen_server:cast({via, supercast_reg, Channel},
+            gen_server:cast({via, supercast_relay_register, Channel},
                     {subscribe_stage2, CState, Pdus})
     end.
 
@@ -83,7 +83,7 @@ unsubscribe(CState, Channel) ->
 
 -spec delete(Channel::string()) -> ok.
 delete(Channel) ->
-    gen_server:cast({via, supercast_reg, Channel}, delete).
+    gen_server:cast({via, supercast_relay_register, Channel}, delete).
 
 -spec multicast(Pid::pid(), Msgs::[supercast_msg()],
                                             Perm::#perm_conf{} | default) -> ok.
@@ -172,7 +172,7 @@ handle_cast(delete, #state{clients=Clients,chan_name=Name}) ->
 handle_cast(_Request, State) -> {noreply, State}.
 
 terminate(_Reason, #state{chan_name=Name}) ->
-    supercast_reg:unregister_name(Name),
+    supercast_relay_register:unregister_name(Name),
     ok.
 
 handle_call(_Request, _From, State) -> {noreply, State}.
