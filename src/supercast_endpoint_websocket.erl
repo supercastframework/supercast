@@ -32,8 +32,6 @@
 % supercast
 -export([auth_success/3,send/2,raw_send/2]).
 
--define(ENCODER, jsx).
-
 -spec auth_success(#client_state{}, Name::string(), Roles::[string()]) -> ok.
 %% @doc Set the client authentication tokens
 auth_success(#client_state{pid=Pid, ref=Ref}, Name, Roles) ->

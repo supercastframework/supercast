@@ -39,8 +39,6 @@
 -define(TIMEOUT, 30000).
 -define(MAX_AUTH_ATEMPT, 3).
 
--define(ENCODER, jsx).
-
 start_link(Ref, Socket, Transport, Opts) ->
     gen_fsm:start_link(?MODULE, [Ref, Socket, Transport, Opts], []).
 
@@ -51,16 +49,6 @@ start_link(Ref, Socket, Transport, Opts) ->
 auth_success(#client_state{pid = Pid, ref = Ref}, Name, Roles) ->
     ?SUPERCAST_LOG_INFO("auth set"),
     gen_fsm:send_event(Pid, {auth_success, Ref, Name, Roles}).
-
-send(SockState, {function, Msg}) ->
-    ?SUPERCAST_LOG_INFO("send", Msg),
-    gen_fsm:send_all_state_event(SockState#client_state.pid,
-        {fexec, SockState#client_state.ref, Msg});
-
-send(SockState, {pdu, Msg}) ->
-    ?SUPERCAST_LOG_INFO("send", Msg),
-    gen_fsm:send_all_state_event(SockState#client_state.pid,
-        {encode_send_msg, SockState#client_state.ref, Msg});
 
 send(SockState, Msg) ->
     ?SUPERCAST_LOG_INFO("send", Msg),
@@ -166,14 +154,9 @@ handle_event({encode_send_msg, Ref, Msg}, StateName,
     Transport:send(Socket, Pdu),
     {next_state, StateName, State};
 
-handle_event({fexec, Ref, Fun}, StateName, #client_state{ref=Ref} = State) ->
-    Fun(State),
-    {next_state, StateName, State};
-
 handle_event({tcp_error, Reason}, StateName, State) ->
     ?SUPERCAST_LOG_ERROR("gen_tcp:send/2 error", Reason),
     {stop, {error, Reason, StateName}, State};
-
 
 handle_event(Event, StateName, StateData) ->
     ?SUPERCAST_LOG_WARNING("Unknonw event type", {Event, StateName, StateData}),

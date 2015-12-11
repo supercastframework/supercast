@@ -17,9 +17,10 @@
 %% under the License.
 %% -------------------------------------------------------------------
 
--type supercast_msg() ::
-    {function, fun()} | {pdu, tuple()} | {file, Path::string()}.
+-type json_jsx() :: [any()].
+-type supercast_msg() :: json_jsx().
 
+-define(ENCODER, jsx).
 -define(ETS_CHAN_STATES, chan_states).
 -define(ETS_SYN_STATES, syn_refs).
 -define(ETS_RELAYS_REGISTER, relays_register).
