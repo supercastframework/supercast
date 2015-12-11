@@ -3,7 +3,7 @@
              {version,"0.1"},
              {port,    8080},
              {dest, "{{appid}}"}]}.
-{dir, "{{dest}}"}.
+{dir,      "{{dest}}"}.
 {template, "supercastapp_skell/src/supercastapp.app.src", "{{dest}}/src/{{appid}}.app.src"}.
 {template, "supercastapp_skell/src/supercastapp.erl", "{{dest}}/src/{{appid}}.erl"}.
 {template, "supercastapp_skell/start-dev.sh", "{{dest}}/start-dev.sh"}.
