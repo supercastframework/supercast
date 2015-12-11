@@ -60,26 +60,12 @@ handle_message("supercast", "subscribe", Contents, CState) ->
     Values  = prop_val(<<"value">>, Contents),
     QueryId = prop_val(<<"queryId">>, Values),
     Channel = prop_str_val(<<"channel">>, Values),
-    AuthMod = get_env(auth_module),
 
-    case supercast_relay:subscribe(CState) of
+    case supercast_relay:subscribe(CState, Channel) of
         ok    -> send_pdu(CState, pdu(subscribeOk, {QueryId, Channel}));
         error -> send_pdu(CState, pdu(subscribeErr, {QueryId, Channel}))
     end,
 
-    case ets:lookup(?ETS_CHAN_STATES, Channel) of
-        [] ->
-            ?SUPERCAST_LOG_ERROR("Unknown chan name", Channel),
-            send_pdu(CState, pdu(subscribeErr, {QueryId, Channel}));
-        [#chan_state{perm=Perm}] ->
-            case AuthMod:satisfy(read, [CState], Perm) of
-                {ok, []} ->
-                    send_pdu(CState, pdu(subscribeErr, {QueryId, Channel}));
-                _ ->
-                    supercast_relay:subscribe(),
-                    send_pdu(CState, pdu(subscribeOk, {QueryId, Channel}))
-            end
-    end,
     case supercast_reg:whereis_name(Channel) of
         undefined ->
             ?SUPERCAST_LOG_ERROR("Unknown chan name", Channel),
@@ -100,7 +86,7 @@ handle_message("supercast", "unsubscribe", Contents, CState) ->
     QueryId = prop_val(<<"queryId">>, Values),
     Channel = prop_str_val(<<"channel">>, Values),
 
-    ok = supercast_mpd:unsubscribe(Channel, CState),
+    ok = supercast_relay:unsubscribe(Channel, CState),
     send_pdu(CState, pdu(unsubscribeOk, {QueryId, Channel}));
 
 handle_message(OtherMod, Type, Contents, CState) ->
@@ -132,7 +118,7 @@ init_pdu() ->
 %% Called from supercast_endpoint_* modules.
 %% @end
 client_disconnected(CState) ->
-    supercast_mpd:client_disconnect(CState).
+    supercast_relay:unsubscribe(CState).
 
 
 -spec pdu(Type::atom(), Any::term()) -> term().

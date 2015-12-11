@@ -6,7 +6,7 @@
 
 %% supercast channel behaviour
 -behaviour(supercast_channel).
--export([sync/3,leave/3]).
+-export([syn/4,leave/3]).
 
 %% user test
 -export([emit/2, send/2]).
@@ -34,11 +34,11 @@ stop() ->
 %% Wait for reply to the channel_worker process (wich will not emit data
 %% because he is himself locking the channel.
 %% @end
-sync("{{appid}}", _Args, CState) ->
+syn("{{appid}}", _Args, _CState, Ref) ->
     Pdus = ["hello from jojo", "you should be synchro now"],
-    supercast:sync_ack("{{appid}}", CState, Pdus);
+    supercast:ack(Ref, Pdus);
 
-sync(_, _, _) ->
+syn(_, _, _) ->
     {error, "unknown channel"}.
 
 %% @spec leave(Channel, Opts, CState) ->
@@ -50,17 +50,17 @@ leave("{{appid}}", _Args, _CState) -> ok;
 leave(_Channel, _Opts, _CState) -> {error, "unknown channel"}.
 
 
-%% @spec send_broadcast(Messages::[term()], Perm::any()) -> ok
+%% @spec emit(Messages::[term()], Perm::any()) -> ok
 emit(Messages, undefined) ->
     Channel = "{{appid}}",
-    supercast:emit(Channel, Messages);
+    supercast:broadcast(Channel, Messages);
 emit(Messages, CustomPerm) ->
     Channel = "{{appid}}",
-    supercast:emit(Channel, Messages, CustomPerm).
+    supercast:multicast(Channel, Messages, CustomPerm).
 
 %% @spec send_unicast(Messages::[term()], CState) -> ok
 send(Messages, CState) ->
     Channel = "{{appid}}",
-    supercast:send(Channel, Messages, CState).
+    supercast:unicast(Channel, Messages, CState).
 
 

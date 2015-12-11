@@ -21,7 +21,7 @@
 -include("supercast.hrl").
 
 %% API
--export([new/4,delete/1,emit/3,send/3,sync_ack/3]).
+-export([new/4,delete/1,unicast/3,multicast/3,broadcast/2,ack/1,ack/2]).
 
 %% utils
 -export([filter/2, satisfy/2]).
@@ -43,28 +43,37 @@ delete(ChanName) ->
     end.
 
 
--spec sync_ack(Channel::string(), CState::#client_state{},
-        Pdus::[term()]) -> ok.
-sync_ack(Channel, CState, Pdus) ->
-    supercast_relay:acknowledge(Channel, CState, Pdus).
+-spec ack(Ref::reference()) -> ok.
+%% @equiv ack(Channel, CState, []).
+ack(Ref) -> ack(Ref, []).
 
--spec send(Channel::string(),
+-spec ack(Ref::reference(), Pdus::[term()]) -> ok.
+%% @doc Acknowledge and effectively register a client to a channel.
+ack(Ref, Pdus) ->
+    supercast_relay:subscribe_stage2(Ref, Pdus).
+
+
+-spec unicast(Channel::string(),
     To::#client_state{}, Messages::[supercast_msg()]) -> ok.
-send(Channel, To, Messages) ->
+unicast(Channel, To, Messages) ->
     case supercast_reg:whereis_name(Channel) of
         undefined -> ok;
         Pid       -> supercast_relay:unicast(Pid, To, Messages)
     end.
 
 
--spec emit(Channel::string(), Messages::[supercast_msg()],
+-spec multicast(Channel::string(), Messages::[supercast_msg()],
                                 CustomPerm::default | #perm_conf{}) -> ok.
-emit(Channel, Messages, Perm) ->
+multicast(Channel, Messages, Perm) ->
     case supercast_reg:whereis_name(Channel) of
         undefined -> ok;
-        Pid       -> supercast_relay:broadcast(Pid, Messages, Perm)
+        Pid       -> supercast_relay:multicast(Pid, Messages, Perm)
     end.
 
+-spec broadcast(Channel::string(), Message::[supercast_msg()]) -> ok.
+%% @equiv multicast(Channel, Messages, default).
+broadcast(Channel, Message) ->
+    multicast(Channel, Message, default).
 
 
 

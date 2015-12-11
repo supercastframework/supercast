@@ -20,11 +20,15 @@
 %% @private
 -module(supercast_sup).
 -behaviour(supervisor).
+-include("supercast.hrl").
 
 -export([start_link/0]).
 -export([init/1]).
 
 start_link() ->
+    init_relay_ets(),
+    init_chan_ets(),
+    init_syn_ets(),
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 init([]) ->
@@ -60,3 +64,15 @@ init([]) ->
         }
     }.
 
+init_relay_ets() ->
+    ets:new(?ETS_RELAYS_REGISTER, [set, public, named_table,
+        {write_concurrency, false}, {read_concurrency, true}, {keypos, 1}]).
+
+%% @doc Initialize ets used to store channel subscribers to a channel.
+init_chan_ets() ->
+    ets:new(?ETS_CHAN_STATES, [set, public, named_table,
+        {write_concurrency, false}, {read_concurrency, true}, {keypos, 2}]).
+
+%% @doc Initialize ets used to store channel subscribers to a channel.
+init_syn_ets() ->
+    ets:new(?ETS_SYN_STATES, [set, public, named_table, {keypos, 1}]).

@@ -113,4 +113,3 @@ websocket_terminate(_Reason, _Req, State) ->
     supercast_endpoint:client_disconnected(State),
     ?SUPERCAST_LOG_INFO("Terminated", {_Reason,_Req,State}),
 	ok.
-
