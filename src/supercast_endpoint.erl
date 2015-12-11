@@ -40,6 +40,7 @@ handle_message(Json, Client) ->
 
 handle_message("supercast", "authResp", Contents, CState) ->
 
+    ?SUPERCAST_LOG_INFO("handle authresp", Contents),
     Values  = prop_val(<<"value">>, Contents),
     Name    = prop_str_val(<<"name">>, Values),
     Pass    = prop_str_val(<<"password">>, Values),
@@ -57,6 +58,8 @@ handle_message("supercast", "authResp", Contents, CState) ->
 
 handle_message("supercast", "subscribe", Contents, CState) ->
 
+    ?SUPERCAST_LOG_INFO("handle subscribe", Contents),
+
     Values  = prop_val(<<"value">>, Contents),
     QueryId = prop_val(<<"queryId">>, Values),
     Channel = prop_str_val(<<"channel">>, Values),
@@ -68,11 +71,14 @@ handle_message("supercast", "subscribe", Contents, CState) ->
 
 handle_message("supercast", "unsubscribe", Contents, CState) ->
 
+    ?SUPERCAST_LOG_INFO("handle unsubscribe", Contents),
+
     Values  = prop_val(<<"value">>, Contents),
     QueryId = prop_val(<<"queryId">>, Values),
     Channel = prop_str_val(<<"channel">>, Values),
 
     ok = supercast_relay:unsubscribe(Channel, CState),
+    ?SUPERCAST_LOG_INFO("after relay usubscribe"),
     send_pdu(CState, pdu(unsubscribeOk, {QueryId, Channel}));
 
 handle_message(OtherMod, Type, Contents, CState) ->

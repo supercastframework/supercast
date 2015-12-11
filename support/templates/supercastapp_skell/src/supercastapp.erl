@@ -6,6 +6,7 @@
 
 %% supercast channel behaviour
 -behaviour(supercast_channel).
+-include_lib("supercast/include/supercast.hrl").
 -export([syn/4,leave/3]).
 
 %% user test
@@ -18,7 +19,7 @@ start() ->
     ok = application:start(supercast),
     ok = supercast:listen(),
     ChanName = "{{appid}}",
-    Perm = undefined,
+    Perm = #perm_conf{read=["admin"], write=["admin"]},
     Args = [],
     ok = supercast:new_channel(ChanName, ?MODULE, Args, Perm).
 
@@ -35,7 +36,9 @@ stop() ->
 %% because he is himself locking the channel.
 %% @end
 syn("{{appid}}", _Args, _CState, Ref) ->
-    Pdus = ["hello from jojo", "you should be synchro now"],
+    Pdus = [
+        [{<<"from">>, <<"{{appid}}">>}, {<<"value">>, <<"you should be synced now">>}]
+        ],
     supercast:ack(Ref, Pdus);
 
 syn(_, _, _, _) ->

@@ -53,12 +53,12 @@ ack(Ref, Pdus) ->
     supercast_relay:subscribe_stage2(Ref, Pdus).
 
 
--spec unicast(Channel::string(),
-    To::#client_state{}, Messages::[supercast_msg()]) -> ok.
-unicast(Channel, To, Messages) ->
+-spec unicast(Channel::string(),Messages::[supercast_msg()],
+    To::#client_state{}) -> ok.
+unicast(Channel, Messages, To) ->
     case supercast_relay_register:whereis_name(Channel) of
         undefined -> ok;
-        Pid       -> supercast_relay:unicast(Pid, To, Messages)
+        Pid       -> supercast_relay:unicast(Pid, Messages, To)
     end.
 
 
@@ -113,7 +113,7 @@ listen() ->
 
     %% keep-alive header is not shown because it is implicit
     %% (HTTP1.0: close HTTP1.1: keep-alive)
-    {ok, _} = cowboy:start_http(supercast_http, 50, [{port, HTTPPort}], [
+    {ok, _} = cowboy:start_http(supercast_http, 10, [{port, HTTPPort}], [
         {env, [{dispatch, Dispatch}]},
         {max_keepalive, 50}
     ]),

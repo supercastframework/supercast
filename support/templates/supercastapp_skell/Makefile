@@ -1,6 +1,6 @@
 .PHONY: compile  run clean doc
 
-all:
+compile:
 	@rebar prepare-deps
 
 clean:
@@ -8,3 +8,6 @@ clean:
 
 doc:
 	@rebar -r doc
+
+run: compile
+	./start-dev.sh

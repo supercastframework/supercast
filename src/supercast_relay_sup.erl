@@ -16,7 +16,7 @@ start_relay(Args) ->
 init([]) ->
     {ok,
         {
-            {simple_one_for_one, 0, 6000},
+            {simple_one_for_one, 100, 5000},
             [
                 {
                     supercast_relay,

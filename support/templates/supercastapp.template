@@ -9,4 +9,5 @@
 {template, "supercastapp_skell/start-dev.sh", "{{dest}}/start-dev.sh"}.
 {template, "supercastapp_skell/Makefile", "{{dest}}/Makefile"}.
 {file,     "supercastapp_skell/rebar.config", "{{dest}}/rebar.config"}.
+{file,     "../../sys.config", "{{dest}}/sys.config"}.
 {chmod, 8#755, "{{dest}}/start-dev.sh"}.
