@@ -28,7 +28,7 @@ clean:
 clean-deps: clean
 	@$(REBAR) delete-deps
 
-app:
+app: clean-deps
 	@[ -z "$(PROJECT)" ] && echo "ERROR: required variable PROJECT missing" 1>&2 && exit 1 || true
 	@$(REBAR) -r create template=supercastapp dest=$(DEST) appid=$(PROJECT)
 

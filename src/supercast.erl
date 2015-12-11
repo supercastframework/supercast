@@ -43,7 +43,6 @@ delete_channel(ChanName) ->
         Pid       -> supercast_relay:delete(Pid)
     end.
 
-
 -spec ack(Ref::reference()) -> ok.
 %% @equiv ack(Ref, []).
 ack(Ref) -> ack(Ref, []).
