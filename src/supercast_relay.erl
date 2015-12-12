@@ -1,34 +1,72 @@
 
-%% @private
+%%%-----------------------------------------------------------------------------
+%%% @author Sebastien Serre <ssbx@supercastframework.org>
+%%% @copyright (C) 2015, Sebastien Serre
+%%% @private
+%%% @doc
+%%% This module is used to subscribe and keep synchronisation between a channel
+%%% and his clients. It is started on demand and shuted down when there are no
+%%% more clients to handle.
+%%%
+%%% @end
+%%%-----------------------------------------------------------------------------
 -module(supercast_relay).
 -behaviour(gen_server).
 -include("supercast.hrl").
 
 %% API
--export([start_link/1]).
--export([multicast/3, unicast/3]).
-
--export([subscribe/3, unsubscribe/1, unsubscribe/2]).
+-export([
+    start_link/1,
+    multicast/3,
+    unicast/3,
+    subscribe/3,
+    unsubscribe/1,
+    unsubscribe/2]).
 
 %% called from supercast module
 -export([delete/1]).
 
-
 %% gen_server callbacks
--export([init/1, handle_call/3, handle_cast/2,
-    handle_info/2, terminate/2, code_change/3]).
+-export([
+    init/1,
+    handle_call/3,
+    handle_cast/2,
+    handle_info/2,
+    terminate/2,
+    code_change/3]).
 
 -record(state, {
     chan_name,
     clients = []
 }).
 
-start_link(Name) ->
-    gen_server:start_link({via, supercast_relay_register, Name}, ?MODULE, Name, []).
+%%%=============================================================================
+%%% API
+%%%=============================================================================
 
--spec subscribe(CState :: #client_state{}, Channel :: string(),
-    QueryId :: integer()) -> ok | error.
-%% @doc called from the socket
+%%------------------------------------------------------------------------------
+%% @private
+%% @doc
+%% Starts the server
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec(start_link(Name :: string()) ->
+    {ok, Pid :: pid()} | ignore | {error, Reason :: term()}).
+start_link(Name) ->
+    gen_server:start_link({via, supercast_relay_register, Name},
+        ?MODULE, Name, []).
+
+%%------------------------------------------------------------------------------
+%% @private
+%% @doc
+%% Called from the endpoint
+%%
+%% @end
+%% @TODO possible race condition with ?ETS_CHAN_STATES ???
+%%------------------------------------------------------------------------------
+-spec(subscribe(CState :: #client_state{}, Channel :: string(),
+    QueryId :: integer()) -> ok | error).
 subscribe(CState, Channel, QueryId) ->
     %% does the channel exist?
     ?SUPERCAST_LOG_INFO("subscribe", {CState, Channel}),
@@ -57,8 +95,15 @@ subscribe(CState, Channel, QueryId) ->
             end
     end.
 
--spec unsubscribe(CState::#client_state{}) -> ok.
-%% @doc unsubscribe the client from all channels
+
+%%------------------------------------------------------------------------------
+%% @private
+%% @doc
+%% Unsubscribe the client from all channels.
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec(unsubscribe(CState :: #client_state{}) -> ok).
 unsubscribe(CState) ->
     ?SUPERCAST_LOG_INFO("unsubscribe all", CState),
     Chans = [Name || #chan_state{name=Name} <- ets:tab2list(?ETS_CHAN_STATES)],
@@ -66,35 +111,77 @@ unsubscribe(CState) ->
         unsubscribe(CState, Chan)
     end, Chans).
 
--spec unsubscribe(Channel::string(), CState::#client_state{}) -> ok.
-%% @doc unsubscribe the client from one channel.
+
+%%------------------------------------------------------------------------------
+%% @private
+%% @doc
+%% Unsubscribe the client from one channels.
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec(unsubscribe(Channel :: string(), CState :: #client_state{}) -> ok).
 unsubscribe(Channel, CState) ->
     ?SUPERCAST_LOG_INFO("unsubscribe chan", {Channel, CState}),
     gen_server:cast({via, supercast_relay_register, Channel}, {unsubscribe, CState}).
 
--spec delete(Channel::string()) -> ok.
+
+%%------------------------------------------------------------------------------
+%% @private
+%% @doc
+%% Delete a channel.
+%%
+%% @end
+%% @TODO emit a "channel vanished" message
+%%------------------------------------------------------------------------------
+-spec(delete(Channel :: string()) -> ok).
 delete(Channel) ->
     ?SUPERCAST_LOG_INFO("delete channel", Channel),
     gen_server:cast({via, supercast_relay_register, Channel}, delete).
 
--spec multicast(Pid::pid(), Msgs::[supercast_msg()],
-                                            Perm::#perm_conf{} | default) -> ok.
-%% @doc Send messages to multiple clients. Default mean that there will be no
-%% filtering. IE: All clients allowed to register to the channel will
+
+%%------------------------------------------------------------------------------
+%% @private
+%% @doc
+%% Send messages to multiple clients. If the Perm is set to "default" there will
+%% be no filtering. IE: All clients allowed to register to the channel will
 %% receive the message.
+%%
 %% @end
+%%------------------------------------------------------------------------------
+-spec(multicast(Pid :: pid(), Msgs :: [supercast_msg()],
+    Perm :: #perm_conf{} | default) -> ok).
 multicast(Pid, Msgs, Perm) ->
     ?SUPERCAST_LOG_INFO("multicast", {Pid,Msgs,Perm}),
     gen_server:cast(Pid, {multicast, Msgs, Perm}).
 
 
--spec unicast(Pid::pid(), Msgs::[supercast_msg()], To::#client_state{}) -> ok.
-%% @doc Send messages to an unique client.
+%%------------------------------------------------------------------------------
+%% @private
+%% @doc
+%% Send messages to an unique client, with no regards to permissions or
+%% subscribtion status.
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec(unicast(Pid :: pid(), Msgs :: [supercast_msg()],
+    To :: #client_state{}) -> ok).
 unicast(Pid, Msgs, To) ->
     ?SUPERCAST_LOG_INFO("unicast", {Pid,Msgs,To}),
     gen_server:cast(Pid, {unicast, Msgs, To}).
 
 
+
+%%%=============================================================================
+%%% Internal functions
+%%%=============================================================================
+
+%%------------------------------------------------------------------------------
+%% @private
+%% @see gen_server:init/1
+%%
+%%------------------------------------------------------------------------------
+-spec(init(Args :: string()) ->
+    {ok, State :: #state{}} | {stop, Reason :: term()}).
 init(ChanName) ->
     process_flag(trap_exit, true),
     ?SUPERCAST_LOG_INFO("init channel", ChanName),
@@ -110,6 +197,24 @@ init(ChanName) ->
     end.
 
 
+%%------------------------------------------------------------------------------
+%% @private
+%% @see gen_server:cast/2
+%% @doc
+%% Handling cast messages
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-type(relay_cast_request() ::
+        {multicast, Msgs :: [term()], default | #perm_conf{}} |
+        {unicast, Msgs :: [term()], Client :: #client_state{}} |
+        {unsubscribe, Client :: #client_state{}} |
+        {subscribe, QueryId:: integer(), Client :: #client_state{}} |
+        delete).
+-spec(handle_cast(Request :: relay_cast_request(), State :: #state{}) ->
+    {noreply, NewState :: #state{}} |
+    {noreply, NewState :: #state{}, timeout() | hibernate} |
+    {stop, Reason :: term(), NewState :: #state{}}).
 handle_cast({multicast, Msgs, default},
                         #state{chan_name=_ChanName,clients=Clients} = State) ->
     ?SUPERCAST_LOG_INFO("multicast"),
@@ -203,17 +308,83 @@ handle_cast(_Cast, State) ->
     ?SUPERCAST_LOG_INFO("unknown cast", _Cast),
     {noreply, State}.
 
+
+%%------------------------------------------------------------------------------
+%% @private
+%% @see gen_server:call/3
+%% @doc
+%% Does nothing
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec(handle_call(Request :: term(), From :: {pid(), Tag :: term()},
+    State :: #state{}) ->
+    {reply, Reply :: term(), NewState :: #state{}} |
+    {reply, Reply :: term(), NewState :: #state{}, timeout() | hibernate} |
+    {noreply, NewState :: #state{}} |
+    {noreply, NewState :: #state{}, timeout() | hibernate} |
+    {stop, Reason :: term(), Reply :: term(), NewState :: #state{}} |
+    {stop, Reason :: term(), NewState :: #state{}}).
+handle_call(_Request, _From, State) -> {noreply, State}.
+
+
+%%------------------------------------------------------------------------------
+%% @private
+%% @see gen_server:handle_info/3
+%% @doc
+%% On timeout stop the process.
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec(handle_info(Info :: timeout() | term(), State :: #state{}) ->
+    {noreply, NewState :: #state{}} |
+    {noreply, NewState :: #state{}, timeout() | hibernate} |
+    {stop, Reason :: term(), NewState :: #state{}}).
+handle_info(timeout, #state{clients=[]}) ->
+    {stop, normal, #state{}};
+handle_info(_Info, State) ->
+    {noreply, State}.
+
+
+%%------------------------------------------------------------------------------
+%% @private
+%% @see gen_server:code_change/3
+%% @doc
+%% Unsupported
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec(code_change(OldVsn :: term() | {down, term()}, State :: #state{},
+    Extra :: term()) -> term()).
+code_change(_OldVsn, State, _Extra) -> {ok, State}.
+
+
+%%------------------------------------------------------------------------------
+%% @private
+%% @see gen_server:terminate/2
+%% @see supercast_relay_register:unregister_name/1
+%% @doc
+%% The process trap exists. Will unregister the name in
+%% supercast_relay_register module.
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec(terminate(Reason :: (normal | shutdown | {shutdown, term()} | term()),
+    State :: #state{}) -> term()).
 terminate(_Reason, #state{chan_name=Name}) ->
     ?SUPERCAST_LOG_INFO("terminate relay", _Reason),
     supercast_relay_register:unregister_name(Name),
     ok.
 
-handle_call(_Request, _From, State) -> {noreply, State}.
-handle_info(timeout, #state{clients=[]}) -> {stop, normal, #state{}};
-handle_info(_Info, State) -> {noreply, State}.
-code_change(_OldVsn, State, _Extra) -> {ok, State}.
 
-
+%%------------------------------------------------------------------------------
+%% @private
+%% @doc
+%% Generate a channelDelete pdu
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec(pdu(channDeleted, Channel :: string()) -> term()).
 pdu(channelDeleted, Channel) ->
         [
             {<<"from">>, <<"supercast">>},
@@ -223,6 +394,15 @@ pdu(channelDeleted, Channel) ->
             ]}
         ].
 
+
+%%------------------------------------------------------------------------------
+%% @private
+%% @doc
+%% Helper to send multiple pdus to multipe clients.
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec(multi_send(Clients :: [#client_state{}], Messages :: [term()]) -> ok).
 multi_send(Clients, Msgs) ->
     lists:foreach(fun(Message) ->
         Pdu = ?ENCODER:encode(Message),
@@ -230,4 +410,3 @@ multi_send(Clients, Msgs) ->
             Mod:raw_send(Client, Pdu)
         end, Clients)
     end, Msgs).
-

@@ -27,7 +27,7 @@
 %% the application.
 %% @end
 -module(supercast_acctrl).
+-include("supercast.hrl").
 
--callback satisfy(Mod :: read | write, Things::[any()], PermConf::any()) ->
-    {ok, Allowed::[any()]} |
-    {ok, Allowed::[]}.
+-callback(satisfy(Mod :: read | write, Things :: [any()],
+    PermConf :: #perm_conf{}) -> {ok, Allowed :: [any()]} |{ok, Allowed :: []}).

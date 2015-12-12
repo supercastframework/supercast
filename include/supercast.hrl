@@ -22,7 +22,6 @@
 
 -define(ENCODER, jsx).
 -define(ETS_CHAN_STATES, chan_states).
--define(ETS_SYN_STATES, syn_refs).
 -define(ETS_RELAYS_REGISTER, relays_register).
 
 -record(perm_conf, {

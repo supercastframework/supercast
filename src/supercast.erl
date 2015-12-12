@@ -22,7 +22,7 @@
 
 %% API
 -export([new_channel/4,delete_channel/1,unicast/3,
-            multicast/3,broadcast/2,ack/1,ack/2]).
+            multicast/3,broadcast/2]).
 
 %% utils
 -export([filter/2, satisfy/2]).
@@ -42,15 +42,6 @@ delete_channel(ChanName) ->
         undefined -> ok;
         Pid       -> supercast_relay:delete(Pid)
     end.
-
--spec ack(Ref::reference()) -> ok.
-%% @equiv ack(Ref, []).
-ack(Ref) -> ack(Ref, []).
-
--spec ack(Ref::reference(), Pdus::[term()]) -> ok.
-%% @doc Acknowledge and effectively register a client to a channel.
-ack(Ref, Pdus) ->
-    supercast_relay:subscribe_stage2(Ref, Pdus).
 
 
 -spec unicast(Channel::string(),Messages::[supercast_msg()],
