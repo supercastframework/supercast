@@ -21,8 +21,8 @@
 -module(supercast_channel).
 -include("supercast.hrl").
 
--callback syn(Channel::string(), Args::any(),
-              CState::#client_state{}, SynRef::reference()) -> any().
+-callback join(Channel::string(), Args::any(),
+              CState::#client_state{}) -> ok | {ok, Pdus :: [term()]} | error.
 %% @doc Client Syn request.
 %%
 %% This call is triggered when a client has requested and is allowed to
@@ -31,11 +31,7 @@
 %% For client synchronization purpose, the callback can return any
 %% number of Pdus.
 %%
-%% Must call supercast:ack/2 before the end of the call.
-%%
 %% <em>Args<em> is the term set at supercast:create/4.
-%%
-%% The return value is ignored.
 %%
 %% @end
 

@@ -7,10 +7,10 @@
 %% supercast channel behaviour
 -behaviour(supercast_channel).
 -include_lib("supercast/include/supercast.hrl").
--export([syn/4,leave/3]).
+-export([join/3,leave/3]).
 
 %% user test
--export([emit/2, send/2]).
+-export([emit/0, emit/2, send/2]).
 
 %% @spec start() -> ok
 %% @doc Start the {{appid}} server.
@@ -35,13 +35,13 @@ stop() ->
 %% Wait for reply to the channel_worker process (wich will not emit data
 %% because he is himself locking the channel.
 %% @end
-syn("{{appid}}", _Args, _CState, Ref) ->
+join("{{appid}}", _Args, _CState) ->
     Pdus = [
         [{<<"from">>, <<"{{appid}}">>}, {<<"value">>, <<"you should be synced now">>}]
         ],
-    supercast:ack(Ref, Pdus);
+    {ok, Pdus};
 
-syn(_, _, _, _) ->
+join(_, _, _) ->
     {error, "unknown channel"}.
 
 %% @spec leave(Channel, Opts, CState) ->
@@ -54,9 +54,10 @@ leave(_Channel, _Opts, _CState) -> {error, "unknown channel"}.
 
 
 %% @spec emit(Messages::[term()], Perm::any()) -> ok
-emit(Messages, undefined) ->
+emit() ->
+    Event = [{<<"from">>, <<"{{appid}}">>}, {<<"value">>, <<"Hello event">>}],
     Channel = "{{appid}}",
-    supercast:broadcast(Channel, Messages);
+    supercast:broadcast(Channel, [Event]).
 emit(Messages, CustomPerm) ->
     Channel = "{{appid}}",
     supercast:multicast(Channel, Messages, CustomPerm).

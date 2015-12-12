@@ -21,7 +21,7 @@
 -module(supercast_endpoint).
 -include("supercast.hrl").
 
--export([handle_message/2,init_pdu/0,client_disconnected/1]).
+-export([handle_message/2,init_pdu/0,client_disconnected/1, pdu/2]).
 
 %% for spawn
 -export([handle_other_control/3]).
@@ -56,6 +56,9 @@ handle_message("supercast", "authResp", Contents, CState) ->
             send_pdu(CState, pdu(authErr, {Name, Pass}))
     end;
 
+handle_message(_, _, _, #client_state{authenticated = false} = CState) ->
+    send_pdu(CState, pdu(authenticationRequired, []));
+
 handle_message("supercast", "subscribe", Contents, CState) ->
 
     ?SUPERCAST_LOG_INFO("handle subscribe", Contents),
@@ -64,9 +67,9 @@ handle_message("supercast", "subscribe", Contents, CState) ->
     QueryId = prop_val(<<"queryId">>, Values),
     Channel = prop_str_val(<<"channel">>, Values),
 
-    case supercast_relay:subscribe(CState, Channel) of
-        ok    -> send_pdu(CState, pdu(subscribeOk, {QueryId, Channel}));
-        error -> send_pdu(CState, pdu(subscribeErr, {QueryId, Channel}))
+    case supercast_relay:subscribe(CState, Channel, QueryId) of
+        error -> send_pdu(CState, pdu(subscribeErr, {QueryId, Channel}));
+        _     -> ok
     end;
 
 handle_message("supercast", "unsubscribe", Contents, CState) ->
@@ -178,6 +181,13 @@ pdu(unsubscribeOk, {QueryId, Channel}) ->
                 {<<"queryId">>, QueryId},
                 {<<"channel">>, list_to_binary(Channel)}]
             }
+        ];
+
+pdu(authenticationRequired, _) ->
+        [
+            {<<"from">>, <<"supercast">>},
+            {<<"type">>, <<"authenticationRequired">>},
+            {<<"value">>, [{}]}
         ];
 
 pdu(unsubscribeErr, {QueryId, Channel}) ->
