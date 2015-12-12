@@ -17,36 +17,34 @@
 %% under the License.
 %% -------------------------------------------------------------------
 
--type json_jsx() :: [any()].
--type supercast_msg() :: json_jsx().
+-type(json_jsx() :: [any()]).
+-type(supercast_msg() :: json_jsx()).
 
 -define(ENCODER, jsx).
 -define(ETS_CHAN_STATES, chan_states).
 -define(ETS_RELAYS_REGISTER, relays_register).
 
 -record(perm_conf, {
-    read    = []    :: [term()],
-    write   = []    :: [term()]
+    read  = []  :: [string()],
+    write = []  :: [string()]
 }).
 
 -record(chan_state, {
-    name,
-    perm,
-    module,
-    args
+    name    :: string(),
+    perm    :: #perm_conf{},
+    module  :: atom(),
+    args    :: any()
 }).
 
 -record(client_state,  {
-    pid,
-    ref,
-    user_name = "",
-    user_roles = [],
-    module,
-    authenticated = false,
-    data
+    pid                     :: pid(),
+    ref                     :: reference(),
+    user_name = ""          :: string(),
+    user_roles = []         :: [string()],
+    module                  :: atom(),
+    authenticated = false   :: boolean(),
+    data                    :: any() %% used to store cowboy state
 }).
-
-
 
 
 

@@ -68,30 +68,37 @@ start_link(Name) ->
 -spec(subscribe(CState :: #client_state{}, Channel :: string(),
     QueryId :: integer()) -> ok | error).
 subscribe(CState, Channel, QueryId) ->
+
     %% does the channel exist?
     ?SUPERCAST_LOG_INFO("subscribe", {CState, Channel}),
     case ets:lookup(?ETS_CHAN_STATES, Channel) of
+
         [] -> %% no
             ?SUPERCAST_LOG_INFO("no channel"),
             error;
+
         [#chan_state{perm=Perm}] -> %% yes
-            ?SUPERCAST_LOG_INFO("yes channel"),
+
             %% the client is allowed to connect to the channel?
             {ok, AcctrlMod} = application:get_env(supercast, acctrl_module),
             ?SUPERCAST_LOG_INFO("acctrl", {AcctrlMod, Perm}),
             case AcctrlMod:satisfy(read, [CState], Perm) of
+
                 {ok, []} -> %% no
                     ?SUPERCAST_LOG_INFO("does not satisfy"),
                     error;
+
                 _ ->
                     ?SUPERCAST_LOG_INFO("does satisfy"),
+
                     %% create relay if it does not exists
-                    %% start_child will return {ok,Pid} or {error,allready_tarted}
+                    %% start_child will return {ok,Pid}
+                    %% or {error,allready_tarted}
                     supercast_relay_sup:start_relay([Channel]),
-                    %% subscribe_final will return immediately. The client side
-                    %% is now waiting for ack, sync and events pdus.
+
                     gen_server:cast({via, supercast_relay_register, Channel},
                         {subscribe, QueryId, CState})
+                    %% The client side is now waiting for subscribeOk|Err pdu
             end
     end.
 
@@ -122,7 +129,8 @@ unsubscribe(CState) ->
 -spec(unsubscribe(Channel :: string(), CState :: #client_state{}) -> ok).
 unsubscribe(Channel, CState) ->
     ?SUPERCAST_LOG_INFO("unsubscribe chan", {Channel, CState}),
-    gen_server:cast({via, supercast_relay_register, Channel}, {unsubscribe, CState}).
+    gen_server:cast({via, supercast_relay_register, Channel},
+                                                        {unsubscribe, CState}).
 
 
 %%------------------------------------------------------------------------------
@@ -131,7 +139,6 @@ unsubscribe(Channel, CState) ->
 %% Delete a channel.
 %%
 %% @end
-%% @TODO emit a "channel vanished" message
 %%------------------------------------------------------------------------------
 -spec(delete(Channel :: string()) -> ok).
 delete(Channel) ->
@@ -206,8 +213,8 @@ init(ChanName) ->
 %% @end
 %%------------------------------------------------------------------------------
 -type(relay_cast_request() ::
-        {multicast, Msgs :: [term()], default | #perm_conf{}} |
-        {unicast, Msgs :: [term()], Client :: #client_state{}} |
+        {multicast, Msgs :: [supercast_msg()], default | #perm_conf{}} |
+        {unicast, Msgs :: [supercast_msg()], Client :: #client_state{}} |
         {unsubscribe, Client :: #client_state{}} |
         {subscribe, QueryId:: integer(), Client :: #client_state{}} |
         delete).
@@ -241,14 +248,17 @@ handle_cast({unsubscribe, CState}, #state{clients=Clients} = State) ->
     ?SUPERCAST_LOG_INFO("unsubscribe"),
     case lists:delete(CState, Clients) of
         []   ->
+
             %% without more subscribers, the process will die in 10 seconds
             {noreply, State#state{clients=[]}, 10000};
         Rest ->
+
             {noreply, State#state{clients=Rest}}
     end;
 
 handle_cast({subscribe, QueryId, #client_state{module=Mod} = CState},
                 #state{chan_name=ChanName,clients=Clients} = State) ->
+
     ?SUPERCAST_LOG_INFO("subscribe cast"),
     case lists:member(CState, Clients) of
 
@@ -402,7 +412,8 @@ pdu(channelDeleted, Channel) ->
 %%
 %% @end
 %%------------------------------------------------------------------------------
--spec(multi_send(Clients :: [#client_state{}], Messages :: [term()]) -> ok).
+-spec(multi_send(Clients :: [#client_state{}],
+    Messages :: [supercast_msg()]) -> ok).
 multi_send(Clients, Msgs) ->
     lists:foreach(fun(Message) ->
         Pdu = ?ENCODER:encode(Message),
