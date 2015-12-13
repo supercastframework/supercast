@@ -1,4 +1,4 @@
-%% -------------------------------------------------------------------
+%% -----------------------------------------------------------------------------
 %% Supercast Copyright (c) 2012-2015
 %% Sebastien Serre <ssbx@supercastframework.org> All Rights Reserved.
 %%
@@ -15,27 +15,48 @@
 %% KIND, either express or implied.  See the License for the
 %% specific language governing permissions and limitations
 %% under the License.
-%% -------------------------------------------------------------------
+%% -----------------------------------------------------------------------------
 
-%% @doc Supercast channel behaviour.
+%%%-----------------------------------------------------------------------------
+%%% @author Sebastien Serre <ssbx@supercastframework.org>
+%%% @copyright (C) 2015, Sebastien Serre
+%%% @doc
+%%% Supercast channel behaviour.
+%%%
+%%% @end
+%%%-----------------------------------------------------------------------------
 -module(supercast_channel).
 -include("supercast.hrl").
 
--callback join(Channel::string(), Args::any(),
-              CState::#client_state{}) -> ok | {ok, Pdus :: [term()]} | error.
-%% @doc Client Syn request.
+%%------------------------------------------------------------------------------
+%% @see supercast:join_accept/2
+%% @see supercast:join_refuse/1
+%% @doc
+%% Client Syn request.
 %%
 %% This call is triggered when a client has requested and is allowed to
 %% join to the channel.
 %%
-%% For client synchronization purpose, the callback can return any
-%% number of Pdus.
-%%
 %% <em>Args<em> is the term set at supercast:create/4.
 %%
+%% A call to this function MUST include a supercast:join_accept/1-2 or
+%% supercast:join_refuse/1.
+%%
+%% The return value of the function is ignored.
+%%
 %% @end
+%%------------------------------------------------------------------------------
+-callback join(
+    Channel :: string(),
+    Args    ::any(),
+    CState  ::#client_state{},
+    Ref     :: {Chan :: string(), CState :: #client_state{}, QueryId::integer}
+) -> any().
 
+%%------------------------------------------------------------------------------
+%% @doc
+%% Called when a client leave the channel.
+%%------------------------------------------------------------------------------
 -callback leave(Channel::string, Args::any(), CState::#client_state{}) ->
         ok.
-%% @doc Called when a client leave the channel.
 

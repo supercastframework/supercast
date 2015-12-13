@@ -3,7 +3,7 @@ DEST   := $(PREFIX)$(PROJECT)
 
 REBAR = rebar
 
-.PHONY: all run clean clean-deps edoc app
+.PHONY: compile run clean clean-deps edoc app dialyzer
 
 compile:
 	@$(REBAR) -D debug prepare-deps
@@ -22,7 +22,7 @@ test: compile
 	@$(REBAR) skip_deps=true eunit
 
 clean:
-	@$(REBAR) clean
+	@$(REBAR) -r clean
 	@find doc/ ! -name overview.edoc -type f -delete
 
 clean-deps: clean
@@ -58,7 +58,7 @@ DEPS = deps/cowboy/ebin deps/cowlib/ebin deps/ranch/ebin deps/jsx/ebin
 
 PLT = $(HOME)/.supercast_dialyzer_plt
 $(PLT): compile
-	dialyzer --build_plt --output_plt $(PLT) --apps $(APPS) $(DEPS) ebin
+	dialyzer --build_plt --output_plt $(PLT) --apps $(APPS) -r $(DEPS)
 	dialyzer --check_plt --plt $(PLT) --apps $(APPS) $(DEPS) ebin
 dialyzer: $(PLT)
 	dialyzer -Wno_return --plt $(PLT) ebin
