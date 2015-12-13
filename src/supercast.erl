@@ -52,6 +52,7 @@
     satisfy/2]).
 
 %% gen_server callbacks
+-record(state, {}).
 -export([
     init/1,
     handle_call/3,
@@ -60,12 +61,13 @@
     terminate/2,
     code_change/3]).
 
+
 %% pid registry behaviour
-%-export([
-    %register_name/2,
-    %unregister_name/1,
-    %whereis_name/1,
-    %send/2]).
+-export([
+    register_name/2,
+    unregister_name/1,
+    whereis_name/1,
+    send/2]).
 
 %%%=============================================================================
 %%% Start/Stop API
@@ -97,7 +99,7 @@ start() ->
 %%------------------------------------------------------------------------------
 -spec(start_link() -> {ok, Pid :: pid()} | ignore | {error, Reason :: term()}).
 start_link() ->
-    gen_server:start_link(?MODULE, ?MODULE, [], []).
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 
 %%------------------------------------------------------------------------------
@@ -190,7 +192,7 @@ new_channel(ChanName, Module, Args, Perm) ->
 -spec(delete_channel(ChannName :: string()) -> ok).
 delete_channel(ChanName) ->
     ets:delete(?ETS_CHAN_STATES, ChanName),
-    case supercast_relay_register:whereis_name(ChanName) of
+    case supercast:whereis_name(ChanName) of
         undefined -> ok;
         Pid       -> supercast_relay:delete(Pid)
     end.
@@ -198,20 +200,22 @@ delete_channel(ChanName) ->
 
 %%------------------------------------------------------------------------------
 %% @doc
-%% Send messages to a client wherever he have joined the channel or not.
+%% Send messages to a client whenever he have joined the channel or not.
 %%
 %% @end
 %%------------------------------------------------------------------------------
 -spec(unicast(Channel :: string(), Messages :: [supercast_msg()],
     To :: #client_state{}) -> ok).
 unicast(Channel, Messages, To) ->
-    case supercast_relay_register:whereis_name(Channel) of
+    case supercast:whereis_name(Channel) of
         undefined -> ok;
         Pid       -> supercast_relay:unicast(Pid, Messages, To)
     end.
 
 
 %%------------------------------------------------------------------------------
+%% @see unicast/3
+%% @see multicast/2
 %% @doc
 %% Send messages to all clients of the specified channel, wich satisfy with the
 %% <em>read</em> permission of the #perm_conf{}.
@@ -221,20 +225,21 @@ unicast(Channel, Messages, To) ->
 -spec(multicast(Channel :: string(), Messages :: [supercast_msg()],
                                 CustomPerm :: default | #perm_conf{}) -> ok).
 multicast(Channel, Messages, Perm) ->
-    case supercast_relay_register:whereis_name(Channel) of
+    case supercast:whereis_name(Channel) of
         undefined -> ok;
         Pid       -> supercast_relay:multicast(Pid, Messages, Perm)
     end.
 
 
 %%------------------------------------------------------------------------------
+%% @equiv multicast(Channel, Messages, default).
+%% @see multicast/3
 %% @doc
 %% Send messages to all clients of the specified channel.
 %%
 %% @end
 %%------------------------------------------------------------------------------
 -spec(broadcast(Channel::string(), Message::[supercast_msg()]) -> ok).
-%% @equiv multicast(Channel, Messages, default).
 broadcast(Channel, Message) ->
     multicast(Channel, Message, default).
 
@@ -248,7 +253,7 @@ join_accept(Ref) -> join_accept(Ref, []).
 
 
 %%------------------------------------------------------------------------------
-%% @see join_del/1
+%% @see join_refuse/1
 %% @doc
 %% Must be called from <em>supercast_channel:join/3</em> to effectively
 %% subscribe the client to the channel.
@@ -262,7 +267,7 @@ join_accept({Channel, CState, QueryId}, Pdus) ->
 
 
 %%------------------------------------------------------------------------------
-%% @see join_ack/2
+%% @see join_accept/2
 %% @doc
 %% Must be called from <em>supercast_channel:join/3</em> to cancel the user
 %% request to join the channel. It notify the client with  a
@@ -327,38 +332,105 @@ filter_things(CState, [{Perm, Thing}|T], Acc) ->
 %%% Pid registry behaviour callbacks
 %%%=============================================================================
 
+%%------------------------------------------------------------------------------
+%% @private
+%% @see global:register_name/2
+%% @doc
+%% Same behaviour has global:register_name/2 with strings as names.
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec register_name(Name :: string(), Pid :: pid()) -> yes | no.
+register_name(Name, Pid) ->
+    case where(Name) of
+        undefined ->
+            true = ets:insert(?ETS_RELAYS_REGISTER, {Name, Pid}),
+            yes;
+        _ ->
+            no
+    end.
+
+%%------------------------------------------------------------------------------
+%% @private
+%% @see global:unregister_name/1
+%% @doc
+%% Same behaviour has global:unregister_name/1 but with strings as names.
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec unregister_name(Name::string()) -> Name::string().
+unregister_name(Name) ->
+    true = ets:delete(?ETS_RELAYS_REGISTER, Name),
+    Name.
+
+%%------------------------------------------------------------------------------
+%% @private
+%% @see global:whereis_name/1
+%% @doc
+%% Same behaviour has global:whereis_name/1 but with strings as names.
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec whereis_name(Name::string()) -> pid() | undefined.
+whereis_name(Name) -> where(Name).
+where(Name) ->
+    case ets:lookup(?ETS_RELAYS_REGISTER, Name) of
+        [{Name,Pid}] ->
+            case is_process_alive(Pid) of
+                true  -> Pid;
+                false -> undefined
+            end;
+        [] -> undefined
+    end.
+
+%%------------------------------------------------------------------------------
+%% @private
+%% @see global:send/2
+%% @doc
+%% Same behaviour has global:send/2 but with strings as names.
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec send(Name::string, Msg::term()) -> pid().
+send(Name, Msg) ->
+    case where(Name) of
+        Pid when is_pid(Pid) ->
+            Pid ! Msg,
+            Pid;
+        undefined ->
+            exit({badarg, {Name, Msg}})
+    end.
+
 
 
 %%%=============================================================================
 %%% gen_server callbacks
 %%%=============================================================================
 
--record(state, {}).
-
 %%------------------------------------------------------------------------------
 %% @private
-%% @doc
-%% Initializes the server
-%%
-%% @spec init(Args) -> {ok, State} |
-%%                     {ok, State, Timeout} |
-%%                     ignore |
-%%                     {stop, Reason}
-%% @end
+%% @see gen_server:init/1
 %%------------------------------------------------------------------------------
--spec(init(Args :: term()) ->
+-spec(init([]) ->
     {ok, State :: #state{}} | {ok, State :: #state{}, timeout() | hibernate} |
     {stop, Reason :: term()} | ignore).
 init([]) ->
+
+    %% public to allow other processes (supercast_relay, supercast_channels),
+    %% to read (only).
+    ets:new(?ETS_RELAYS_REGISTER, [set, public, named_table,
+            {write_concurrency, false}, {read_concurrency, true}, {keypos, 1}]),
+
+    %% private, I (gen_server) own the lock.
+    ets:new(?ETS_CHAN_STATES, [set, named_table, public, {write_concurrency, false},
+                                        {read_concurrency, true}, {keypos, 2}]),
+
     {ok, #state{}}.
 
 
 %%------------------------------------------------------------------------------
 %% @private
-%% @doc
-%% Handling call messages
-%%
-%% @end
+%% @see gen_server:handle_call/3
 %%------------------------------------------------------------------------------
 -spec(handle_call(Request :: term(), From :: {pid(), Tag :: term()},
     State :: #state{}) ->
@@ -373,10 +445,7 @@ handle_call(_Request, _From, State) ->
 
 %%------------------------------------------------------------------------------
 %% @private
-%% @doc
-%% Handling cast messages
-%%
-%% @end
+%% @see gen_server:handle_cast/2
 %%------------------------------------------------------------------------------
 -spec(handle_cast(Request :: term(), State :: #state{}) ->
     {noreply, NewState :: #state{}} |
@@ -387,13 +456,7 @@ handle_cast(_Request, State) ->
 
 %%------------------------------------------------------------------------------
 %% @private
-%% @doc
-%% Handling all non call/cast messages
-%%
-%% @spec handle_info(Info, State) -> {noreply, State} |
-%%                                   {noreply, State, Timeout} |
-%%                                   {stop, Reason, State}
-%% @end
+%% @see gen_server:handle_info/2
 %%------------------------------------------------------------------------------
 -spec(handle_info(Info :: timeout() | term(), State :: #state{}) ->
     {noreply, NewState :: #state{}} |
@@ -404,14 +467,7 @@ handle_info(_Info, State) ->
 
 %%------------------------------------------------------------------------------
 %% @private
-%% @doc
-%% This function is called by a gen_server when it is about to
-%% terminate. It should be the opposite of Module:init/1 and do any
-%% necessary cleaning up. When it returns, the gen_server terminates
-%% with Reason. The return value is ignored.
-%%
-%% @spec terminate(Reason, State) -> void()
-%% @end
+%% @see gen_server:terminate/2
 %%------------------------------------------------------------------------------
 -spec(terminate(Reason :: (normal | shutdown | {shutdown, term()} | term()),
     State :: #state{}) -> term()).
@@ -420,11 +476,7 @@ terminate(_Reason, _State) ->
 
 %%------------------------------------------------------------------------------
 %% @private
-%% @doc
-%% Convert process state when code is changed
-%%
-%% @spec code_change(OldVsn, State, Extra) -> {ok, NewState}
-%% @end
+%% @see gen_server:code_change/3
 %%------------------------------------------------------------------------------
 -spec(code_change(OldVsn :: term() | {down, term()}, State :: #state{},
     Extra :: term()) ->

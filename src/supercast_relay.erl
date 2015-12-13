@@ -55,8 +55,7 @@
 -spec(start_link(Name :: string()) ->
     {ok, Pid :: pid()} | ignore | {error, Reason :: term()}).
 start_link(Name) ->
-    gen_server:start_link({via, supercast_relay_register, Name},
-        ?MODULE, Name, []).
+    gen_server:start_link({via, supercast, Name}, ?MODULE, Name, []).
 
 %%------------------------------------------------------------------------------
 %% @private
@@ -97,8 +96,8 @@ subscribe(CState, Channel, QueryId) ->
                     %% or {error,allready_tarted}
                     supercast_relay_sup:start_relay([Channel]),
 
-                    gen_server:cast({via, supercast_relay_register, Channel},
-                        {subscribe, QueryId, CState})
+                    gen_server:cast({via, supercast, Channel},
+                                                {subscribe, QueryId, CState})
                     %% The client side is now waiting for subscribeOk|Err pdu
             end
     end.
@@ -130,8 +129,8 @@ unsubscribe(CState) ->
 -spec(subscribe_ack(Channel :: string(), CState :: #client_state{},
     QueryId :: integer(), Pdus :: [term()]) -> ok).
 subscribe_ack(Channel, CState, QueryId, Pdus) ->
-    gen_server:cast({via, supercast_relay_register, Channel},
-        {subscribe_ack, CState, QueryId, Pdus}).
+    gen_server:cast({via, supercast, Channel},
+                                        {subscribe_ack, CState, QueryId, Pdus}).
 
 
 %%------------------------------------------------------------------------------
@@ -144,8 +143,7 @@ subscribe_ack(Channel, CState, QueryId, Pdus) ->
 -spec(unsubscribe(Channel :: string(), CState :: #client_state{}) -> ok).
 unsubscribe(Channel, CState) ->
     ?SUPERCAST_LOG_INFO("unsubscribe chan", {Channel, CState}),
-    gen_server:cast({via, supercast_relay_register, Channel},
-                                                        {unsubscribe, CState}).
+    gen_server:cast({via, supercast, Channel}, {unsubscribe, CState}).
 
 
 %%------------------------------------------------------------------------------
@@ -158,7 +156,7 @@ unsubscribe(Channel, CState) ->
 -spec(delete(Channel :: string()) -> ok).
 delete(Channel) ->
     ?SUPERCAST_LOG_INFO("delete channel", Channel),
-    gen_server:cast({via, supercast_relay_register, Channel}, delete).
+    gen_server:cast({via, supercast, Channel}, delete).
 
 
 %%------------------------------------------------------------------------------
@@ -200,7 +198,6 @@ unicast(Pid, Msgs, To) ->
 %%------------------------------------------------------------------------------
 %% @private
 %% @see gen_server:init/1
-%%
 %%------------------------------------------------------------------------------
 -spec(init(Args :: string()) ->
     {ok, State :: #state{}} | {stop, Reason :: term()}).
@@ -223,10 +220,6 @@ init(ChanName) ->
 %%------------------------------------------------------------------------------
 %% @private
 %% @see gen_server:cast/2
-%% @doc
-%% Handling cast messages
-%%
-%% @end
 %%------------------------------------------------------------------------------
 -type(relay_cast_request() ::
         {multicast, Msgs :: [supercast_msg()], default | #perm_conf{}} |
@@ -344,10 +337,6 @@ handle_cast(_Cast, State) ->
 %%------------------------------------------------------------------------------
 %% @private
 %% @see gen_server:call/3
-%% @doc
-%% Does nothing
-%%
-%% @end
 %%------------------------------------------------------------------------------
 -spec(handle_call(Request :: term(), From :: {pid(), Tag :: term()},
     State :: #state{}) ->
@@ -363,10 +352,6 @@ handle_call(_Request, _From, State) -> {noreply, State}.
 %%------------------------------------------------------------------------------
 %% @private
 %% @see gen_server:handle_info/3
-%% @doc
-%% On timeout stop the process.
-%%
-%% @end
 %%------------------------------------------------------------------------------
 -spec(handle_info(Info :: timeout() | term(), State :: #state{}) ->
     {noreply, NewState :: #state{}} |
@@ -381,10 +366,6 @@ handle_info(_Info, State) ->
 %%------------------------------------------------------------------------------
 %% @private
 %% @see gen_server:code_change/3
-%% @doc
-%% Unsupported
-%%
-%% @end
 %%------------------------------------------------------------------------------
 -spec(code_change(OldVsn :: term() | {down, term()}, State :: #state{},
     Extra :: term()) -> term()).
@@ -394,10 +375,10 @@ code_change(_OldVsn, State, _Extra) -> {ok, State}.
 %%------------------------------------------------------------------------------
 %% @private
 %% @see gen_server:terminate/2
-%% @see supercast_relay_register:unregister_name/1
+%% @see supercast:unregister_name/1
 %% @doc
-%% The process trap exists. Will unregister the name in
-%% supercast_relay_register module.
+%% The process trap exists. Will unregister the name with
+%% supercast:unregister_name/1
 %%
 %% @end
 %%------------------------------------------------------------------------------
@@ -405,7 +386,7 @@ code_change(_OldVsn, State, _Extra) -> {ok, State}.
     State :: #state{}) -> term()).
 terminate(_Reason, #state{chan_name=Name}) ->
     ?SUPERCAST_LOG_INFO("terminate relay", _Reason),
-    supercast_relay_register:unregister_name(Name),
+    supercast:unregister_name(Name),
     ok.
 
 

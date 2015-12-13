@@ -17,24 +17,56 @@
 %% under the License.
 %% -------------------------------------------------------------------
 
-%% @private
+%%%-----------------------------------------------------------------------------
+%%% @author Sebastien Serre <ssbx@supercastframework.org>
+%%% @copyright (C) 2015, Sebastien Serre
+%%% @private
+%%%-----------------------------------------------------------------------------
 -module(supercast_sup).
 -behaviour(supervisor).
 -include("supercast.hrl").
 
+%% API
 -export([start_link/0]).
+
+%% Supervisor callback
 -export([init/1]).
 
+%%------------------------------------------------------------------------------
+%% @private
+%% @see supervisor:start_link/3
+%%------------------------------------------------------------------------------
+-spec(start_link() ->
+    {ok, Pid :: pid()} | ignore | {error, Reason :: term()}).
 start_link() ->
-    init_relay_ets(),
-    init_chan_ets(),
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
+%%------------------------------------------------------------------------------
+%% @private
+%% @see supervisor:start_link/3
+%%------------------------------------------------------------------------------
+-spec(init(Args :: term()) ->
+    {ok,
+        {SupFlags :: {
+            RestartStrategy :: supervisor:strategy(),
+            MaxR            :: non_neg_integer(),
+            MaxT            :: non_neg_integer()},
+            [ChildSpec :: supervisor:child_spec()]
+        }
+    } | ignore | {error, Reason :: term()}).
 init([]) ->
     {ok,
         {
             {one_for_all, 0, 6000},
             [
+                {
+                    supercast,
+                    {supercast,start_link, []},
+                    permanent,
+                    2000,
+                    worker,
+                    [supercast]
+                },
                 {
                     supercast_relay_sup,
                     {supercast_relay_sup,start_link, []},
@@ -62,13 +94,3 @@ init([]) ->
             ]
         }
     }.
-
-%% @TODO relay register in a gen_server
-init_relay_ets() ->
-    ets:new(?ETS_RELAYS_REGISTER, [set, public, named_table,
-        {write_concurrency, false}, {read_concurrency, true}, {keypos, 1}]).
-
-%% @doc Initialize ets used to store channel subscribers to a channel.
-init_chan_ets() ->
-    ets:new(?ETS_CHAN_STATES, [set, public, named_table,
-        {write_concurrency, false}, {read_concurrency, true}, {keypos, 2}]).

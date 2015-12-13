@@ -4,6 +4,7 @@
         {vsn, "0.3.0"},
         {modules, []},
         {registered, [
+                supercast,
                 supercast_sup,
                 supercast_relay_sup
             ]},
