@@ -20,6 +20,7 @@
     multicast/3,
     unicast/3,
     subscribe/3,
+    subscribe_ack/4,
     unsubscribe/1,
     unsubscribe/2]).
 
@@ -122,6 +123,20 @@ unsubscribe(CState) ->
 %%------------------------------------------------------------------------------
 %% @private
 %% @doc
+%% Subscribe client ack with initial data from the channel.
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec(subscribe_ack(Channel :: string(), CState :: #client_state{},
+    QueryId :: integer(), Pdus :: [term()]) -> ok).
+subscribe_ack(Channel, CState, QueryId, Pdus) ->
+    gen_server:cast({via, supercast_relay_register, Channel},
+        {subscribe_ack, CState, QueryId, Pdus}).
+
+
+%%------------------------------------------------------------------------------
+%% @private
+%% @doc
 %% Unsubscribe the client from one channels.
 %%
 %% @end
@@ -192,6 +207,7 @@ unicast(Pid, Msgs, To) ->
 init(ChanName) ->
     process_flag(trap_exit, true),
     ?SUPERCAST_LOG_INFO("init channel", ChanName),
+    %% @TODO make supercast_relay_control
     case ets:lookup(?ETS_CHAN_STATES, ChanName) of
         [] ->
             ?SUPERCAST_LOG_INFO("channel vanished", ChanName),
@@ -216,7 +232,8 @@ init(ChanName) ->
         {multicast, Msgs :: [supercast_msg()], default | #perm_conf{}} |
         {unicast, Msgs :: [supercast_msg()], Client :: #client_state{}} |
         {unsubscribe, Client :: #client_state{}} |
-        {subscribe, QueryId:: integer(), Client :: #client_state{}} |
+        {subscribe, QueryId :: integer(), Client :: #client_state{}} |
+        {subscribe_ack, Client :: #client_state{}, QueryId :: integer()} |
         delete).
 -spec(handle_cast(Request :: relay_cast_request(), State :: #state{}) ->
     {noreply, NewState :: #state{}} |
@@ -256,6 +273,13 @@ handle_cast({unsubscribe, CState}, #state{clients=Clients} = State) ->
             {noreply, State#state{clients=Rest}}
     end;
 
+handle_cast({subscribe_ack, #client_state{module=Mod} = CState,
+    QueryId, Pdus}, #state{chan_name=ChanName, clients=Clients} = State) ->
+
+    OkPdu = supercast_endpoint:pdu(subscribeOk, {QueryId, ChanName}),
+    lists:foreach(fun(P) -> Mod:send(CState, P) end, [OkPdu | Pdus]),
+    {noreply, State#state{clients=[CState|Clients]}};
+
 handle_cast({subscribe, QueryId, #client_state{module=Mod} = CState},
                 #state{chan_name=ChanName,clients=Clients} = State) ->
 
@@ -270,41 +294,39 @@ handle_cast({subscribe, QueryId, #client_state{module=Mod} = CState},
                 [#chan_state{module=CMod,args=Args}] ->
                     ?SUPERCAST_LOG_INFO("found in chan_states"),
 
-                    case CMod:join(ChanName, Args, CState) of
-                        {ok, Pdus} ->
-                            OkPdu = supercast_endpoint:pdu(
-                                            subscribeOk, {QueryId, ChanName}),
-                            lists:foreach(fun(P) ->
-                                Mod:send(CState, P)
-                            end, [OkPdu|Pdus]),
-                            {noreply, State#state{clients=[CState|Clients]}};
+                    erlang:spawn(fun() ->
+                        Ref = {ChanName, CState, QueryId},
+                        case CMod:join(ChanName, Args, CState, Ref) of
 
-                        ok ->
-                            {noreply, State#state{clients=[CState|Clients]}};
+                            ok ->
+                                OkPdu = supercast_endpoint:pdu(
+                                    subscribeOk, {QueryId, ChanName}),
+                                Mod:send(CState, OkPdu);
 
-                        _Err ->
-                            ?SUPERCAST_LOG_INFO("error: ", _Err),
-                            ErrPdu = supercast_endpoint:pdu(
-                                subscribeErr, {QueryId, ChanName}),
-                            Mod:send(CState, ErrPdu),
-                            {noreply, State}
+                            _Err ->
+                                ?SUPERCAST_LOG_INFO("error: ", _Err),
+                                ErrPdu = supercast_endpoint:pdu(
+                                    subscribeErr, {QueryId, ChanName}),
+                                Mod:send(CState, ErrPdu)
 
-                    end;
+                        end
+                    end);
+
                 _Other ->
                     ?SUPERCAST_LOG_INFO("other", _Other),
                     ErrPdu = supercast_endpoint:pdu(
                                             subscribeErr, {QueryId, ChanName}),
-                    Mod:send(CState, ErrPdu),
-                    {noreply, State}
+                    Mod:send(CState, ErrPdu)
 
-            end;
+            end; %% end ets:lookup
 
         true -> %% allready registered
             ?SUPERCAST_LOG_INFO("true"),
             OkPdu = supercast_endpoint:pdu(subscribeOk, {QueryId, ChanName}),
-            Mod:send(CState, OkPdu),
-            {noreply, State}
-    end;
+            Mod:send(CState, OkPdu)
+
+    end, %% end lists:member
+    {noreply, State};
 
 handle_cast(delete, #state{clients=Clients,chan_name=Name}) ->
     ?SUPERCAST_LOG_INFO("delete channel"),

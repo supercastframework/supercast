@@ -22,7 +22,7 @@
 
 %% API
 -export([new_channel/4,delete_channel/1,unicast/3,
-            multicast/3,broadcast/2]).
+            multicast/3,broadcast/2,join_ack/2,join_ack/1,join_del/1]).
 
 %% utils
 -export([filter/2, satisfy/2]).
@@ -65,6 +65,27 @@ multicast(Channel, Messages, Perm) ->
 %% @equiv multicast(Channel, Messages, default).
 broadcast(Channel, Message) ->
     multicast(Channel, Message, default).
+
+
+%% @equiv join_ack(Ref, []).
+%% @see join_del/1
+-spec(join_ack(Ref :: {Channel :: string(), CState :: #client_state{},
+    QueryId :: integer}) -> ok).
+join_ack(Ref) -> join_ack(Ref, []).
+
+%% @see join_del/1
+-spec(join_ack(Ref :: {Channel :: string(), CState :: #client_state{},
+    QueryId :: integer}, Pdus :: [term()]) -> ok).
+join_ack({Channel, CState, QueryId}, Pdus) ->
+    supercast_relay:subscribe_ack(Channel, CState, QueryId, Pdus).
+
+%% @see join_ack/2
+-spec(join_del(Ref :: {Channel :: string(), CState :: #client_state{},
+    QueryId :: integer}) -> ok).
+join_del({Channel, #client_state{module=Mod} = CState, QueryId}) ->
+    ErrPdu = supercast_endpoint:pdu(subscribeErr, {QueryId, Channel}),
+    Mod:send(CState, ErrPdu).
+
 
 
 

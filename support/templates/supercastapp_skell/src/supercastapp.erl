@@ -7,7 +7,7 @@
 %% supercast channel behaviour
 -behaviour(supercast_channel).
 -include_lib("supercast/include/supercast.hrl").
--export([join/3,leave/3]).
+-export([join/4,leave/3]).
 
 %% user test
 -export([emit/0, emit/2, send/2]).
@@ -35,14 +35,16 @@ stop() ->
 %% Wait for reply to the channel_worker process (wich will not emit data
 %% because he is himself locking the channel.
 %% @end
-join("{{appid}}", _Args, _CState) ->
+join("{{appid}}", _Args, _CState, Ref) ->
     Pdus = [
         [{<<"from">>, <<"{{appid}}">>}, {<<"value">>, <<"you should be synced now">>}]
         ],
-    {ok, Pdus};
+    supercast:join_ack(Ref, Pdus);
+    %supercast:join_del(Ref);
 
-join(_, _, _) ->
+join(_, _, _, _) ->
     {error, "unknown channel"}.
+
 
 %% @spec leave(Channel, Opts, CState) ->
 %%      ok | {error, Reason::string()}
