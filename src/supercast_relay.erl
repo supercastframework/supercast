@@ -40,7 +40,8 @@
     subscribe/3,
     subscribe_ack/4,
     unsubscribe/1,
-    unsubscribe/2]).
+    unsubscribe/3,
+    unsubscribe_ack/4]).
 
 %% called from supercast module
 -export([delete/1]).
@@ -133,7 +134,7 @@ unsubscribe(CState) ->
     ?SUPERCAST_LOG_INFO("unsubscribe all", CState),
     Chans = [Name || #chan_state{name=Name} <- ets:tab2list(?ETS_CHAN_STATES)],
     lists:foreach(fun(Chan) ->
-        unsubscribe(CState, Chan)
+        unsubscribe(CState, Chan, undefined)
     end, Chans).
 
 
@@ -142,16 +143,19 @@ unsubscribe(CState) ->
 %% @doc
 %% Unsubscribe the client from one channels.
 %%
+%% If QueryId is the atom undefined, this mean that the client unsubscribe to
+%% the specified channels because the socket has closed.
+%%
 %% @end
 %%------------------------------------------------------------------------------
--spec(unsubscribe(Channel :: string(), CState :: #client_state{}) -> ok).
-unsubscribe(Channel, CState) ->
+-spec(unsubscribe(Channel :: string(), CState :: #client_state{},
+    QueryId :: integer() | undefined) -> ok).
+unsubscribe(Channel, CState, QueryId) ->
     ?SUPERCAST_LOG_INFO("unsubscribe chan", {Channel, CState}),
-    gen_server:cast({via, supercast, Channel}, {unsubscribe, CState}).
+    gen_server:cast({via, supercast, Channel}, {unsubscribe, CState, QueryId}).
 
 
 %%------------------------------------------------------------------------------
-%% @private
 %% @doc
 %% Subscribe client ack with initial data from the channel.
 %%
@@ -164,6 +168,17 @@ subscribe_ack(Channel, CState, QueryId, Pdus) ->
                                         {subscribe_ack, CState, QueryId, Pdus}).
 
 
+%%------------------------------------------------------------------------------
+%% @doc
+%% Unsubscribe client ack with initial data from the channel.
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec(unsubscribe_ack(Channel :: string(), CState :: #client_state{},
+    QueryId :: integer(), Pdus :: [term()]) -> ok).
+unsubscribe_ack(Channel, CState, QueryId, Pdus) ->
+    gen_server:cast({via, supercast, Channel},
+                                        {unsubscribe_ack, CState, QueryId, Pdus}).
 
 
 %%------------------------------------------------------------------------------
@@ -274,17 +289,59 @@ handle_cast({unicast, Msgs, #client_state{module=Mod} = To},
     end, Msgs),
     {noreply, State};
 
-handle_cast({unsubscribe, CState}, #state{clients=Clients} = State) ->
-    ?SUPERCAST_LOG_INFO("unsubscribe"),
+handle_cast({unsubscribe_ack, #client_state{module=Mod} = CState,
+    QueryId, Pdus}, #state{chan_name=ChanName, clients=Clients} = State) ->
+
+    case QueryId of
+        undefined -> %% unsubscribed because the socket has closed.
+            ok;
+        _ ->
+            OkUnsub = supercast_endpoint:pdu(unsubscribeOk, {QueryId, ChanName}),
+            lists:foreach(fun(P) ->
+                Mod:send(CState, P)
+            end, lists:append(Pdus, [OkUnsub]))
+    end,
+
     case lists:delete(CState, Clients) of
-
-        []   ->
-            %% without more subscribers, the process will die in 10 seconds
+        [] -> %% will terminate in 10 seconds if no more clients are subscribing
             {noreply, State#state{clients=[]}, 10000};
-
-        Rest ->
-            {noreply, State#state{clients=Rest}}
+        Other ->
+            {noreply, State#state{clients=Other}}
     end;
+
+handle_cast({unsubscribe, #client_state{module=Mod} = CState, QueryId},
+    #state{clients=Clients,chan_name=Name} = State) ->
+    ?SUPERCAST_LOG_INFO("unsubscribe"),
+    case lists:member(CState, Clients) of
+
+        false -> %% not a subscribed client
+            %% if queryid is an integer reply unsubscribeOk
+            case QueryId of
+
+                undefined -> %% nothing to do
+                    ok;
+
+                _ -> %% send a message to the client
+                    OkUnsub = supercast_endpoint:pdu(
+                                                unsubscribeOk, {QueryId, Name}),
+                    Mod:send(CState, OkUnsub)
+            end;
+
+        true -> %% is a member
+            case ets:lookup(?ETS_CHAN_STATES, Name) of
+                [#chan_state{module=CMod,args=Args}] ->
+                     erlang:spawn(fun() ->
+                        Ref = {Name, CState, QueryId},
+                        CMod:leave(Name, Args, CState, Ref)
+                    end);
+                _ ->
+                    OkUnsub = supercast_endpoint:pdu(
+                                                unsubscribeOk, {QueryId, Name}),
+                    Mod:send(CState, OkUnsub)
+            end
+    end,
+    {noreply, State};
+
 
 handle_cast({subscribe_ack, #client_state{module=Mod} = CState,
     QueryId, Pdus}, #state{chan_name=ChanName, clients=Clients} = State) ->
@@ -309,20 +366,7 @@ handle_cast({subscribe, QueryId, #client_state{module=Mod} = CState},
 
                     erlang:spawn(fun() ->
                         Ref = {ChanName, CState, QueryId},
-                        case CMod:join(ChanName, Args, CState, Ref) of
-
-                            ok ->
-                                OkPdu = supercast_endpoint:pdu(
-                                    subscribeOk, {QueryId, ChanName}),
-                                Mod:send(CState, OkPdu);
-
-                            _Err ->
-                                ?SUPERCAST_LOG_INFO("error: ", _Err),
-                                ErrPdu = supercast_endpoint:pdu(
-                                    subscribeErr, {QueryId, ChanName}),
-                                Mod:send(CState, ErrPdu)
-
-                        end
+                        CMod:join(ChanName, Args, CState, Ref)
                     end);
 
                 _Other ->

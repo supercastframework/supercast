@@ -7,7 +7,7 @@
 %% supercast channel behaviour
 -behaviour(supercast_channel).
 -include_lib("supercast/include/supercast.hrl").
--export([join/4,leave/3]).
+-export([join/4,leave/4]).
 
 %% user test
 -export([emit/0, emit/2, send/2]).
@@ -47,12 +47,15 @@ join(_, _, _, _) ->
 
 
 %% @spec leave(Channel, Opts, CState) ->
-%%      ok | {error, Reason::string()}
+%%      Ignored :: any().
 %% @doc
-%% Return without waiting reply
+%%
 %% @end
-leave("{{appid}}", _Args, _CState) -> ok;
-leave(_Channel, _Opts, _CState) -> {error, "unknown channel"}.
+leave("{{appid}}", _Args, _CState, Ref) ->
+    Pdus = [
+        [{<<"from">>, <<"{{appid}}">>}, {<<"value">>, <<"Bye!!!">>}]
+    ],
+    supercast_channel:leave_ack(Ref, Pdus).
 
 
 %% @spec emit(Messages::[term()], Perm::any()) -> ok

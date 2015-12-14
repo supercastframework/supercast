@@ -35,10 +35,16 @@
     unicast/3,
     multicast/3,
     broadcast/2,
-    join_accept/2,
+    leave_ack/1,
+    leave_ack/2,
     join_accept/1,
+    join_accept/2,
     join_refuse/1]).
 
+-type(channel_ref() :: {
+    Channel :: string(),
+    CState  :: #client_state{},
+    QueryId :: integer() | undefined}).
 
 %%%=============================================================================
 %%% Behaviour callbacks definition
@@ -53,9 +59,9 @@
 %% This call is triggered when a client has requested and is allowed to
 %% join to the channel.
 %%
-%% <em>Args<em> is the term set at supercast:create/4.
+%% <em>Args<em> is the term set at supercast_channel:create/4.
 %%
-%% A call to this function MUST include a supercast:join_accept/1-2 or
+%% A call to this function MUST include a supercast_channel:join_accept/1-2 or
 %% supercast:join_refuse/1.
 %%
 %% The return value of the function is ignored.
@@ -64,9 +70,9 @@
 %%------------------------------------------------------------------------------
 -callback join(
     Channel :: string(),
-    Args    ::any(),
-    CState  ::#client_state{},
-    Ref     :: {Chan :: string(), CState :: #client_state{}, QueryId::integer}
+    Args    :: any(),
+    CState  :: #client_state{},
+    Ref     :: channel_ref()
 ) -> any().
 
 %%------------------------------------------------------------------------------
@@ -74,11 +80,14 @@
 %% Called when a client leave the channel either on socket close or
 %% unsubscribe call.
 %%
+%% A call to this function MUST include a supercast_channel:leave_ack/1-2
+%%
 %% The return value of the function is ignored.
 %%
 %% @end
 %%------------------------------------------------------------------------------
--callback leave(Channel::string, Args::any(), CState::#client_state{}) -> ok.
+-callback leave(Channel :: string, Args :: any(),
+    CState :: #client_state{}, Ref :: channel_ref()) -> any().
 
 
 
@@ -197,6 +206,26 @@ join_accept(Ref) -> join_accept(Ref, []).
     QueryId :: integer}, Pdus :: [term()]) -> ok).
 join_accept({Channel, CState, QueryId}, Pdus) ->
     supercast_relay:subscribe_ack(Channel, CState, QueryId, Pdus).
+
+%%------------------------------------------------------------------------------
+%% @equiv leave_ack(Ref, [])..
+%%------------------------------------------------------------------------------
+-spec(leave_ack(Ref :: {Channel :: string(), CState :: #client_state{},
+    QueryId :: integer}) -> ok).
+leave_ack(Ref) -> leave_ack(Ref, []).
+
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% Must be called from <em>supercast_channel:leave/3</em> to effectively
+%% unsubscribe the client to the channel.
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec(leave_ack(Ref :: {Channel :: string(), CState :: #client_state{},
+    QueryId :: integer}, Pdus :: [term()]) -> ok).
+leave_ack({Channel, CState, QueryId}, Pdus) ->
+    supercast_relay:unsubscribe_ack(Channel, CState, QueryId, Pdus).
 
 
 %%------------------------------------------------------------------------------

@@ -80,9 +80,8 @@ handle_message("supercast", "unsubscribe", Contents, CState) ->
     QueryId = prop_val(<<"queryId">>, Values),
     Channel = prop_str_val(<<"channel">>, Values),
 
-    ok = supercast_relay:unsubscribe(Channel, CState),
-    ?SUPERCAST_LOG_INFO("after relay usubscribe"),
-    send_pdu(CState, pdu(unsubscribeOk, {QueryId, Channel}));
+    supercast_relay:unsubscribe(Channel, CState, QueryId),
+    ?SUPERCAST_LOG_INFO("after relay usubscribe");
 
 handle_message(OtherMod, Type, Contents, CState) ->
     erlang:spawn(?MODULE, handle_other_control, [OtherMod, {Type,Contents}, CState]),
