@@ -32,7 +32,7 @@
 -export([
     new/4,
     delete/1,
-    unicast/3,
+    unicast/2,
     multicast/3,
     broadcast/2,
     leave_ack/1,
@@ -142,17 +142,15 @@ delete(ChanName) ->
 
 %%------------------------------------------------------------------------------
 %% @doc
-%% Send messages to a client whenever he have joined the channel or not.
+%% Send messages directly to a client.
 %%
 %% @end
 %%------------------------------------------------------------------------------
--spec(unicast(Channel :: string(), Messages :: [supercast_msg()],
-    To :: #client_state{}) -> ok).
-unicast(Channel, Messages, To) ->
-    case supercast:whereis_name(Channel) of
-        undefined -> ok;
-        Pid       -> supercast_relay:unicast(Pid, Messages, To)
-    end.
+-spec(unicast(To :: #client_state{}, Messages :: [supercast_msg()]) -> ok).
+unicast(#client_state{module=Mod} = To, Messages) ->
+    lists:foreach(fun(M) ->
+        Mod:send(To, M)
+    end, Messages).
 
 
 %%------------------------------------------------------------------------------

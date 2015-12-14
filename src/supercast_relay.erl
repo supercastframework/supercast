@@ -36,7 +36,6 @@
 -export([
     start_link/1,
     multicast/3,
-    unicast/3,
     subscribe/3,
     subscribe_ack/4,
     unsubscribe/1,
@@ -210,21 +209,6 @@ multicast(Pid, Msgs, Perm) ->
     gen_server:cast(Pid, {multicast, Msgs, Perm}).
 
 
-%%------------------------------------------------------------------------------
-%% @private
-%% @doc
-%% Send messages to an unique client, with no regards to permissions or
-%% subscribtion status.
-%%
-%% @end
-%%------------------------------------------------------------------------------
--spec(unicast(Pid :: pid(), Msgs :: [supercast_msg()],
-    To :: #client_state{}) -> ok).
-unicast(Pid, Msgs, To) ->
-    ?SUPERCAST_LOG_INFO("unicast", {Pid,Msgs,To}),
-    gen_server:cast(Pid, {unicast, Msgs, To}).
-
-
 
 %%%=============================================================================
 %%% gen_server callbacks
@@ -277,7 +261,7 @@ handle_cast({multicast, Msgs, Perm},
                         #state{chan_name=_ChanName,clients=Clients} = State) ->
     ?SUPERCAST_LOG_INFO("multicast"),
     {ok, Acctrl} = application:get_env(supercast, acctrl_module),
-    Clients2 = Acctrl:satisfy(read, Clients, Perm),
+    {ok, Clients2} = Acctrl:satisfy(read, Clients, Perm),
     multi_send(Clients2, Msgs),
     {noreply, State};
 
