@@ -1,4 +1,4 @@
-%%------------------------------------------------------------------------------
+%% -----------------------------------------------------------------------------
 %% Supercast Copyright (c) 2012-2015
 %% Sebastien Serre <ssbx@supercastframework.org> All Rights Reserved.
 %%
@@ -15,7 +15,7 @@
 %% KIND, either express or implied.  See the License for the
 %% specific language governing permissions and limitations
 %% under the License.
-%%------------------------------------------------------------------------------
+%% -----------------------------------------------------------------------------
 
 %%%-----------------------------------------------------------------------------
 %%% @author Sebastien Serre <ssbx@supercastframework.org>

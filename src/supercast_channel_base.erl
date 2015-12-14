@@ -21,11 +21,14 @@
 %%% @author Sebastien Serre <ssbx@supercastframework.org>
 %%% @copyright (C) 2015, Sebastien Serre
 %%% @doc
-%%% Supercast channel behaviour.
+%%% Supercast channel base behaviour. This behaviour is for users who do not
+%%% want their channel supervised by supercast.
+%%%
+%%% See <em>supercast_channel.erl</em> for an example implementation.
 %%%
 %%% @end
 %%%-----------------------------------------------------------------------------
--module(supercast_channel).
+-module(supercast_channel_base).
 -include("supercast.hrl").
 
 %%------------------------------------------------------------------------------
@@ -57,8 +60,11 @@
 %% @doc
 %% Called when a client leave the channel.
 %%
+%% Must include a call to supercast:leave_accept/1 or leave_accept/2.
+%%
+%% The return value of the function is ignored.
+%%
 %% @end
 %%------------------------------------------------------------------------------
--callback leave(Channel::string, Args::any(), CState::#client_state{}) ->
-        ok.
+-callback leave(Channel::string, Args::any(), CState::#client_state{}) -> any().
 
