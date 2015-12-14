@@ -2,7 +2,7 @@
 
 compile:
 	@rebar prepare-deps
-	@if [ ! -d priv ]; then cp -r supercast/priv . ; fi
+	@if [ ! -d priv ]; then cp -r deps/supercast/priv . ; fi
 
 clean:
 	@rebar -r clean

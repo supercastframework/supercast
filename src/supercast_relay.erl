@@ -140,6 +140,19 @@ unsubscribe(CState) ->
 %%------------------------------------------------------------------------------
 %% @private
 %% @doc
+%% Unsubscribe the client from one channels.
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec(unsubscribe(Channel :: string(), CState :: #client_state{}) -> ok).
+unsubscribe(Channel, CState) ->
+    ?SUPERCAST_LOG_INFO("unsubscribe chan", {Channel, CState}),
+    gen_server:cast({via, supercast, Channel}, {unsubscribe, CState}).
+
+
+%%------------------------------------------------------------------------------
+%% @private
+%% @doc
 %% Subscribe client ack with initial data from the channel.
 %%
 %% @end
@@ -151,17 +164,6 @@ subscribe_ack(Channel, CState, QueryId, Pdus) ->
                                         {subscribe_ack, CState, QueryId, Pdus}).
 
 
-%%------------------------------------------------------------------------------
-%% @private
-%% @doc
-%% Unsubscribe the client from one channels.
-%%
-%% @end
-%%------------------------------------------------------------------------------
--spec(unsubscribe(Channel :: string(), CState :: #client_state{}) -> ok).
-unsubscribe(Channel, CState) ->
-    ?SUPERCAST_LOG_INFO("unsubscribe chan", {Channel, CState}),
-    gen_server:cast({via, supercast, Channel}, {unsubscribe, CState}).
 
 
 %%------------------------------------------------------------------------------
@@ -275,12 +277,12 @@ handle_cast({unicast, Msgs, #client_state{module=Mod} = To},
 handle_cast({unsubscribe, CState}, #state{clients=Clients} = State) ->
     ?SUPERCAST_LOG_INFO("unsubscribe"),
     case lists:delete(CState, Clients) of
-        []   ->
 
+        []   ->
             %% without more subscribers, the process will die in 10 seconds
             {noreply, State#state{clients=[]}, 10000};
-        Rest ->
 
+        Rest ->
             {noreply, State#state{clients=Rest}}
     end;
 

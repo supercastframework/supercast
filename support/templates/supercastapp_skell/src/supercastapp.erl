@@ -21,11 +21,11 @@ start() ->
     ChanName = "{{appid}}",
     Perm = #perm_conf{read=["admin"], write=["admin"]},
     Args = [],
-    ok = supercast:new_channel(ChanName, ?MODULE, Args, Perm).
+    ok = supercast_channel:new(ChanName, ?MODULE, Args, Perm).
 
 stop() ->
     ChanName = "{{appid}}",
-    supercast:delete_channel(ChanName),
+    supercast_channel:delete(ChanName),
     init:stop().
 
 
@@ -39,8 +39,8 @@ join("{{appid}}", _Args, _CState, Ref) ->
     Pdus = [
         [{<<"from">>, <<"{{appid}}">>}, {<<"value">>, <<"you should be synced now">>}]
         ],
-    supercast:join_ack(Ref, Pdus);
-    %supercast:join_del(Ref);
+    supercast_channel:join_accept(Ref, Pdus);
+    %supercast_channel:join_refuse(Ref);
 
 join(_, _, _, _) ->
     {error, "unknown channel"}.
@@ -59,14 +59,14 @@ leave(_Channel, _Opts, _CState) -> {error, "unknown channel"}.
 emit() ->
     Event = [{<<"from">>, <<"{{appid}}">>}, {<<"value">>, <<"Hello event">>}],
     Channel = "{{appid}}",
-    supercast:broadcast(Channel, [Event]).
+    supercast_channel:broadcast(Channel, [Event]).
 emit(Messages, CustomPerm) ->
     Channel = "{{appid}}",
-    supercast:multicast(Channel, Messages, CustomPerm).
+    supercast_channel:multicast(Channel, Messages, CustomPerm).
 
 %% @spec send_unicast(Messages::[term()], CState) -> ok
 send(Messages, CState) ->
     Channel = "{{appid}}",
-    supercast:unicast(Channel, Messages, CState).
+    supercast_channel:unicast(Channel, Messages, CState).
 
 

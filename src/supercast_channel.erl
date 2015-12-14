@@ -28,6 +28,22 @@
 -module(supercast_channel).
 -include("supercast.hrl").
 
+%% API
+-export([
+    new/4,
+    delete/1,
+    unicast/3,
+    multicast/3,
+    broadcast/2,
+    join_accept/2,
+    join_accept/1,
+    join_refuse/1]).
+
+
+%%%=============================================================================
+%%% Behaviour callbacks definition
+%%%=============================================================================
+
 %%------------------------------------------------------------------------------
 %% @see supercast:join_accept/2
 %% @see supercast:join_refuse/1
@@ -55,10 +71,146 @@
 
 %%------------------------------------------------------------------------------
 %% @doc
-%% Called when a client leave the channel.
+%% Called when a client leave the channel either on socket close or
+%% unsubscribe call.
+%%
+%% The return value of the function is ignored.
 %%
 %% @end
 %%------------------------------------------------------------------------------
--callback leave(Channel::string, Args::any(), CState::#client_state{}) ->
-        ok.
+-callback leave(Channel::string, Args::any(), CState::#client_state{}) -> ok.
+
+
+
+%%%=============================================================================
+%%% User API
+%%%=============================================================================
+
+%%------------------------------------------------------------------------------
+%% @see supercast_channel
+%% @doc
+%% Register a new channel.
+%%
+%% <em>ChanName</em> is the name of the channel.
+%%
+%% <em>Module</em> is the name of the module implementing the supercast_channel
+%% behaviour.
+%%
+%% <em>Opts</em> is any term passed to supercast_channel callbacks.
+%% @see supercast_channel:join/3
+%% @see supercast_channel:leave/1
+%%
+%% <em>Perm</em> is the permissions of the channel. Only read is handled by
+%% supercast.
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec(new(ChanName :: string(), Module :: atom(), Opts :: any(),
+        Perm :: #perm_conf{}) -> ok).
+new(ChanName, Module, Args, Perm) ->
+    ets:insert(?ETS_CHAN_STATES,
+        #chan_state{name=ChanName,module=Module,perm=Perm,args=Args}),
+    ok.
+
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% Delete a registered channel.
+%%
+%% This function will send a <em>channelVanished</em> message to all connected
+%% clients.
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec(delete(ChannName :: string()) -> ok).
+delete(ChanName) ->
+    ets:delete(?ETS_CHAN_STATES, ChanName),
+    case supercast:whereis_name(ChanName) of
+        undefined -> ok;
+        Pid       -> supercast_relay:delete(Pid)
+    end.
+
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% Send messages to a client whenever he have joined the channel or not.
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec(unicast(Channel :: string(), Messages :: [supercast_msg()],
+    To :: #client_state{}) -> ok).
+unicast(Channel, Messages, To) ->
+    case supercast:whereis_name(Channel) of
+        undefined -> ok;
+        Pid       -> supercast_relay:unicast(Pid, Messages, To)
+    end.
+
+
+%%------------------------------------------------------------------------------
+%% @see unicast/3
+%% @see multicast/2
+%% @doc
+%% Send messages to all clients of the specified channel, wich satisfy with the
+%% <em>read</em> permission of the #perm_conf{}.
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec(multicast(Channel :: string(), Messages :: [supercast_msg()],
+                                CustomPerm :: default | #perm_conf{}) -> ok).
+multicast(Channel, Messages, Perm) ->
+    case supercast:whereis_name(Channel) of
+        undefined -> ok;
+        Pid       -> supercast_relay:multicast(Pid, Messages, Perm)
+    end.
+
+
+%%------------------------------------------------------------------------------
+%% @equiv multicast(Channel, Messages, default).
+%% @see multicast/3
+%% @doc
+%% Send messages to all clients of the specified channel.
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec(broadcast(Channel::string(), Message::[supercast_msg()]) -> ok).
+broadcast(Channel, Message) ->
+    multicast(Channel, Message, default).
+
+
+%%------------------------------------------------------------------------------
+%% @equiv join_ack(Ref, [])..
+%%------------------------------------------------------------------------------
+-spec(join_accept(Ref :: {Channel :: string(), CState :: #client_state{},
+    QueryId :: integer}) -> ok).
+join_accept(Ref) -> join_accept(Ref, []).
+
+
+%%------------------------------------------------------------------------------
+%% @see join_refuse/1
+%% @doc
+%% Must be called from <em>supercast_channel:join/3</em> to effectively
+%% subscribe the client to the channel.
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec(join_accept(Ref :: {Channel :: string(), CState :: #client_state{},
+    QueryId :: integer}, Pdus :: [term()]) -> ok).
+join_accept({Channel, CState, QueryId}, Pdus) ->
+    supercast_relay:subscribe_ack(Channel, CState, QueryId, Pdus).
+
+
+%%------------------------------------------------------------------------------
+%% @see join_accept/2
+%% @doc
+%% Must be called from <em>supercast_channel:join/3</em> to cancel the user
+%% request to join the channel. It notify the client with  a
+%% <em>subscribeErr</em> message.
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec(join_refuse(Ref :: {Channel :: string(), CState :: #client_state{},
+    QueryId :: integer}) -> ok).
+join_refuse({Channel, #client_state{module=Mod} = CState, QueryId}) ->
+    ErrPdu = supercast_endpoint:pdu(subscribeErr, {QueryId, Channel}),
+    Mod:send(CState, ErrPdu).
 
