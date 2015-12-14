@@ -41,10 +41,7 @@
     join_accept/2,
     join_refuse/1]).
 
--type(channel_ref() :: {
-    Channel :: string(),
-    CState  :: #client_state{},
-    QueryId :: integer() | undefined}).
+
 
 %%%=============================================================================
 %%% Behaviour callbacks definition
@@ -72,7 +69,7 @@
     Channel :: string(),
     Args    :: any(),
     CState  :: #client_state{},
-    Ref     :: channel_ref()
+    Ref     :: supercast:sc_reference()
 ) -> any().
 
 %%------------------------------------------------------------------------------
@@ -87,7 +84,7 @@
 %% @end
 %%------------------------------------------------------------------------------
 -callback leave(Channel :: string, Args :: any(),
-    CState :: #client_state{}, Ref :: channel_ref()) -> any().
+    CState :: #client_state{}, Ref :: supercast:sc_reference()) -> any().
 
 
 
@@ -148,7 +145,7 @@ delete(ChanName) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec(unicast(Channel :: string(), CState :: #client_state{},
-    Messages :: [supercast_msg()]) -> ok).
+    Messages :: [supercast:sc_message()]) -> ok).
 unicast(Channel, CState, Messages) ->
     case supercast:whereis_name(Channel) of
 
@@ -172,7 +169,7 @@ unicast(Channel, CState, Messages) ->
 %%
 %% @end
 %%------------------------------------------------------------------------------
--spec(multicast(Channel :: string(), Messages :: [supercast_msg()],
+-spec(multicast(Channel :: string(), Messages :: [supercast:sc_message()],
                                 CustomPerm :: default | #perm_conf{}) -> ok).
 multicast(Channel, Messages, Perm) ->
     case supercast:whereis_name(Channel) of
@@ -189,7 +186,7 @@ multicast(Channel, Messages, Perm) ->
 %%
 %% @end
 %%------------------------------------------------------------------------------
--spec(broadcast(Channel::string(), Message::[supercast_msg()]) -> ok).
+-spec(broadcast(Channel :: string(), Message :: [supercast:sc_message()]) -> ok).
 broadcast(Channel, Message) ->
     multicast(Channel, Message, default).
 
@@ -197,8 +194,7 @@ broadcast(Channel, Message) ->
 %%------------------------------------------------------------------------------
 %% @equiv join_ack(Ref, [])..
 %%------------------------------------------------------------------------------
--spec(join_accept(Ref :: {Channel :: string(), CState :: #client_state{},
-    QueryId :: integer}) -> ok).
+-spec(join_accept(Ref :: supercast:sc_reference()) -> ok).
 join_accept(Ref) -> join_accept(Ref, []).
 
 
@@ -210,16 +206,15 @@ join_accept(Ref) -> join_accept(Ref, []).
 %%
 %% @end
 %%------------------------------------------------------------------------------
--spec(join_accept(Ref :: {Channel :: string(), CState :: #client_state{},
-    QueryId :: integer}, Pdus :: [supercast_msg()]) -> ok).
+-spec(join_accept(Ref :: supercast:sc_reference(),
+        Pdus :: [supercast:sc_message()]) -> ok).
 join_accept({Channel, CState, QueryId}, Pdus) ->
     supercast_relay:subscribe_ack(Channel, CState, QueryId, Pdus).
 
 %%------------------------------------------------------------------------------
 %% @equiv leave_ack(Ref, [])..
 %%------------------------------------------------------------------------------
--spec(leave_ack(Ref :: {Channel :: string(), CState :: #client_state{},
-    QueryId :: integer}) -> ok).
+-spec(leave_ack(Ref :: supercast:sc_reference()) -> ok).
 leave_ack(Ref) -> leave_ack(Ref, []).
 
 
@@ -230,8 +225,8 @@ leave_ack(Ref) -> leave_ack(Ref, []).
 %%
 %% @end
 %%------------------------------------------------------------------------------
--spec(leave_ack(Ref :: {Channel :: string(), CState :: #client_state{},
-    QueryId :: integer}, Pdus :: [term()]) -> ok).
+-spec(leave_ack(Ref :: supercast:sc_reference(),
+    Pdus :: [supercast:sc_message()]) -> ok).
 leave_ack({Channel, CState, QueryId}, Pdus) ->
     supercast_relay:unsubscribe_ack(Channel, CState, QueryId, Pdus).
 
@@ -245,8 +240,7 @@ leave_ack({Channel, CState, QueryId}, Pdus) ->
 %%
 %% @end
 %%------------------------------------------------------------------------------
--spec(join_refuse(Ref :: {Channel :: string(), CState :: #client_state{},
-    QueryId :: integer}) -> ok).
+-spec(join_refuse(Ref :: supercast:sc_reference()) -> ok).
 join_refuse({Channel, #client_state{module=Mod} = CState, QueryId}) ->
     ErrPdu = supercast_endpoint:pdu(subscribeErr, {QueryId, Channel}),
     Mod:send(CState, ErrPdu).

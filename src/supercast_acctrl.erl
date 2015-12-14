@@ -29,5 +29,5 @@
 -module(supercast_acctrl).
 -include("supercast.hrl").
 
--callback(satisfy(Mod :: read | write, Things :: [any()],
-    PermConf :: #perm_conf{}) -> {ok, Allowed :: [any()]} |{ok, Allowed :: []}).
+-callback(satisfy(Mode :: read | write, Things :: [term()],
+    PermConf :: #perm_conf{}) -> {ok, Allowed :: [term()]}).

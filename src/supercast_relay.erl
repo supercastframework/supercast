@@ -85,16 +85,19 @@ start_link(Name) ->
 %% @TODO possible race condition with ?ETS_CHAN_STATES ???
 %%------------------------------------------------------------------------------
 -spec(subscribe(CState :: #client_state{}, Channel :: string(),
-    QueryId :: integer()) -> ok | error).
-subscribe(CState, Channel, QueryId) ->
+    QueryId :: supercast:sc_queryid()) -> ok | error).
+subscribe(#client_state{module=Mod} = CState, Channel, QueryId) ->
 
     %% does the channel exist?
     ?SUPERCAST_LOG_INFO("subscribe", {CState, Channel}),
     case ets:lookup(?ETS_CHAN_STATES, Channel) of
 
         [] -> %% no
-            ?SUPERCAST_LOG_INFO("no channel"),
-            error;
+
+            %% maybe a dynamic one?
+            ?SUPERCAST_LOG_INFO("no such channel"),
+            Mod:send(CState,
+                supercast_endpoint:pdu(subscribeErr, {QueryId, Channel}));
 
         [#chan_state{perm=Perm}] -> %% yes
 
@@ -149,7 +152,7 @@ unsubscribe(CState) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec(unsubscribe(Channel :: string(), CState :: #client_state{},
-    QueryId :: integer() | undefined) -> ok).
+    QueryId :: supercast:sc_queryid()) -> ok).
 unsubscribe(Channel, CState, QueryId) ->
     ?SUPERCAST_LOG_INFO("unsubscribe chan", {Channel, CState}),
     gen_server:cast({via, supercast, Channel}, {unsubscribe, CState, QueryId}).
@@ -162,7 +165,7 @@ unsubscribe(Channel, CState, QueryId) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec(subscribe_ack(Channel :: string(), CState :: #client_state{},
-    QueryId :: integer(), Pdus :: [supercast_msg()]) -> ok).
+    supercast:sc_queryid(), Pdus :: [supercast:sc_message()]) -> ok).
 subscribe_ack(Channel, CState, QueryId, Pdus) ->
     gen_server:cast({via, supercast, Channel},
                                         {subscribe_ack, CState, QueryId, Pdus}).
@@ -203,7 +206,7 @@ delete(Channel) ->
 %%
 %% @end
 %%------------------------------------------------------------------------------
--spec(multicast(Pid :: pid(), Msgs :: [supercast_msg()],
+-spec(multicast(Pid :: pid(), Msgs :: [supercast:sc_message()],
     Perm :: #perm_conf{} | default) -> ok).
 multicast(Pid, Msgs, Perm) ->
     ?SUPERCAST_LOG_INFO("multicast", {Pid,Msgs,Perm}),
@@ -220,7 +223,7 @@ multicast(Pid, Msgs, Perm) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec(unicast(Pid :: pid(), CState :: #client_state{},
-        Msgs :: [supercast_msg()]) -> ok).
+        Msgs :: [supercast:sc_message()]) -> ok).
 unicast(Pid, CState, Msgs) ->
     ?SUPERCAST_LOG_INFO("unicast", {Pid,CState, Msgs}),
     gen_server:cast(Pid, {unicast, CState, Msgs}).
@@ -257,16 +260,16 @@ init(ChanName) ->
 %% @see gen_server:cast/2
 %%------------------------------------------------------------------------------
 -type(relay_cast_request() ::
-        {multicast, Msgs :: [supercast_msg()], default | #perm_conf{}} |
-        {unicast, Msgs :: [supercast_msg()], Client :: #client_state{}} |
-        {unsubscribe, Client :: #client_state{}, QueryId :: integer()} |
+        {multicast, Msgs :: [supercast:sc_message()], default | #perm_conf{}} |
+        {unicast, Msgs :: [supercast:sc_message()], Client :: #client_state{}} |
+        {unsubscribe, Client :: #client_state{}, QueryId :: supercast:sc_queryid()} |
         {unsubscribe_ack, Client :: #client_state{}} |
-        {subscribe, Client :: #client_state{}, QueryId :: integer} |
-        {subscribe_ack, Client :: #client_state{}, QueryId :: integer(),
-            Pdus :: [supercast_msg()]} | delete).
+        {subscribe, Client :: #client_state{}, QueryId :: supercast:sc_queryid()} |
+        {subscribe_ack, Client :: #client_state{}, QueryId :: supercast:sc_queryid(),
+            Pdus :: [supercast:sc_message()]} | delete).
 -spec(handle_cast(Request :: relay_cast_request(), State :: #state{}) ->
     {noreply, NewState :: #state{}} |
-    {noreply, NewState :: #state{}, timeout() | hibernate} |
+    {noreply, NewState :: #state{}, timeout()} |
     {stop, Reason :: term(), NewState :: #state{}}).
 handle_cast({unicast, #client_state{module=Mod} = CState, Msgs},
         #state{clients=Clients} = State) ->
@@ -475,7 +478,7 @@ terminate(_Reason, #state{chan_name=Name}) ->
 %%
 %% @end
 %%------------------------------------------------------------------------------
--spec(pdu(channDeleted, Channel :: string()) -> supercast_msg()).
+-spec(pdu(channDeleted, Channel :: string()) -> supercast:sc_message()).
 pdu(channelDeleted, Channel) ->
         [
             {<<"from">>, <<"supercast">>},
@@ -494,7 +497,7 @@ pdu(channelDeleted, Channel) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec(multi_send(Clients :: [#client_state{}],
-    Messages :: [supercast_msg()]) -> ok).
+    Messages :: [supercast:sc_message()]) -> ok).
 multi_send(Clients, Msgs) ->
     lists:foreach(fun(Message) ->
         Pdu = ?ENCODER:encode(Message),

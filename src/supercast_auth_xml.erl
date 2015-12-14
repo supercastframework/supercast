@@ -26,8 +26,8 @@
 
 -define(USERS_XML, "etc/users.xml").
 
--spec authenticate(UName::string(), UPass::string()) ->
-        Reply::fail | {ok, Groups::[string()]}.
+-spec authenticate(UName :: string(), UPass :: string()) ->
+        Reply :: fail | {ok, Groups :: [string()]}.
 authenticate(UName, UPass) ->
     {#xmlDocument{content=DocumentContent}, _} = xmerl_scan:file(?USERS_XML, [{document,true}]),
     #xmlElement{content=XmlUsers} = lists:keyfind(xml_users, 2, DocumentContent),

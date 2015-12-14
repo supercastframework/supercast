@@ -27,7 +27,7 @@
 -export([handle_other_control/3]).
 
 
--spec handle_message(Json :: supercast_msg(), Client::#client_state{}) -> ok.
+-spec handle_message(Json :: supercast:sc_message(), Client::#client_state{}) -> ok.
 %% @doc Handle a client messages.
 %% @private
 handle_message(Json, Client) ->
@@ -99,7 +99,7 @@ handle_other_control(ModKey, Msg, CState) ->
 
 
 
--spec init_pdu() -> {ok, InitPdu :: supercast_msg()}.
+-spec init_pdu() -> {ok, InitPdu :: supercast:sc_message()}.
 %% @doc Return an Pdu to send to the client containing initialisation data.
 %% Called from supercast_endpoint_* modules.
 %% @end
@@ -115,7 +115,7 @@ client_disconnected(CState) ->
     supercast_relay:unsubscribe(CState).
 
 
--spec pdu(Type :: atom(), Any :: term()) -> supercast_msg().
+-spec pdu(Type :: atom(), Any :: term()) -> supercast:sc_message().
 %% @private
 %% @doc Return a pdu of type Type.
 pdu(serverInfo, {AuthType, DataPort, DataProto}) ->

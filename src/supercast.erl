@@ -59,6 +59,14 @@
     whereis_name/1,
     send/2]).
 
+-export_type([sc_message/0,sc_queryid/0,sc_reference/0]).
+-type(sc_queryid() :: integer() | undefined).
+-type(sc_message() :: jsx:json_term()).
+-type(sc_reference() :: {
+    Channel :: string(),
+    CState  :: #client_state{},
+    QueryId :: sc_queryid()}).
+
 %%%=============================================================================
 %%% Start/Stop API
 %%%=============================================================================
@@ -151,7 +159,7 @@ stop() ->
 %%
 %% @end
 %%------------------------------------------------------------------------------
--spec(satisfy(CState :: #client_state{}, Perm :: tuple()) -> true | false).
+-spec(satisfy(CState :: #client_state{}, Perm :: #perm_conf{}) -> true | false).
 satisfy(CState, Perm) ->
     {ok, AccCtrl} = application:get_env(supercast, acctrl_module),
     case AccCtrl:satisfy(read, [CState], Perm) of
@@ -215,7 +223,7 @@ register_name(Name, Pid) ->
 %%
 %% @end
 %%------------------------------------------------------------------------------
--spec unregister_name(Name::string()) -> Name::string().
+-spec unregister_name(Name :: string()) -> Name :: string().
 unregister_name(Name) ->
     true = ets:delete(?ETS_RELAYS_REGISTER, Name),
     Name.
@@ -228,7 +236,7 @@ unregister_name(Name) ->
 %%
 %% @end
 %%------------------------------------------------------------------------------
--spec whereis_name(Name::string()) -> pid() | undefined.
+-spec whereis_name(Name :: string()) -> Reply :: pid() | undefined.
 whereis_name(Name) -> where(Name).
 where(Name) ->
     case ets:lookup(?ETS_RELAYS_REGISTER, Name) of
@@ -248,7 +256,7 @@ where(Name) ->
 %%
 %% @end
 %%------------------------------------------------------------------------------
--spec send(Name :: string, Msg :: supercast_msg()) -> pid().
+-spec send(Name :: string, Msg :: sc_message()) -> pid().
 send(Name, Msg) ->
     case where(Name) of
         Pid when is_pid(Pid) ->
@@ -282,6 +290,9 @@ init([]) ->
     ets:new(?ETS_CHAN_STATES, [set, named_table, public, {write_concurrency, false},
                                         {read_concurrency, true}, {keypos, 2}]),
 
+    %% private, I (gen_server) own the lock.
+    ets:new(?ETS_DYNAMIC_CHAN_STATES, [set, named_table, public, {write_concurrency, false},
+                                        {read_concurrency, true}, {keypos, 2}]),
     {ok, #state{}}.
 
 

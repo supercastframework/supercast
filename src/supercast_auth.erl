@@ -32,5 +32,5 @@
 %% @end
 -module(supercast_auth).
 
--callback authenticate(UName::string(), UPass::string()) ->
-    {ok, Roles::[string()]} | fail.
+-callback authenticate(UName :: string(), UPass :: string()) ->
+    {ok, Roles :: [string()]} | fail.

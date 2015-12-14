@@ -37,7 +37,7 @@
 auth_success(#client_state{pid=Pid, ref=Ref}, Name, Roles) ->
     erlang:send(Pid, {auth_success, Ref, Name, Roles}).
 
--spec send(#client_state{}, {pdu, Message::supercast_msg()}) -> ok.
+-spec send(#client_state{}, {pdu, Message::supercast:sc_message()}) -> ok.
 %% @doc Send a message to the client
 send(#client_state{pid=Pid, ref=Ref}, Message) ->
     erlang:send(Pid, {encode_send, Ref, Message}).

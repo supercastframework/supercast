@@ -17,10 +17,9 @@
 %% under the License.
 %% -----------------------------------------------------------------------------
 
--type(supercast_msg() :: jsx:json_term()).
-
 -define(ENCODER, jsx).
--define(ETS_CHAN_STATES, supercast_channels_states).
+-define(ETS_CHAN_STATES, supercast_channels_store).
+-define(ETS_DYNAMIC_CHAN_STATES, supercast_dynamic_channels_store).
 -define(ETS_RELAYS_REGISTER, supercast_relays_register).
 
 -record(perm_conf, {

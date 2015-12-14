@@ -27,7 +27,7 @@
 %% --------------------------------------------------------------
 %% USER API
 %% --------------------------------------------------------------
--spec authenticate(UName::string(), UPass::string()) ->
-        Reply::fail | {ok, Groups::[string()]}.
+-spec authenticate(UName :: string(), UPass :: string()) ->
+        Reply :: fail | {ok, Groups :: [string()]}.
 authenticate(_AnyName, _AnyPass) ->
     {ok, ["admin", "wheel", "other"]}.
