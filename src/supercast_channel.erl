@@ -32,7 +32,7 @@
 -export([
     new/4,
     delete/1,
-    unicast/2,
+    unicast/3,
     multicast/3,
     broadcast/2,
     leave_ack/1,
@@ -142,15 +142,25 @@ delete(ChanName) ->
 
 %%------------------------------------------------------------------------------
 %% @doc
-%% Send messages directly to a client.
+%% Send messages directly to a client. Note that the user must allready or
+%% still subscribed to the channel to receive the message.
 %%
 %% @end
 %%------------------------------------------------------------------------------
--spec(unicast(To :: #client_state{}, Messages :: [supercast_msg()]) -> ok).
-unicast(#client_state{module=Mod} = To, Messages) ->
-    lists:foreach(fun(M) ->
-        Mod:send(To, M)
-    end, Messages).
+-spec(unicast(Channel :: string(), CState :: #client_state{},
+    Messages :: [supercast_msg()]) -> ok).
+unicast(Channel, CState, Messages) ->
+    case supercast:whereis_name(Channel) of
+
+        undefined -> %% nobody connected to the channel
+            ?SUPERCAST_LOG_WARNING(
+              "Attempt to send a message to an unsubscribed user",
+               {CState, Messages});
+
+        Pid ->
+            supercast_relay:unicast(Pid, CState, Messages)
+
+    end.
 
 
 %%------------------------------------------------------------------------------

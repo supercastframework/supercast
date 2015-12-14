@@ -35,6 +35,7 @@
 %% API
 -export([
     start_link/1,
+    unicast/3,
     multicast/3,
     subscribe/3,
     subscribe_ack/4,
@@ -209,6 +210,21 @@ multicast(Pid, Msgs, Perm) ->
     gen_server:cast(Pid, {multicast, Msgs, Perm}).
 
 
+%%------------------------------------------------------------------------------
+%% @private
+%% @doc
+%% Send messages to multiple clients. If the Perm is set to "default" there will
+%% be no filtering. IE: All clients allowed to register to the channel will
+%% receive the message.
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec(unicast(Pid :: pid(), CState :: #client_state{},
+        Msgs :: [supercast_msg()]) -> ok).
+unicast(Pid, CState, Msgs) ->
+    ?SUPERCAST_LOG_INFO("unicast", {Pid,CState, Msgs}),
+    gen_server:cast(Pid, {unicast, CState, Msgs}).
+
 
 %%%=============================================================================
 %%% gen_server callbacks
@@ -251,6 +267,19 @@ init(ChanName) ->
     {noreply, NewState :: #state{}} |
     {noreply, NewState :: #state{}, timeout() | hibernate} |
     {stop, Reason :: term(), NewState :: #state{}}).
+handle_cast({unicast, #client_state{module=Mod} = CState, Msgs},
+        #state{clients=Clients} = State) ->
+    case lists:member(CState,Clients) of
+        true ->
+    lists:foreach(fun(M) ->
+        Mod:send(CState, M)
+    end, Msgs);
+        false -> %% it is wrong. Do not send the message.
+            ?SUPERCAST_LOG_WARNING(
+              "Attempt to send a message to an unsubscribed user",
+               {CState, Msgs})
+    end,
+    {noreply, State};
 handle_cast({multicast, Msgs, default},
                         #state{chan_name=_ChanName,clients=Clients} = State) ->
     ?SUPERCAST_LOG_INFO("multicast"),
