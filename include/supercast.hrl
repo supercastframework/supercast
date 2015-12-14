@@ -17,8 +17,7 @@
 %% under the License.
 %% -----------------------------------------------------------------------------
 
--type(json_jsx() :: [any()]).
--type(supercast_msg() :: json_jsx()).
+-type(supercast_msg() :: jsx:json_term()).
 
 -define(ENCODER, jsx).
 -define(ETS_CHAN_STATES, supercast_channels_states).

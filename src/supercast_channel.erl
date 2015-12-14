@@ -211,7 +211,7 @@ join_accept(Ref) -> join_accept(Ref, []).
 %% @end
 %%------------------------------------------------------------------------------
 -spec(join_accept(Ref :: {Channel :: string(), CState :: #client_state{},
-    QueryId :: integer}, Pdus :: [term()]) -> ok).
+    QueryId :: integer}, Pdus :: [supercast_msg()]) -> ok).
 join_accept({Channel, CState, QueryId}, Pdus) ->
     supercast_relay:subscribe_ack(Channel, CState, QueryId, Pdus).
 

@@ -248,7 +248,7 @@ where(Name) ->
 %%
 %% @end
 %%------------------------------------------------------------------------------
--spec send(Name::string, Msg::term()) -> pid().
+-spec send(Name :: string, Msg :: supercast_msg()) -> pid().
 send(Name, Msg) ->
     case where(Name) of
         Pid when is_pid(Pid) ->

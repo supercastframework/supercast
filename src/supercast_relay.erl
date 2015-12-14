@@ -116,7 +116,7 @@ subscribe(CState, Channel, QueryId) ->
                     supercast_relay_sup:start_relay([Channel]),
 
                     gen_server:cast({via, supercast, Channel},
-                                                {subscribe, QueryId, CState})
+                                                {subscribe, CState, QueryId})
                     %% The client side is now waiting for subscribeOk|Err pdu
             end
     end.
@@ -162,7 +162,7 @@ unsubscribe(Channel, CState, QueryId) ->
 %% @end
 %%------------------------------------------------------------------------------
 -spec(subscribe_ack(Channel :: string(), CState :: #client_state{},
-    QueryId :: integer(), Pdus :: [term()]) -> ok).
+    QueryId :: integer(), Pdus :: [supercast_msg()]) -> ok).
 subscribe_ack(Channel, CState, QueryId, Pdus) ->
     gen_server:cast({via, supercast, Channel},
                                         {subscribe_ack, CState, QueryId, Pdus}).
@@ -259,10 +259,11 @@ init(ChanName) ->
 -type(relay_cast_request() ::
         {multicast, Msgs :: [supercast_msg()], default | #perm_conf{}} |
         {unicast, Msgs :: [supercast_msg()], Client :: #client_state{}} |
-        {unsubscribe, Client :: #client_state{}} |
-        {subscribe, QueryId :: integer(), Client :: #client_state{}} |
-        {subscribe_ack, Client :: #client_state{}, QueryId :: integer()} |
-        delete).
+        {unsubscribe, Client :: #client_state{}, QueryId :: integer()} |
+        {unsubscribe_ack, Client :: #client_state{}} |
+        {subscribe, Client :: #client_state{}, QueryId :: integer} |
+        {subscribe_ack, Client :: #client_state{}, QueryId :: integer(),
+            Pdus :: [supercast_msg()]} | delete).
 -spec(handle_cast(Request :: relay_cast_request(), State :: #state{}) ->
     {noreply, NewState :: #state{}} |
     {noreply, NewState :: #state{}, timeout() | hibernate} |
@@ -419,12 +420,7 @@ handle_cast(_Cast, State) ->
 %%------------------------------------------------------------------------------
 -spec(handle_call(Request :: term(), From :: {pid(), Tag :: term()},
     State :: #state{}) ->
-    {reply, Reply :: term(), NewState :: #state{}} |
-    {reply, Reply :: term(), NewState :: #state{}, timeout() | hibernate} |
-    {noreply, NewState :: #state{}} |
-    {noreply, NewState :: #state{}, timeout() | hibernate} |
-    {stop, Reason :: term(), Reply :: term(), NewState :: #state{}} |
-    {stop, Reason :: term(), NewState :: #state{}}).
+    {noreply, NewState :: #state{}}).
 handle_call(_Request, _From, State) -> {noreply, State}.
 
 
@@ -434,7 +430,6 @@ handle_call(_Request, _From, State) -> {noreply, State}.
 %%------------------------------------------------------------------------------
 -spec(handle_info(Info :: timeout() | term(), State :: #state{}) ->
     {noreply, NewState :: #state{}} |
-    {noreply, NewState :: #state{}, timeout() | hibernate} |
     {stop, Reason :: term(), NewState :: #state{}}).
 handle_info(timeout, #state{clients=[]}) ->
     {stop, normal, #state{}};
@@ -480,7 +475,7 @@ terminate(_Reason, #state{chan_name=Name}) ->
 %%
 %% @end
 %%------------------------------------------------------------------------------
--spec(pdu(channDeleted, Channel :: string()) -> term()).
+-spec(pdu(channDeleted, Channel :: string()) -> supercast_msg()).
 pdu(channelDeleted, Channel) ->
         [
             {<<"from">>, <<"supercast">>},
