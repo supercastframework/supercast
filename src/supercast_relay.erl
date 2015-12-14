@@ -134,7 +134,7 @@ unsubscribe(CState) ->
     ?SUPERCAST_LOG_INFO("unsubscribe all", CState),
     Chans = [Name || #chan_state{name=Name} <- ets:tab2list(?ETS_CHAN_STATES)],
     lists:foreach(fun(Chan) ->
-        unsubscribe(CState, Chan, undefined)
+        unsubscribe(Chan, CState, undefined)
     end, Chans).
 
 
@@ -291,6 +291,7 @@ handle_cast({unicast, Msgs, #client_state{module=Mod} = To},
 
 handle_cast({unsubscribe_ack, #client_state{module=Mod} = CState,
     QueryId, Pdus}, #state{chan_name=ChanName, clients=Clients} = State) ->
+    ?SUPERCAST_LOG_INFO("unsubscribe_ack"),
 
     case QueryId of
         undefined -> %% unsubscribed because the socket has closed.
@@ -328,6 +329,7 @@ handle_cast({unsubscribe, #client_state{module=Mod} = CState, QueryId},
             end;
 
         true -> %% is a member
+            ?SUPERCAST_LOG_INFO("unsubscribe", Name),
             case ets:lookup(?ETS_CHAN_STATES, Name) of
                 [#chan_state{module=CMod,args=Args}] ->
                      erlang:spawn(fun() ->
