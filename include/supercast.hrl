@@ -38,11 +38,11 @@
 }).
 
 -record(chan_state, {
-    name    :: string(),
-    perm    :: #perm_conf{},
-    module  :: atom(),
-    args    :: any(),
-    clients :: [#client_state{}]
+    name         :: string(),
+    perm         :: #perm_conf{},
+    module       :: atom(),
+    args    = [] :: any(),
+    clients = [] :: [#client_state{}]
 }).
 
 

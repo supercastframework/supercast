@@ -220,7 +220,7 @@ join_accept(Ref) -> join_accept(Ref, []).
         Pdus :: [supercast:sc_message()]) -> ok).
 join_accept({Channel, #client_state{module=Mod} = CState, QueryId}, Pdus) ->
 
-    OkJoin = supercast_endpoint:pdu(subscribeOk, {Channel, QueryId}),
+    OkJoin = supercast_endpoint:pdu(subscribeOk, {QueryId, Channel}),
 
     lists:foreach(fun(P) -> Mod:send(CState, P) end, [OkJoin|Pdus]),
 
@@ -249,14 +249,18 @@ leave_ack({Channel, CState, undefined}, _Pdus) ->
     ets:insert(?ETS_CHAN_STATES, CS#chan_state{clients=Clients2});
 leave_ack({Channel, #client_state{module=Mod} = CState, QueryId}, Pdus) ->
 
-    OkLeave = supercast_endpoint:pdu(unsubscribeOk, {CState, QueryId}),
+    OkLeave = supercast_endpoint:pdu(unsubscribeOk, {QueryId, Channel}),
 
     lists:foreach(fun(P) ->
         Mod:send(CState, P)
-    end, lists:append(Pdus, OkLeave)),
+    end, lists:append(Pdus, [OkLeave])),
+
+    ?SUPERCAST_LOG_INFO("leave ack"),
 
     [#chan_state{clients=Clients} = CS] = ets:lookup(?ETS_CHAN_STATES, Channel),
+    ?SUPERCAST_LOG_INFO("clients 2: ", Clients),
     Clients2 = lists:delete(CState, Clients),
+    ?SUPERCAST_LOG_INFO("clients 2: ", Clients2),
     ets:insert(?ETS_CHAN_STATES, CS#chan_state{clients=Clients2}).
 
 

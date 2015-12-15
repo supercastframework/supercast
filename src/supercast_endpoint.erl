@@ -59,8 +59,7 @@ handle_message("supercast", "authResp", Contents, CState) ->
 handle_message(_, _, _, #client_state{authenticated = false} = CState) ->
     send_pdu(CState, pdu(authenticationRequired, []));
 
-handle_message("supercast", "subscribe", Contents,
-    #client_state{module=Mod} = CState) ->
+handle_message("supercast", "subscribe", Contents, CState) ->
 
     ?SUPERCAST_LOG_INFO("handle subscribe", Contents),
 
@@ -71,24 +70,31 @@ handle_message("supercast", "subscribe", Contents,
     case ets:lookup(?ETS_CHAN_STATES, Channel) of
 
         [] ->
+            ?SUPERCAST_LOG_INFO("handle dont exists"),
             %% @TODO dynamic channels
-            {pdu, pdu(subscribeErr, {Channel, QueryId})};
+            send_pdu(CState, pdu(subscribeErr, {QueryId, Channel}));
 
-        [#chan_state{module=Mod,perm=Perm,args=Args}] ->
+        [#chan_state{module=ChanMod,perm=Perm,args=Args}] ->
+            ?SUPERCAST_LOG_INFO("exist", ChanMod),
 
             %% User have access right?
             {ok, Acctrl} = application:get_env(supercast,acctrl_module),
+            ?SUPERCAST_LOG_INFO("acctrl", Acctrl),
             case Acctrl:satisfy(read, [CState], Perm) of
 
                 {ok, []} -> %% no
-                    {pdu, pdu(subscribeErr, {Channel, QueryId})};
+                    ?SUPERCAST_LOG_INFO("n satisfy"),
+                    send_pdu(CState, pdu(subscribeErr, {QueryId, Channel}));
 
                 {ok, [CState]} -> % yes
+                    ?SUPERCAST_LOG_INFO("satisfy"),
 
                     %% Then register
                     Ref = {Channel, CState, QueryId},
-                    Mod:join(Channel, Args, CState, Ref)
-            end
+                    ChanMod:join(Channel, Args, CState, Ref)
+            end;
+        _Other ->
+            ?SUPERCAST_LOG_INFO("other", _Other)
     end;
 
 
@@ -101,12 +107,17 @@ handle_message("supercast", "unsubscribe", Contents, CState) ->
     Channel = prop_str_val(<<"channel">>, Values),
 
     case ets:lookup(?ETS_CHAN_STATES, Channel) of
-        [] -> ok;
+        [] ->
+            ?SUPERCAST_LOG_INFO("handle unsubscribe false"),
+            send_pdu(CState, pdu(unsubscribeErr, {QueryId, Channel}));
         [#chan_state{name=Name,module=Mod,args=Args}] ->
-            Mod:leave(Name, Args, CState, {Name, CState, QueryId})
-    end,
+            ?SUPERCAST_LOG_INFO("handle unsubscribe true"),
+            Mod:leave(Name, Args, CState, {Name, CState, QueryId});
+        _Other ->
+            ?SUPERCAST_LOG_INFO("handle unsubscribe other", _Other)
 
-    ?SUPERCAST_LOG_INFO("after relay unsubscribe");
+    end;
+
 
 handle_message(OtherMod, Type, Contents, CState) ->
     erlang:spawn(?MODULE, handle_other_control, [OtherMod, {Type,Contents}, CState]),
@@ -219,7 +230,7 @@ pdu(authenticationRequired, _) ->
 pdu(unsubscribeErr, {QueryId, Channel}) ->
         [
             {<<"from">>, <<"supercast">>},
-            {<<"type">>, <<"unsubscribeOk">>},
+            {<<"type">>, <<"unsubscribeErr">>},
             {<<"value">>, [
                 {<<"queryId">>, QueryId},
                 {<<"channel">>, list_to_binary(Channel)}]
