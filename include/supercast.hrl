@@ -47,8 +47,8 @@
 
 
 -ifdef(eqc).
--include("eqc/include/eqc.hrl").
--include("eqc/include/eqc_fsm.hrl").
+-include_lib("eqc/include/eqc.hrl").
+-include_lib("eqc/include/eqc_fsm.hrl").
 -endif.
 %% logger
 -ifdef(debug).
