@@ -32,6 +32,10 @@ app: clean-deps
 	@[ -z "$(PROJECT)" ] && echo "ERROR: required variable PROJECT missing" 1>&2 && exit 1 || true
 	@$(REBAR) -r create template=simplechannel dest=$(DEST) appid=$(PROJECT)
 
+eqc-compile: compile
+	@rm ebin/*.beam
+	(cd src; erl -noshell -eval "make:all([{parse_transform, eqc_cover}, {i, \"../include\"}, {outdir, \"../ebin\"}])" -s init stop)
+
 update-license:
 	@echo "--> Updating source headers licenses"
 	@for i in $$(/bin/ls src/*.erl include/*.hrl); do \

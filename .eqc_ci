@@ -1,0 +1,8 @@
+{build, "make eqc-compile"}.
+{test_path, "ebin"}.
+{deps, "deps/cowboy/ebin"}.
+{deps, "deps/cowlib/ebin"}.
+{deps, "deps/ranch/ebin"}.
+{deps, "deps/cowboy/ebin"}.
+{deps, "deps/jsx/ebin"}.
+{test_root, "test"}.
