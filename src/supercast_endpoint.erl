@@ -91,7 +91,7 @@ handle_message("supercast", "subscribe", Contents, CState) ->
 
                     %% Then register
                     Ref = {Channel, CState, QueryId},
-                    ChanMod:join(Channel, Args, CState, Ref)
+                    ChanMod:join_request(Channel, Args, CState, Ref)
             end;
         _Other ->
             ?traceInfo("other", _Other)
@@ -112,7 +112,7 @@ handle_message("supercast", "unsubscribe", Contents, CState) ->
             send_pdu(CState, pdu(unsubscribeErr, {QueryId, Channel}));
         [#chan_state{name=Name,module=Mod,args=Args}] ->
             ?traceInfo("handle unsubscribe true"),
-            Mod:leave(Name, Args, CState, {Name, CState, QueryId});
+            Mod:leave_request(Name, Args, CState, {Name, CState, QueryId});
         _Other ->
             ?traceInfo("handle unsubscribe other", _Other)
 
@@ -149,7 +149,7 @@ init_pdu() ->
 %% @end
 client_disconnected(CState) ->
     lists:foreach(fun(#chan_state{module=Mod,args=Args,name=Name}) ->
-        Mod:leave(Name,Args, CState, {Name, CState, undefined})
+        Mod:leave_request(Name,Args, CState, {Name, CState, undefined})
     end, ets:tab2list(?ETS_CHAN_STATES)).
 
 

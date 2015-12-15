@@ -21,11 +21,12 @@
 %%% @author Sebastien Serre <ssbx@supercastframework.org>
 %%% @copyright (C) 2015, Sebastien Serre
 %%% @doc
+%%%
 %%% @end
-%%% @TODO another file to avoid dependencie loop
 %%%-----------------------------------------------------------------------------
 -module(supercast_channel).
 -behaviour(gen_server).
+-behaviour(supercast_proc).
 -include("supercast.hrl").
 
 %% API
@@ -35,8 +36,8 @@
 
 %% supercast_endpoint calls
 -export([
-    join/4,
-    leave/4]).
+    join_request/4,
+    leave_request/4]).
 
 %% gen_server callbacks
 -export([
@@ -77,9 +78,6 @@
     Ignored :: term()).
 
 
-%%%=============================================================================
-%%% supervisor API
-%%%=============================================================================
 
 %%------------------------------------------------------------------------------
 %% @private
@@ -102,21 +100,29 @@ new(Channel, Module, Args, Perm) ->
     supercast_channel_sup:new_channel([Channel, Module, Args, Perm]).
 
 
+
+
+%%%=============================================================================
+%%% supercast_proc behaviour callbacks
+%%%=============================================================================
+
 %%------------------------------------------------------------------------------
 %% @private
 %%------------------------------------------------------------------------------
--spec join(Channel :: string(), Self :: pid(), CState :: #client_state{},
+-spec join_request(Channel :: string(), Self :: pid(), CState :: #client_state{},
     Ref :: supercast:sc_reference()) -> ok.
-join(Channel, _Args = Self, CState, Ref) ->
+join_request(Channel, _Args = Self, CState, Ref) ->
     gen_server:cast(Self, {join, Channel, CState, Ref}).
 
 %%------------------------------------------------------------------------------
 %% @private
 %%------------------------------------------------------------------------------
--spec leave(Channel :: string(), Self :: pid(), CState :: #client_state{},
+-spec leave_request(Channel :: string(), Self :: pid(), CState :: #client_state{},
     Ref :: supercast:sc_reference()) -> ok.
-leave(Channel, _Args = Self, CState, Ref) ->
+leave_request(Channel, _Args = Self, CState, Ref) ->
     gen_server:cast(Self, {leave, Channel, CState, Ref}).
+
+
 
 
 
@@ -131,7 +137,7 @@ leave(Channel, _Args = Self, CState, Ref) ->
     Perm :: #perm_conf{}}) -> {ok, State :: #state{}}.
 init({Channel, Module, Args, Perm}) ->
     process_flag(trap_exit, true),
-    supercast:new(Channel, ?MODULE, self(), Perm),
+    supercast_proc:new_channel(Channel, ?MODULE, self(), Perm),
     case Module:init_channel(Channel, Args) of
         {stop, Reason} ->
             {stop, Reason};
@@ -157,19 +163,19 @@ handle_cast({join, Channel, CState, Ref},
                                     #state{module=Mod,opaque=Opaque} = State) ->
     case Mod:supercast_join(Channel, CState, Opaque) of
         {accept, Opaque2} ->
-            supercast:join_accept(Ref),
+            supercast_proc:join_accept(Ref),
             {noreply, State#state{opaque=Opaque2}};
         {accept, Pdus, Opaque2} ->
-            supercast:join_accept(Ref, Pdus),
+            supercast_proc:join_accept(Ref, Pdus),
             {noreply, State#state{opaque=Opaque2}};
         {refuse, Opaque2} ->
-            supercast:join_refuse(Ref),
+            supercast_proc:join_refuse(Ref),
             {noreply, State#state{opaque=Opaque2}};
         {stop, Reason} ->
-            supercast:join_refuse(Ref),
+            supercast_proc:join_refuse(Ref),
             {stop, Reason};
         _R ->
-            supercast:join_refuse(Ref),
+            supercast_proc:join_refuse(Ref),
             {stop, bad_return, {_R, State}}
     end;
 
@@ -177,16 +183,16 @@ handle_cast({leave, Channel, CState, Ref},
                                     #state{module=Mod,opaque=Opaque} = State) ->
     case Mod:supercast_leave(Channel, CState, Opaque) of
         {ok, Opaque2} ->
-            supercast:leave_ack(Ref),
+            supercast_proc:leave_ack(Ref),
             {noreply, State#state{opaque=Opaque2}};
         {ok, Pdus, Opaque2} ->
-            supercast:leave_ack(Ref, Pdus),
+            supercast_proc:leave_ack(Ref, Pdus),
             {noreply, State#state{opaque=Opaque2}};
         {stop, Reason} ->
-            supercast:leave_ack(Ref),
+            supercast_proc:leave_ack(Ref),
             {stop, Reason};
         _R ->
-            supercast:leave_ack(Ref),
+            supercast_proc:leave_ack(Ref),
             {stop, bad_return, {_R, State}}
     end;
 
@@ -195,13 +201,6 @@ handle_cast(_Request, State) ->
 
 %%------------------------------------------------------------------------------
 %% @private
-%% @doc
-%% Handling all non call/cast messages
-%%
-%% @spec handle_info(Info, State) -> {noreply, State} |
-%%                                   {noreply, State, Timeout} |
-%%                                   {stop, Reason, State}
-%% @end
 %%------------------------------------------------------------------------------
 -spec(handle_info(Info :: timeout() | term(), State :: #state{}) ->
     {noreply, NewState :: #state{}} |
@@ -213,14 +212,6 @@ handle_info(Info, #state{module=Mod, opaque=Opaque} = State) ->
 
 %%------------------------------------------------------------------------------
 %% @private
-%% @doc
-%% This function is called by a gen_server when it is about to
-%% terminate. It should be the opposite of Module:init/1 and do any
-%% necessary cleaning up. When it returns, the gen_server terminates
-%% with Reason. The return value is ignored.
-%%
-%% @spec terminate(Reason, State) -> void()
-%% @end
 %%------------------------------------------------------------------------------
 -spec(terminate(Reason :: (normal | shutdown | {shutdown, term()} | term()),
     State :: #state{}) -> term()).
