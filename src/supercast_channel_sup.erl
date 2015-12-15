@@ -22,69 +22,63 @@
 %%% @copyright (C) 2015, Sebastien Serre
 %%% @private
 %%%-----------------------------------------------------------------------------
--module(supercast_sup).
+-module(supercast_channel_sup).
 -behaviour(supervisor).
 -include("supercast.hrl").
 
 %% API
--export([start_link/0]).
+-export([
+    start_link/0,
+    new_channel/1]).
 
 %% Supervisor callback
 -export([init/1]).
 
 %%------------------------------------------------------------------------------
 %% @private
-%% @see supervisor:start_link/3
 %%------------------------------------------------------------------------------
 -spec(start_link() ->
     {ok, Pid :: pid()} | ignore | {error, Reason :: term()}).
 start_link() ->
-    ets:new(?ETS_CHAN_STATES, [set, named_table, public,
-        {write_concurrency, false}, {read_concurrency, true}, {keypos, 2}]),
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 %%------------------------------------------------------------------------------
 %% @private
-%% @see supervisor:start_link/3
+%%------------------------------------------------------------------------------
+-spec(new_channel(Args :: [term()]) ->
+    {ok, Child :: supervisor:child()} |
+    {ok, Child :: supervisor:child(), Info :: term()} |
+    {error,
+        already_present |
+        {already_started, Child :: supervisor:child()} |
+        term()}).
+new_channel(Args) ->
+    supervisor:start_child(?MODULE, Args).
+
+%%------------------------------------------------------------------------------
+%% @private
 %%------------------------------------------------------------------------------
 -spec(init(Args :: term()) ->
-    {ok,
-        {SupFlags :: {
-            RestartStrategy :: supervisor:strategy(),
-            MaxR            :: non_neg_integer(),
-            MaxT            :: non_neg_integer()},
-            ChildSpecs      :: [supervisor:child_spec()]
-        }
-    } | ignore | {error, Reason :: term()}).
+    {ok, {SupFlags :: {
+        RestartStrategy :: supervisor:strategy(),
+        MaxR            :: non_neg_integer(),
+        MaxT            :: non_neg_integer()},
+        ChildSpecs      :: [supervisor:child_spec()]
+    }} | ignore | {error, Reason :: term()}).
 init([]) ->
     {ok,
         {
-            {one_for_all, 0, 6000},
+            {simple_one_for_one, 0, 6000},
             [
                 {
-                    supercast_channel_sup,
-                    {supercast_channel_sup, start_link, []},
+                    supercast_channel,
+                    {supercast_channel, start_link, []},
                     permanent,
                     2000,
-                    supervisor,
-                    [supercast_channel_sup]
-                },
-                {
-                    ranch_sup,
-                    {ranch_sup, start_link, []},
-                    permanent,
-                    2000,
-                    supervisor,
-                    [ranch_sup]
-                },
-                {
-                    cowboy_sup,
-                    {cowboy_sup, start_link, []},
-                    permanent,
-                    2000,
-                    supervisor,
-                    [cowboy_sup]
+                    worker,
+                    [supercast_channel]
                 }
             ]
         }
     }.
+

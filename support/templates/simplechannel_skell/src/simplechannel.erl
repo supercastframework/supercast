@@ -7,6 +7,7 @@
 %% supercast channel behaviour
 -include_lib("supercast/include/supercast.hrl").
 -export([join/4,leave/4]).
+-export([supercast_init/2,supercast_join/3,supercast_leave/3]).
 
 %% user test
 -export([emit/0, emit/2, send/2]).
@@ -44,6 +45,21 @@ join("{{appid}}", _Args, _CState, Ref) ->
 join(_, _, _, _) ->
     {error, "unknown channel"}.
 
+supercast_init("{{appid}}", _Args) ->
+    erlang:register(?MODULE, self()),
+    {ok, no_state}.
+
+supercast_join("{{appid}}", _Client, State) ->
+    Pdus = [
+        [{<<"from">>, <<"{{appid}}">>}, {<<"value">>, <<"you should be synced now">>}]
+    ],
+    {accept, Pdus, State}.
+
+supercast_leave("{{appid}}", _Client, State) ->
+    Pdus = [
+        [{<<"from">>, <<"{{appid}}">>}, {<<"value">>, <<"Bye!!!">>}]
+    ],
+    {ok, Pdus, State}.
 
 %% @spec leave(Channel, Opts, CState) ->
 %%      Ignored :: any().

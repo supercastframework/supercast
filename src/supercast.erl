@@ -62,7 +62,7 @@
 
 
 %%%=============================================================================
-%%% Start/Stop
+%%% Start/Stop utils
 %%%=============================================================================
 
 %%------------------------------------------------------------------------------
@@ -111,7 +111,6 @@ listen() ->
         [{port, TCPPort}], supercast_endpoint_tcp, []),
     ok.
 
-
 %%------------------------------------------------------------------------------
 %% @doc
 %% Stop the supercast server.
@@ -121,6 +120,7 @@ listen() ->
 -spec(stop() -> ok).
 stop() ->
     application:stop(supercast).
+
 
 
 
@@ -143,6 +143,10 @@ satisfy(CState, Perm) ->
         {ok, []}        -> false;
         {ok, [CState]}  -> true
     end.
+
+
+
+
 
 
 %%%=============================================================================
@@ -181,15 +185,20 @@ new(Channel, Module, Args, Perm) ->
 %% @doc
 %% Delete a registered channel.
 %%
-%% This function will send a <em>channelVanished</em> message to all connected
-%% clients.
-%%
 %% @end
 %%------------------------------------------------------------------------------
 -spec(delete(ChannName :: string()) -> ok).
 delete(ChanName) ->
-    ets:delete(?ETS_CHAN_STATES, ChanName).
+    case ets_take(ChanName) of
+        {ok, []} -> ok;
+        {ok, [#chan_state{module=Mod,args=Args}]} ->
+            Mod:delete_channel(Args)
+    end.
 
+ets_take(ChanName) ->
+    Ret = ets:lookup(?ETS_CHAN_STATES, ChanName),
+    ets:delete(?ETS_CHAN_STATES, ChanName),
+    Ret.
 
 %%------------------------------------------------------------------------------
 %% @private
