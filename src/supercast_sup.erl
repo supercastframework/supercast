@@ -39,6 +39,8 @@
 -spec(start_link() ->
     {ok, Pid :: pid()} | ignore | {error, Reason :: term()}).
 start_link() ->
+    ets:new(?ETS_CHAN_STATES, [set, named_table, public,
+        {write_concurrency, false}, {read_concurrency, true}, {keypos, 2}]),
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 %%------------------------------------------------------------------------------
@@ -59,22 +61,6 @@ init([]) ->
         {
             {one_for_all, 0, 6000},
             [
-                {
-                    supercast,
-                    {supercast,start_link, []},
-                    permanent,
-                    2000,
-                    worker,
-                    [supercast]
-                },
-                {
-                    supercast_relay_sup,
-                    {supercast_relay_sup,start_link, []},
-                    permanent,
-                    2000,
-                    supervisor,
-                    [supercast_relay_sup]
-                },
                 {
                     ranch_sup,
                     {ranch_sup, start_link,[]},

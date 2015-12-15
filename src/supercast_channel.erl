@@ -32,7 +32,7 @@
 -export([
     new/4,
     delete/1,
-    unicast/3,
+    unicast/2,
     multicast/3,
     broadcast/2,
     leave_ack/1,
@@ -113,9 +113,9 @@
 %%------------------------------------------------------------------------------
 -spec(new(ChanName :: string(), Module :: atom(), Opts :: any(),
         Perm :: #perm_conf{}) -> ok).
-new(ChanName, Module, Args, Perm) ->
+new(Channel, Module, Args, Perm) ->
     ets:insert(?ETS_CHAN_STATES,
-        #chan_state{name=ChanName,module=Module,perm=Perm,args=Args}),
+        #chan_state{name=Channel,module=Module,perm=Perm,args=Args}),
     ok.
 
 
@@ -130,34 +130,19 @@ new(ChanName, Module, Args, Perm) ->
 %%------------------------------------------------------------------------------
 -spec(delete(ChannName :: string()) -> ok).
 delete(ChanName) ->
-    ets:delete(?ETS_CHAN_STATES, ChanName),
-    case supercast:whereis_name(ChanName) of
-        undefined -> ok;
-        Pid       -> supercast_relay:delete(Pid)
-    end.
+    ets:delete(?ETS_CHAN_STATES, ChanName).
 
 
 %%------------------------------------------------------------------------------
 %% @doc
-%% Send messages directly to a client. Note that the user must allready or
-%% still subscribed to the channel to receive the message.
+%% Send messages directly to a client.
 %%
 %% @end
 %%------------------------------------------------------------------------------
--spec(unicast(Channel :: string(), CState :: #client_state{},
+-spec(unicast(CState :: #client_state{},
     Messages :: [supercast:sc_message()]) -> ok).
-unicast(Channel, CState, Messages) ->
-    case supercast:whereis_name(Channel) of
-
-        undefined -> %% nobody connected to the channel
-            ?SUPERCAST_LOG_WARNING(
-              "Attempt to send a message to an unsubscribed user",
-               {CState, Messages});
-
-        Pid ->
-            supercast_relay:unicast(Pid, CState, Messages)
-
-    end.
+unicast(#client_state{module=Mod} = CState, Messages) ->
+    lists:foreach(fun(M) -> Mod:send(CState,M) end, Messages).
 
 
 %%------------------------------------------------------------------------------
@@ -171,12 +156,37 @@ unicast(Channel, CState, Messages) ->
 %%------------------------------------------------------------------------------
 -spec(multicast(Channel :: string(), Messages :: [supercast:sc_message()],
                                 CustomPerm :: default | #perm_conf{}) -> ok).
+multicast(Channel, Messages, default) ->
+    case ets:lookup(?ETS_CHAN_STATES, Channel) of
+        [#chan_state{clients=[]}] -> ok;
+        [#chan_state{clients=Clients}] ->
+            multi_send(Clients, Messages)
+    end;
 multicast(Channel, Messages, Perm) ->
-    case supercast:whereis_name(Channel) of
-        undefined -> ok;
-        Pid       -> supercast_relay:multicast(Pid, Messages, Perm)
+    case ets:lookup(?ETS_CHAN_STATES, Channel) of
+        [#chan_state{clients=[]}] -> ok;
+        [#chan_state{clients=Clients}] ->
+            {ok, Acctrl}  = application:get_env(supercast, acctrl_module),
+            {ok, Allowed} = Acctrl:satisfy(read, Clients, Perm),
+            multi_send(Allowed, Messages)
     end.
 
+%%------------------------------------------------------------------------------
+%% @private
+%% @doc
+%% Helper to send multiple pdus to multipe clients.
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec(multi_send(Clients :: [#client_state{}],
+    Messages :: [supercast:sc_message()]) -> ok).
+multi_send(Clients, Msgs) ->
+    lists:foreach(fun(Message) ->
+        Pdu = ?ENCODER:encode(Message),
+        lists:foreach(fun(#client_state{module=Mod} = Client) ->
+            Mod:raw_send(Client, Pdu)
+        end, Clients)
+    end, Msgs).
 
 %%------------------------------------------------------------------------------
 %% @equiv multicast(Channel, Messages, default).
@@ -208,8 +218,14 @@ join_accept(Ref) -> join_accept(Ref, []).
 %%------------------------------------------------------------------------------
 -spec(join_accept(Ref :: supercast:sc_reference(),
         Pdus :: [supercast:sc_message()]) -> ok).
-join_accept({Channel, CState, QueryId}, Pdus) ->
-    supercast_relay:subscribe_ack(Channel, CState, QueryId, Pdus).
+join_accept({Channel, #client_state{module=Mod} = CState, QueryId}, Pdus) ->
+
+    OkJoin = supercast_endpoint:pdu(subscribeOk, {Channel, QueryId}),
+
+    lists:foreach(fun(P) -> Mod:send(CState, P) end, [OkJoin|Pdus]),
+
+    [#chan_state{clients=Clients} = CS] = ets:lookup(?ETS_CHAN_STATES, Channel),
+    ets:insert(?ETS_CHAN_STATES, CS#chan_state{clients=[CState|Clients]}).
 
 %%------------------------------------------------------------------------------
 %% @equiv leave_ack(Ref, [])..
@@ -227,8 +243,21 @@ leave_ack(Ref) -> leave_ack(Ref, []).
 %%------------------------------------------------------------------------------
 -spec(leave_ack(Ref :: supercast:sc_reference(),
     Pdus :: [supercast:sc_message()]) -> ok).
-leave_ack({Channel, CState, QueryId}, Pdus) ->
-    supercast_relay:unsubscribe_ack(Channel, CState, QueryId, Pdus).
+leave_ack({Channel, CState, undefined}, _Pdus) ->
+    [#chan_state{clients=Clients} = CS] = ets:lookup(?ETS_CHAN_STATES, Channel),
+    Clients2 = lists:delete(CState, Clients),
+    ets:insert(?ETS_CHAN_STATES, CS#chan_state{clients=Clients2});
+leave_ack({Channel, #client_state{module=Mod} = CState, QueryId}, Pdus) ->
+
+    OkLeave = supercast_endpoint:pdu(unsubscribeOk, {CState, QueryId}),
+
+    lists:foreach(fun(P) ->
+        Mod:send(CState, P)
+    end, lists:append(Pdus, OkLeave)),
+
+    [#chan_state{clients=Clients} = CS] = ets:lookup(?ETS_CHAN_STATES, Channel),
+    Clients2 = lists:delete(CState, Clients),
+    ets:insert(?ETS_CHAN_STATES, CS#chan_state{clients=Clients2}).
 
 
 %%------------------------------------------------------------------------------

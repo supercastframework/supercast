@@ -59,7 +59,8 @@ handle_message("supercast", "authResp", Contents, CState) ->
 handle_message(_, _, _, #client_state{authenticated = false} = CState) ->
     send_pdu(CState, pdu(authenticationRequired, []));
 
-handle_message("supercast", "subscribe", Contents, CState) ->
+handle_message("supercast", "subscribe", Contents,
+    #client_state{module=Mod} = CState) ->
 
     ?SUPERCAST_LOG_INFO("handle subscribe", Contents),
 
@@ -67,10 +68,29 @@ handle_message("supercast", "subscribe", Contents, CState) ->
     QueryId = prop_val(<<"queryId">>, Values),
     Channel = prop_str_val(<<"channel">>, Values),
 
-    case supercast_relay:subscribe(CState, Channel, QueryId) of
-        error -> send_pdu(CState, pdu(subscribeErr, {QueryId, Channel}));
-        _     -> ok
+    case ets:lookup(?ETS_CHAN_STATES, Channel) of
+
+        [] ->
+            %% @TODO dynamic channels
+            {pdu, pdu(subscribeErr, {Channel, QueryId})};
+
+        [#chan_state{module=Mod,perm=Perm,args=Args}] ->
+
+            %% User have access right?
+            {ok, Acctrl} = application:get_env(supercast,acctrl_module),
+            case Acctrl:satisfy(read, [CState], Perm) of
+
+                {ok, []} -> %% no
+                    {pdu, pdu(subscribeErr, {Channel, QueryId})};
+
+                {ok, [CState]} -> % yes
+
+                    %% Then register
+                    Ref = {Channel, CState, QueryId},
+                    Mod:join(Channel, Args, CState, Ref)
+            end
     end;
+
 
 handle_message("supercast", "unsubscribe", Contents, CState) ->
 
@@ -80,8 +100,13 @@ handle_message("supercast", "unsubscribe", Contents, CState) ->
     QueryId = prop_val(<<"queryId">>, Values),
     Channel = prop_str_val(<<"channel">>, Values),
 
-    supercast_relay:unsubscribe(Channel, CState, QueryId),
-    ?SUPERCAST_LOG_INFO("after relay usubscribe");
+    case ets:lookup(?ETS_CHAN_STATES, Channel) of
+        [] -> ok;
+        [#chan_state{name=Name,module=Mod,args=Args}] ->
+            Mod:leave(Name, Args, CState, {Name, CState, QueryId})
+    end,
+
+    ?SUPERCAST_LOG_INFO("after relay unsubscribe");
 
 handle_message(OtherMod, Type, Contents, CState) ->
     erlang:spawn(?MODULE, handle_other_control, [OtherMod, {Type,Contents}, CState]),
@@ -112,7 +137,9 @@ init_pdu() ->
 %% Called from supercast_endpoint_* modules.
 %% @end
 client_disconnected(CState) ->
-    supercast_relay:unsubscribe(CState).
+    lists:foreach(fun(#chan_state{module=Mod,args=Args,name=Name}) ->
+        Mod:leave(Name,Args, CState, {Name, CState, undefined})
+    end, ets:tab2list(?ETS_CHAN_STATES)).
 
 
 -spec pdu(Type :: atom(), Any :: term()) -> supercast:sc_message().

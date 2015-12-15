@@ -20,19 +20,12 @@
 -define(ENCODER, jsx).
 -define(ETS_CHAN_STATES, supercast_channels_store).
 -define(ETS_DYNAMIC_CHAN_STATES, supercast_dynamic_channels_store).
--define(ETS_RELAYS_REGISTER, supercast_relays_register).
 
 -record(perm_conf, {
     read  = []  :: [string()],
     write = []  :: [string()]
 }).
 
--record(chan_state, {
-    name    :: string(),
-    perm    :: #perm_conf{},
-    module  :: atom(),
-    args    :: any()
-}).
 
 -record(client_state,  {
     pid                     :: pid(),
@@ -44,6 +37,13 @@
     data                    :: any() %% used to store cowboy state
 }).
 
+-record(chan_state, {
+    name    :: string(),
+    perm    :: #perm_conf{},
+    module  :: atom(),
+    args    :: any(),
+    clients :: [#client_state{}]
+}).
 
 
 %% logger
