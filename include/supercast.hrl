@@ -46,6 +46,10 @@
 }).
 
 
+-ifdef(eqc).
+-include("eqc/include/eqc.hrl").
+-include("eqc/include/eqc_fsm.hrl").
+-endif.
 %% logger
 -ifdef(debug).
 -define(traceInfo(String,Term),

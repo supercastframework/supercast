@@ -32,9 +32,14 @@ app: clean-deps
 	@[ -z "$(PROJECT)" ] && echo "ERROR: required variable PROJECT missing" 1>&2 && exit 1 || true
 	@$(REBAR) -r create template=simplechannel dest=$(DEST) appid=$(PROJECT)
 
-eqc-compile: compile
-	@rm ebin/*.beam
-	(cd src; erl -noshell -eval "make:all([{parse_transform, eqc_cover}, {i, \"../include\"}, {outdir, \"../ebin\"}])" -s init stop)
+eqc-compile: clean compile
+	rm ebin/*.beam
+	@(cd src; erl -pa ../deps/*/ebin ../ebin -noshell -eval \
+	"make:files([supercast_proc,supercast_auth,supercast_acctrl,supercast_encoder], [{parse_transform, eqc_cover},{i, \"../include\"}, {outdir, \"../ebin\"}, {d, eqc}])" \
+	-s init stop)
+	@(cd src; erl -pa ../deps/*/ebin ../ebin -noshell -eval \
+	"make:all([{parse_transform, eqc_cover},{i, \"../include\"}, {outdir, \"../ebin\"}, {d, eqc}])" \
+	-s init stop)
 
 update-license:
 	@echo "--> Updating source headers licenses"
