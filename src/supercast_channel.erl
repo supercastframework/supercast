@@ -33,6 +33,7 @@
     new/4,
     delete/1,
     unicast/2,
+    unicast/3,
     multicast/3,
     broadcast/2,
     leave_ack/1,
@@ -143,6 +144,19 @@ delete(ChanName) ->
     Messages :: [supercast:sc_message()]) -> ok).
 unicast(#client_state{module=Mod} = CState, Messages) ->
     lists:foreach(fun(M) -> Mod:send(CState,M) end, Messages).
+
+%%------------------------------------------------------------------------------
+%% @equiv unicast/2
+%% @doc
+%% Actualy equal to unicast/2.
+%% @TODO insert Channel in pdu
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec(unicast(_Channel :: string(), CState :: #client_state{},
+    Messages :: [supercast:sc_message()]) -> ok).
+unicast(_Channel, CState, Messages) ->
+    unicast(CState, Messages).
 
 
 %%------------------------------------------------------------------------------
