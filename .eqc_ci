@@ -5,4 +5,5 @@
 {deps, "deps/ranch/ebin"}.
 {deps, "deps/cowboy/ebin"}.
 {deps, "deps/jsx/ebin"}.
+{deps, "ebin"}.
 {test_root, "test"}.
