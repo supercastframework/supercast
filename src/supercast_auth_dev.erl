@@ -17,16 +17,19 @@
 %% under the License.
 %% -----------------------------------------------------------------------------
 
-%% @doc Development authentication module always
-%% returning {ok, ["admin","wheel","other"]}
-%% @end
+%%%-----------------------------------------------------------------------------
+%%% @author Sebastien Serre <ssbx@supercastframework.org>
+%%% @copyright (C) 2015, Sebastien Serre
+%%% @doc
+%%% Development authentication module always returning
+%%% {ok, ["admin","wheel","other"]}
+%%%
+%%% @end
+%%% ----------------------------------------------------------------------------
 -module(supercast_auth_dev).
 -behaviour(supercast_auth).
 -export([authenticate/2]).
 
-%% --------------------------------------------------------------
-%% USER API
-%% --------------------------------------------------------------
 -spec authenticate(UName :: string(), UPass :: string()) ->
         Reply :: fail | {ok, Groups :: [string()]}.
 authenticate(_AnyName, _AnyPass) ->

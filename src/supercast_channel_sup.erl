@@ -18,9 +18,13 @@
 %% -----------------------------------------------------------------------------
 
 %%%-----------------------------------------------------------------------------
+%%% @private
 %%% @author Sebastien Serre <ssbx@supercastframework.org>
 %%% @copyright (C) 2015, Sebastien Serre
-%%% @private
+%%% @doc
+%%% WORK IN PROGRESS
+%%%
+%%% @end
 %%%-----------------------------------------------------------------------------
 -module(supercast_channel_sup).
 -behaviour(supervisor).

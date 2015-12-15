@@ -21,7 +21,7 @@
 %%% @author Sebastien Serre <ssbx@supercastframework.org>
 %%% @copyright (C) 2015, Sebastien Serre
 %%% @doc
-%%%
+%%% WORK IN PROGRESS
 %%% @end
 %%%-----------------------------------------------------------------------------
 -module(supercast_channel).
@@ -34,7 +34,7 @@
     start_link/4,
     new/4]).
 
-%% supercast_endpoint calls
+%% supcercast_proc callbacks
 -export([
     join_request/4,
     leave_request/4]).

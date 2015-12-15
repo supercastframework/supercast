@@ -1,19 +1,18 @@
 %% @doc The wonderfull {{appid}} application.
 
 -module({{appid}}).
+-include_lib("supercast/include/supercast.hrl").
+-behaviour(supercast_proc).
 -author("{{author}}").
+
 -export([start/0, stop/0]).
 
-%% supercast channel behaviour
--include_lib("supercast/include/supercast.hrl").
--export([join/4,leave/4]).
--export([supercast_init/2,supercast_join/3,supercast_leave/3]).
+%% supercast_proc  behaviour
+-export([join_request/4,leave_request/4]).
 
 %% user test
 -export([emit/0, emit/2, send/2]).
 
-%% @spec start() -> ok
-%% @doc Start the {{appid}} server.
 start() ->
     ok = application:start(xmerl),
     ok = application:start(supercast),
@@ -21,70 +20,38 @@ start() ->
     ChanName = "{{appid}}",
     Perm = #perm_conf{read=["admin"], write=["admin"]},
     Args = [],
-    ok = supercast:new(ChanName, ?MODULE, Args, Perm).
+    ok = supercast_proc:new_channel(ChanName, ?MODULE, Args, Perm).
 
 stop() ->
     ChanName = "{{appid}}",
-    supercast:delete(ChanName),
+    supercast_proc:delete_channel(ChanName),
     init:stop().
 
-
-%% @spec sync(ChanName::string(), Opts::any(), ClientState::any()) ->
-%%      ok | {error, Reason::term()}
-%% @doc
-%% Wait for reply to the channel_worker process (wich will not emit data
-%% because he is himself locking the channel.
-%% @end
-join("{{appid}}", _Args, _CState, Ref) ->
+join_request("{{appid}}", _Args, _CState, Ref) ->
     Pdus = [
         [{<<"from">>, <<"{{appid}}">>}, {<<"value">>, <<"you should be synced now">>}]
         ],
-    supercast:join_accept(Ref, Pdus);
+    supercast_proc:join_accept(Ref, Pdus);
     %supercast_channel:join_refuse(Ref);
 
-join(_, _, _, _) ->
+join_request(_, _, _, _) ->
     {error, "unknown channel"}.
 
-supercast_init("{{appid}}", _Args) ->
-    erlang:register(?MODULE, self()),
-    {ok, no_state}.
-
-supercast_join("{{appid}}", _Client, State) ->
-    Pdus = [
-        [{<<"from">>, <<"{{appid}}">>}, {<<"value">>, <<"you should be synced now">>}]
-    ],
-    {accept, Pdus, State}.
-
-supercast_leave("{{appid}}", _Client, State) ->
+leave_request("{{appid}}", _Args, _CState, Ref) ->
     Pdus = [
         [{<<"from">>, <<"{{appid}}">>}, {<<"value">>, <<"Bye!!!">>}]
     ],
-    {ok, Pdus, State}.
-
-%% @spec leave(Channel, Opts, CState) ->
-%%      Ignored :: any().
-%% @doc
-%%
-%% @end
-leave("{{appid}}", _Args, _CState, Ref) ->
-    Pdus = [
-        [{<<"from">>, <<"{{appid}}">>}, {<<"value">>, <<"Bye!!!">>}]
-    ],
-    supercast:leave_ack(Ref, Pdus).
+    supercast_proc:leave_ack(Ref, Pdus).
 
 
-%% @spec emit(Messages::[term()], Perm::any()) -> ok
 emit() ->
     Event = [{<<"from">>, <<"{{appid}}">>}, {<<"value">>, <<"Hello event">>}],
     Channel = "{{appid}}",
-    supercast:broadcast(Channel, [Event]).
+    supercast_proc:send_broadcast(Channel, [Event]).
 emit(Messages, CustomPerm) ->
     Channel = "{{appid}}",
-    supercast:multicast(Channel, Messages, CustomPerm).
+    supercast_proc:send_multicast(Channel, Messages, CustomPerm).
 
-%% @spec send_unicast(Messages::[term()], CState) -> ok
 send(Messages, CState) ->
     Channel = "{{appid}}",
-    supercast:unicast(Channel, Messages, CState).
-
-
+    supercast_proc:send_unicast(Channel, Messages, CState).

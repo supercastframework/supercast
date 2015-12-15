@@ -17,12 +17,17 @@
 %% under the License.
 %% -----------------------------------------------------------------------------
 
-%% @doc
-%% Handle command from client. This module is defined as receiver of clients
-%% calls in the sys.config file 'pdu_dispatch' section.
-%% Note that the call to handle_command is not done by a spawned process, not
-%% by the client endpoint.
-%% @end
+%%%-----------------------------------------------------------------------------
+%%% @author Sebastien Serre <ssbx@supercastframework.org>
+%%% @copyright (C) 2015, Sebastien Serre
+%%% @doc
+%%% Controler behaviour. This module is defined as receiver of clients
+%%% calls in the sys.config file 'pdu_dispatch' section.
+%%% Note that the call to handle_command is not done by a spawned process, not
+%%% by the client endpoint.
+%%%
+%%% @end
+%%%-----------------------------------------------------------------------------
 -module(supercast_controler).
 -include("supercast.hrl").
 

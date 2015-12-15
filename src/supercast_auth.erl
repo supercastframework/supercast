@@ -17,19 +17,24 @@
 %% under the License.
 %% -----------------------------------------------------------------------------
 
-%% @doc
-%% A module using this behaviour can be used by <em>supercast</em> to
-%% authenticate clients. The return will be used by the beha_supercast_acctrl
-%% module used by the application
-%% 
-%% The only function to be exported is <em>authenticate/2</em>.
-%% <code>
-%% authenticate(Uname, UPass) -> Any::term() | fail
-%% </code>
-%%
-%% Note that the returned term() can be anything but must be understandable
-%% by the beha_supercast_acctrl module used by the application.
-%% @end
+%%%-----------------------------------------------------------------------------
+%%% @author Sebastien Serre <ssbx@supercastframework.org>
+%%% @copyright (C) 2015, Sebastien Serre
+%%% @doc
+%%% A module using this behaviour can be used by <em>supercast</em> to
+%%% authenticate clients. The return will be used by the beha_supercast_acctrl
+%%% module used by the application
+%%%
+%%% The only function to be exported is <em>authenticate/2</em>.
+%%% <code>
+%%% authenticate(Uname, UPass) -> Any::term() | fail
+%%% </code>
+%%%
+%%% Note that the returned term() can be anything but must be understandable
+%%% by the beha_supercast_acctrl module used by the application.
+%%%
+%%% @end
+%%% ----------------------------------------------------------------------------
 -module(supercast_auth).
 
 -callback authenticate(UName :: string(), UPass :: string()) ->

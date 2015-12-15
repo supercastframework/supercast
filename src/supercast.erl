@@ -21,7 +21,7 @@
 %%% @author Sebastien Serre <ssbx@supercastframework.org>
 %%% @copyright (C) 2015, Sebastien Serre
 %%% @doc
-%%% The main supercast API module.
+%%% Suercast high level API.
 %%%
 %%% @end
 %%%-----------------------------------------------------------------------------
@@ -38,20 +38,6 @@
 -export([ %% users access control utils
     satisfy/2]).
 
--export([ %% supercast pubsup private functions
-    new/4,
-    delete/1,
-    unicast/2,
-    unicast/3,
-    multicast/3,
-    broadcast/2,
-    leave_ack/1,
-    leave_ack/2,
-    join_accept/1,
-    join_accept/2,
-    join_refuse/1]).
-
-
 -export_type([sc_message/0,sc_queryid/0,sc_reference/0]).
 -type(sc_queryid() :: integer() | undefined).
 -type(sc_message() :: jsx:json_term()).
@@ -61,12 +47,7 @@
     QueryId :: sc_queryid()}).
 
 
-%%%=============================================================================
-%%% Start/Stop utils
-%%%=============================================================================
-
 %%------------------------------------------------------------------------------
-%% @see supercast:start_link/0
 %% @doc
 %% This is an debug utility automaticaly calling supercast:listen().
 %%
@@ -77,6 +58,7 @@ start() ->
     application:start(xmerl),
     application:start(supercast),
     supercast:listen().
+
 
 %%------------------------------------------------------------------------------
 %% @doc
@@ -122,10 +104,6 @@ stop() ->
     application:stop(supercast).
 
 
-
-
-
-
 %%%=============================================================================
 %%% User utils
 %%%=============================================================================
@@ -144,224 +122,3 @@ satisfy(CState, Perm) ->
         {ok, [CState]}  -> true
     end.
 
-
-
-
-
-
-%%%=============================================================================
-%%% supercast pubsup private functions
-%%%=============================================================================
-
-%%------------------------------------------------------------------------------
-%% @private
-%% @see supercast
-%% @doc
-%% Register a new channel.
-%%
-%% <em>ChanName</em> is the name of the channel.
-%%
-%% <em>Module</em> is the name of the module implementing the supercast
-%% behaviour.
-%%
-%% <em>Opts</em> is any term passed to supercast callbacks.
-%% @see supercast:join/3
-%% @see supercast:leave/1
-%%
-%% <em>Perm</em> is the permissions of the channel. Only read is handled by
-%% supercast.
-%%
-%% @end
-%%------------------------------------------------------------------------------
--spec(new(ChanName :: string(), Module :: atom(), Opts :: any(),
-        Perm :: #perm_conf{}) -> ok).
-new(Channel, Module, Args, Perm) ->
-    ets:insert(?ETS_CHAN_STATES,
-        #chan_state{name=Channel,module=Module,perm=Perm,args=Args}),
-    ok.
-
-%%------------------------------------------------------------------------------
-%% @private
-%% @doc
-%% Delete a registered channel.
-%%
-%% @end
-%%------------------------------------------------------------------------------
--spec(delete(ChannName :: string()) -> ok).
-delete(ChanName) ->
-    case ets_take(ChanName) of
-        {ok, []} -> ok;
-        {ok, [#chan_state{module=Mod,args=Args}]} ->
-            Mod:delete_channel(Args)
-    end.
-
-ets_take(ChanName) ->
-    Ret = ets:lookup(?ETS_CHAN_STATES, ChanName),
-    ets:delete(?ETS_CHAN_STATES, ChanName),
-    Ret.
-
-%%------------------------------------------------------------------------------
-%% @private
-%% @doc
-%% Send messages directly to a client.
-%%
-%% @end
-%%------------------------------------------------------------------------------
--spec(unicast(CState :: #client_state{},
-    Messages :: [supercast:sc_message()]) -> ok).
-unicast(#client_state{module=Mod} = CState, Messages) ->
-    lists:foreach(fun(M) -> Mod:send(CState,M) end, Messages).
-
-%%------------------------------------------------------------------------------
-%% @private
-%% @equiv unicast/2
-%% @doc
-%% Actualy equal to unicast/2.
-%% @TODO insert Channel in pdu
-%%
-%% @end
-%%------------------------------------------------------------------------------
--spec(unicast(_Channel :: string(), CState :: #client_state{},
-    Messages :: [supercast:sc_message()]) -> ok).
-unicast(_Channel, CState, Messages) ->
-    unicast(CState, Messages).
-
-
-%%------------------------------------------------------------------------------
-%% @private
-%% @see unicast/3
-%% @see multicast/2
-%% @doc
-%% Send messages to all clients of the specified channel, wich satisfy with the
-%% <em>read</em> permission of the #perm_conf{}.
-%%
-%% @end
-%%------------------------------------------------------------------------------
--spec(multicast(Channel :: string(), Messages :: [supercast:sc_message()],
-                                CustomPerm :: default | #perm_conf{}) -> ok).
-multicast(Channel, Messages, default) ->
-    case ets:lookup(?ETS_CHAN_STATES, Channel) of
-        [#chan_state{clients=[]}] -> ok;
-        [#chan_state{clients=Clients}] ->
-            multi_send(Clients, Messages)
-    end;
-multicast(Channel, Messages, Perm) ->
-    case ets:lookup(?ETS_CHAN_STATES, Channel) of
-        [#chan_state{clients=[]}] -> ok;
-        [#chan_state{clients=Clients}] ->
-            {ok, Acctrl}  = application:get_env(supercast, acctrl_module),
-            {ok, Allowed} = Acctrl:satisfy(read, Clients, Perm),
-            multi_send(Allowed, Messages)
-    end.
-
-%%------------------------------------------------------------------------------
-%% @private
-%% @doc
-%% Helper to send multiple pdus to multipe clients.
-%%
-%% @end
-%%------------------------------------------------------------------------------
--spec(multi_send(Clients :: [#client_state{}],
-    Messages :: [supercast:sc_message()]) -> ok).
-multi_send(Clients, Msgs) ->
-    lists:foreach(fun(Message) ->
-        Pdu = ?ENCODER:encode(Message),
-        lists:foreach(fun(#client_state{module=Mod} = Client) ->
-            Mod:raw_send(Client, Pdu)
-        end, Clients)
-    end, Msgs).
-
-%%------------------------------------------------------------------------------
-%% @private
-%% @equiv multicast(Channel, Messages, default).
-%% @see multicast/3
-%% @doc
-%% Send messages to all clients of the specified channel.
-%%
-%% @end
-%%------------------------------------------------------------------------------
--spec(broadcast(Channel :: string(), Message :: [supercast:sc_message()]) -> ok).
-broadcast(Channel, Message) ->
-    multicast(Channel, Message, default).
-
-
-%%------------------------------------------------------------------------------
-%% @equiv join_ack(Ref, [])..
-%%------------------------------------------------------------------------------
--spec(join_accept(Ref :: supercast:sc_reference()) -> ok).
-join_accept(Ref) -> join_accept(Ref, []).
-
-
-%%------------------------------------------------------------------------------
-%% @private
-%% @see join_refuse/1
-%% @doc
-%% Must be called from <em>supercast:join/3</em> to effectively
-%% subscribe the client to the channel.
-%%
-%% @end
-%%------------------------------------------------------------------------------
--spec(join_accept(Ref :: supercast:sc_reference(),
-        Pdus :: [supercast:sc_message()]) -> ok).
-join_accept({Channel, #client_state{module=Mod} = CState, QueryId}, Pdus) ->
-
-    OkJoin = supercast_endpoint:pdu(subscribeOk, {QueryId, Channel}),
-
-    lists:foreach(fun(P) -> Mod:send(CState, P) end, [OkJoin|Pdus]),
-
-    [#chan_state{clients=Clients} = CS] = ets:lookup(?ETS_CHAN_STATES, Channel),
-    ets:insert(?ETS_CHAN_STATES, CS#chan_state{clients=[CState|Clients]}).
-
-%%------------------------------------------------------------------------------
-%% @private
-%% @equiv leave_ack(Ref, [])..
-%%------------------------------------------------------------------------------
--spec(leave_ack(Ref :: supercast:sc_reference()) -> ok).
-leave_ack(Ref) -> leave_ack(Ref, []).
-
-
-%%------------------------------------------------------------------------------
-%% @private
-%% @doc
-%% Must be called from <em>supercast:leave/3</em> to effectively
-%% unsubscribe the client to the channel.
-%%
-%% @end
-%%------------------------------------------------------------------------------
--spec(leave_ack(Ref :: supercast:sc_reference(),
-    Pdus :: [supercast:sc_message()]) -> ok).
-leave_ack({Channel, CState, undefined}, _Pdus) ->
-    [#chan_state{clients=Clients} = CS] = ets:lookup(?ETS_CHAN_STATES, Channel),
-    Clients2 = lists:delete(CState, Clients),
-    ets:insert(?ETS_CHAN_STATES, CS#chan_state{clients=Clients2});
-leave_ack({Channel, #client_state{module=Mod} = CState, QueryId}, Pdus) ->
-
-    OkLeave = supercast_endpoint:pdu(unsubscribeOk, {QueryId, Channel}),
-
-    lists:foreach(fun(P) ->
-        Mod:send(CState, P)
-    end, lists:append(Pdus, [OkLeave])),
-
-    ?traceInfo("leave ack"),
-
-    [#chan_state{clients=Clients} = CS] = ets:lookup(?ETS_CHAN_STATES, Channel),
-    ?traceInfo("clients 2: ", Clients),
-    Clients2 = lists:delete(CState, Clients),
-    ?traceInfo("clients 2: ", Clients2),
-    ets:insert(?ETS_CHAN_STATES, CS#chan_state{clients=Clients2}).
-
-
-%%------------------------------------------------------------------------------
-%% @private
-%% @see join_accept/2
-%% @doc
-%% Must be called from <em>supercast:join/3</em> to cancel the user
-%% request to join the channel. It notify the client with  a
-%% <em>subscribeErr</em> message.
-%%
-%% @end
-%%------------------------------------------------------------------------------
--spec(join_refuse(Ref :: supercast:sc_reference()) -> ok).
-join_refuse({Channel, #client_state{module=Mod} = CState, QueryId}) ->
-    ErrPdu = supercast_endpoint:pdu(subscribeErr, {QueryId, Channel}),
-    Mod:send(CState, ErrPdu).

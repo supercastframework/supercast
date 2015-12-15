@@ -30,7 +30,7 @@ clean-deps: clean
 
 app: clean-deps
 	@[ -z "$(PROJECT)" ] && echo "ERROR: required variable PROJECT missing" 1>&2 && exit 1 || true
-	@$(REBAR) -r create template=supercastapp dest=$(DEST) appid=$(PROJECT)
+	@$(REBAR) -r create template=simplechannel dest=$(DEST) appid=$(PROJECT)
 
 update-license:
 	@echo "--> Updating source headers licenses"

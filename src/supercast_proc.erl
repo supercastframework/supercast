@@ -22,6 +22,7 @@
 %%% @author Sebastien Serre <ssbx@supercastframework.org>
 %%% @copyright (C) 2015, Sebastien Serre
 %%% @doc
+%%% WORK IN PROGRESS
 %%%
 %%% @end
 %%%-----------------------------------------------------------------------------
@@ -91,7 +92,6 @@
 %%------------------------------------------------------------------------------
 -callback leave_request(Channel :: string, Args :: any(),
     CState :: #client_state{}, Ref :: supercast:sc_reference()) -> term().
-
 
 
 
