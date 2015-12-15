@@ -32,11 +32,10 @@
 %% API
 -export([ %% start/stop
     start/0,
-    start_link/0,
     listen/0,
     stop/0]).
 
--export([ %% other user utils
+-export([ %% user utils
     filter/2,
     satisfy/2]).
 
@@ -65,24 +64,7 @@ start() ->
     application:start(supercast),
     supercast:listen().
 
-
 %%------------------------------------------------------------------------------
-%% @see gen_server:start_link/4
-%% @see supercast:listen/0
-%% @doc
-%% Starts the server. You will need to call supercast:listen/0 when your
-%% application initialisation is complete to start listen for
-%% clients connections.
-%%
-%% @end
-%%------------------------------------------------------------------------------
--spec(start_link() -> {ok, Pid :: pid()} | ignore | {error, Reason :: term()}).
-start_link() ->
-    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
-
-
-%%------------------------------------------------------------------------------
-%% @see supercast:start_link/0
 %% @doc
 %% Start listening for incomming client connexions.
 %%

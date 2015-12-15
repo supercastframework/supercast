@@ -47,16 +47,16 @@ start_link(Ref, Socket, Transport, Opts) ->
 %%% API
 %%%------------------------------------------------------------------------
 auth_success(#client_state{pid = Pid, ref = Ref}, Name, Roles) ->
-    ?SUPERCAST_LOG_INFO("auth set"),
+    ?traceInfo("auth set"),
     gen_fsm:send_event(Pid, {auth_success, Ref, Name, Roles}).
 
 send(SockState, Msg) ->
-    ?SUPERCAST_LOG_INFO("send", Msg),
+    ?traceInfo("send", Msg),
     gen_fsm:send_all_state_event(SockState#client_state.pid,
         {encode_send_msg, SockState#client_state.ref, Msg}).
 
 raw_send(SockState, Pdu) ->
-    ?SUPERCAST_LOG_INFO("raw send", Pdu),
+    ?traceInfo("raw send", Pdu),
     gen_fsm:send_all_state_event(SockState#client_state.pid,
         {send_pdu, SockState#client_state.ref, Pdu}).
 
@@ -76,7 +76,7 @@ init([RanchRef, Socket, Transport, _Opts]) ->
 
 'WAIT_RANCH_ACK'({shoot, RanchRef, Transport, Socket, AckTimeout} = _Ack,
         #client_state{data={_,_,RanchRef}} = State) ->
-    ?SUPERCAST_LOG_INFO("ranch ack", _Ack),
+    ?traceInfo("ranch ack", _Ack),
     Transport:accept_ack(Socket, AckTimeout),
     TCPOpts = [{reuseaddr, true}, {keepalive, true}, {packet, 4},
         {send_timeout_close, true}, {active, once}],
@@ -87,14 +87,14 @@ init([RanchRef, Socket, Transport, _Opts]) ->
 
 'WAIT_RANCH_ACK'({shoot,_RanchRef,_,_,_}, State) ->
     % ignore message for any other ranch refs
-    ?SUPERCAST_LOG_INFO("wait ack unknown ref", _RanchRef),
+    ?traceInfo("wait ack unknown ref", _RanchRef),
     {next_state, 'WAIT_RANCH_ACK', State}.
 
 %%-------------------------------------------------------------------------
 %% process user credentials here
 %%-------------------------------------------------------------------------
 'UNAUTHENTICATED'({client_data, Pdu}, State) ->
-    ?SUPERCAST_LOG_INFO("data received", Pdu),
+    ?traceInfo("data received", Pdu),
     supercast_endpoint:handle_message(?ENCODER:decode(Pdu), State),
     {next_state, 'UNAUTHENTICATED', State, ?TIMEOUT};
 
@@ -107,7 +107,7 @@ init([RanchRef, Socket, Transport, _Opts]) ->
     {next_state, 'AUTHENTICATED', NextState};
 
 'UNAUTHENTICATED'(_Data, State) ->
-    ?SUPERCAST_LOG_INFO("Ignoring data", {self(), _Data}),
+    ?traceInfo("Ignoring data", {self(), _Data}),
     {next_state, 'UNAUTHENTICATED', State}.
 
 %%-------------------------------------------------------------------------
@@ -139,7 +139,7 @@ init([RanchRef, Socket, Transport, _Opts]) ->
     {stop, normal, State};
 
 'AUTHENTICATED'(_Data, State) ->
-    ?SUPERCAST_LOG_WARNING("Running Ignoring data", {self(), _Data}),
+    ?traceWarning("Running Ignoring data", {self(), _Data}),
     {next_state, 'AUTHENTICATED', State}.
 
 
@@ -159,13 +159,13 @@ handle_event({tcp_error, Reason}, StateName, State) ->
     {stop, {error, Reason, StateName}, State};
 
 handle_event(Event, StateName, StateData) ->
-    ?SUPERCAST_LOG_WARNING("Unknonw event type", {Event, StateName, StateData}),
+    ?traceWarning("Unknonw event type", {Event, StateName, StateData}),
     {stop, {StateName, undefined_event, Event}, StateData}.
 
 
 
 handle_sync_event(Event, _From, StateName, StateData) ->
-    ?SUPERCAST_LOG_WARNING("Unknonw event type", {Event, StateName, StateData}),
+    ?traceWarning("Unknonw event type", {Event, StateName, StateData}),
     {stop, {StateName, undefined_event, Event}, StateData}.
 
 
@@ -180,17 +180,17 @@ handle_info({shoot,_,_,_,_} = Info, 'WAIT_RANCH_ACK', StateData) ->
     ?MODULE:'WAIT_RANCH_ACK'(Info, StateData);
 
 handle_info({tcp_closed, _Socket}, _StateName, StateData) ->
-    ?SUPERCAST_LOG_INFO("Client disconnected", self()),
+    ?traceInfo("Client disconnected", self()),
     {stop, normal, StateData};
 
 handle_info(_Info, StateName, StateData) ->
-    ?SUPERCAST_LOG_WARNING("Unknown info", {_Info,StateName,StateData}),
+    ?traceWarning("Unknown info", {_Info,StateName,StateData}),
     {stop, StateName, StateData}.
 
 
 
 terminate(_Reason, _StateName, State) ->
-    ?SUPERCAST_LOG_INFO("Terminate", {_StateName, _Reason, State}),
+    ?traceInfo("Terminate", {_StateName, _Reason, State}),
     supercast_endpoint:client_disconnected(State),
     ok.
 

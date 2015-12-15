@@ -49,12 +49,12 @@ raw_send(#client_state{pid=Pid, ref=Ref}, Pdu) ->
 
 %% @private
 init({tcp, http}, _Req, _Opts) ->
-    ?SUPERCAST_LOG_INFO("init http"),
+    ?traceInfo("init http"),
 	{upgrade, protocol, cowboy_websocket}.
 
 %% @private
 websocket_init(_TransportName, Req, _Opts) ->
-    ?SUPERCAST_LOG_INFO("init websocket"),
+    ?traceInfo("init websocket"),
     State = #client_state{
         pid           = self(),
         ref           = make_ref(),
@@ -65,36 +65,36 @@ websocket_init(_TransportName, Req, _Opts) ->
 
 %% @private
 websocket_handle({text, Pdu}, Req, State) ->
-    ?SUPERCAST_LOG_INFO("data reivceved", {Pdu, State}),
+    ?traceInfo("data reivceved", {Pdu, State}),
     supercast_endpoint:handle_message(?ENCODER:decode(Pdu), State),
 	{ok, Req, State};
 websocket_handle(_Data, Req, State) ->
-    ?SUPERCAST_LOG_INFO("Unknown handle", {_Data,Req,State}),
+    ?traceInfo("Unknown handle", {_Data,Req,State}),
 	{ok, Req, State}.
 
 %% @private
 websocket_info({send, Ref, Pdu}, Req, #client_state{ref=Ref} = State) ->
-    ?SUPERCAST_LOG_INFO(" send", {Pdu, State}),
+    ?traceInfo(" send", {Pdu, State}),
     {reply, {text, Pdu}, Req, State};
 websocket_info({encode_send, Ref, Msg},
         Req, #client_state{ref=Ref} = State) ->
-    ?SUPERCAST_LOG_INFO("encode send", {Msg, State}),
+    ?traceInfo("encode send", {Msg, State}),
     Pdu = ?ENCODER:encode(Msg),
     {reply, {text, Pdu}, Req, State};
 websocket_info({auth_success, Ref, Name, Roles},
         Req, #client_state{ref=Ref} = State) ->
-    ?SUPERCAST_LOG_INFO("auth success", {Name, State}),
+    ?traceInfo("auth success", {Name, State}),
     NextState = State#client_state{
         user_name = Name,
         user_roles = Roles,
         authenticated = true},
     {ok, Req, NextState};
 websocket_info(_Info, Req, State) ->
-    ?SUPERCAST_LOG_INFO("Unknown info", {_Info,Req,State}),
+    ?traceInfo("Unknown info", {_Info,Req,State}),
 	{ok, Req, State}.
 
 %% @private
 websocket_terminate(_Reason, _Req, State) ->
     supercast_endpoint:client_disconnected(State),
-    ?SUPERCAST_LOG_INFO("Terminated", {_Reason,_Req,State}),
+    ?traceInfo("Terminated", {_Reason,_Req,State}),
 	ok.

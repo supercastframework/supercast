@@ -269,12 +269,12 @@ leave_ack({Channel, #client_state{module=Mod} = CState, QueryId}, Pdus) ->
         Mod:send(CState, P)
     end, lists:append(Pdus, [OkLeave])),
 
-    ?SUPERCAST_LOG_INFO("leave ack"),
+    ?traceInfo("leave ack"),
 
     [#chan_state{clients=Clients} = CS] = ets:lookup(?ETS_CHAN_STATES, Channel),
-    ?SUPERCAST_LOG_INFO("clients 2: ", Clients),
+    ?traceInfo("clients 2: ", Clients),
     Clients2 = lists:delete(CState, Clients),
-    ?SUPERCAST_LOG_INFO("clients 2: ", Clients2),
+    ?traceInfo("clients 2: ", Clients2),
     ets:insert(?ETS_CHAN_STATES, CS#chan_state{clients=Clients2}).
 
 

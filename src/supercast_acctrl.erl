@@ -17,17 +17,27 @@
 %% under the License.
 %% -----------------------------------------------------------------------------
 
-%% @doc
-%% A module implementing this behaviour must export the function statisfy/3.
-%% statisfy/2 must take as arguments read | write a list of #client_state
-%% and a term().
-%% Return a list of #client_state wich satisfy with the access control
-%% constraint defined by term().
-%% term() is dependant on the return of beha_supercast_auth module wich is used by
-%% the application.
-%% @end
+%%%-----------------------------------------------------------------------------
+%%% @author Sebastien Serre <ssbx@supercastframework.org>
+%%% @copyright (C) 2015, Sebastien Serre
+%%% @doc
+%%% Access control for supercast.
+%%%
+%%% @end
+%%%-----------------------------------------------------------------------------
 -module(supercast_acctrl).
 -include("supercast.hrl").
 
--callback(satisfy(Mode :: read | write, Things :: [term()],
-    PermConf :: #perm_conf{}) -> {ok, Allowed :: [term()]}).
+%%------------------------------------------------------------------------------
+%% @doc
+%% Filter a list of client satisfying to the permission specified.
+%%
+%% Return a list of #client_state wich satisfy with the access control
+%% constraint defined by term().
+%% PermConf is dependant on the return of beha_supercast_auth module
+%% used by the application.
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-callback(satisfy(Mode :: read | write, Clients :: [#client_state{}],
+    PermConf :: term()) -> {ok, Allowed :: [#client_state{}]}).

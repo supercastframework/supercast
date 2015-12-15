@@ -48,37 +48,36 @@
 
 %% logger
 -ifdef(debug).
--define(SUPERCAST_LOG_INFO(String,Term),
+-define(traceInfo(String,Term),
     error_logger:info_report([
        {module, ?MODULE},
        {line, ?LINE},
        {message, String},
        {term, Term}])).
 
--define(SUPERCAST_LOG_INFO(String),
+-define(traceInfo(String),
     error_logger:info_report([
        {module, ?MODULE},
        {line, ?LINE},
        {message, String}])).
 
--define(SUPERCAST_LOG_WARNING(String,Term),
+-define(traceWarning(String,Term),
     error_logger:warning_report([
        {module, ?MODULE},
        {line, ?LINE},
        {message, String},
        {term, Term}])).
 
-
--define(SUPERCAST_LOG_WARNING(String),
+-define(traceWarning(String),
     error_logger:warning_report([
        {module, ?MODULE},
        {line, ?LINE},
        {message, String}])).
 -else.
--define(SUPERCAST_LOG_WARNING(String), ok).
--define(SUPERCAST_LOG_WARNING(String,Term), ok).
--define(SUPERCAST_LOG_INFO(String), ok).
--define(SUPERCAST_LOG_INFO(String,Term), ok).
+-define(traceInfo(String), ok).
+-define(traceInfo(String,Term), ok).
+-define(traceWarning(String), ok).
+-define(traceWarning(String,Term), ok).
 -endif.
 
 -define(SUPERCAST_LOG_ERROR(String,Term),
