@@ -63,12 +63,11 @@ update-license:
 # dialyzer
 APPS = kernel stdlib sasl erts ssl tools os_mon runtime_tools crypto inets \
 	xmerl webtool snmp public_key mnesia eunit syntax_tools compiler
-DEPS = deps/cowboy/ebin deps/cowlib/ebin deps/ranch/ebin deps/jsx/ebin
-
 PLT = $(HOME)/.supercast_dialyzer_plt
+
 $(PLT): compile
-	dialyzer --build_plt --output_plt $(PLT) --apps $(APPS) -r $(DEPS)
-	dialyzer --check_plt --plt $(PLT) --apps $(APPS) $(DEPS) ebin
+	dialyzer --build_plt --output_plt $(PLT) --apps $(APPS) deps/*/ebin ebin
+	dialyzer --check_plt --plt $(PLT) --apps $(APPS) deps/*/ebin ebin
 dialyzer: $(PLT)
-	dialyzer -Wno_return --plt $(PLT) ebin
+	dialyzer -Wno_return --plt $(PLT) deps/*/ebin ebin
 
