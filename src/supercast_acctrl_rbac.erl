@@ -26,7 +26,7 @@
 
 -spec satisfy(Mode :: read | write, [#client_state{}], #perm_conf{}) ->
                                                     {ok, [#client_state{}]}.
-%% @doc Get permissions for a given client list.
+%% @doc Role Based Access Control module
 %% Givent a list of client and a perm conf, return a list of allowed
 %% clients or an empty list.
 %% @end

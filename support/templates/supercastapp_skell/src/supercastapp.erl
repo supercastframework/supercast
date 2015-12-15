@@ -5,7 +5,6 @@
 -export([start/0, stop/0]).
 
 %% supercast channel behaviour
--behaviour(supercast_channel).
 -include_lib("supercast/include/supercast.hrl").
 -export([join/4,leave/4]).
 
@@ -21,11 +20,11 @@ start() ->
     ChanName = "{{appid}}",
     Perm = #perm_conf{read=["admin"], write=["admin"]},
     Args = [],
-    ok = supercast_channel:new(ChanName, ?MODULE, Args, Perm).
+    ok = supercast:new(ChanName, ?MODULE, Args, Perm).
 
 stop() ->
     ChanName = "{{appid}}",
-    supercast_channel:delete(ChanName),
+    supercast:delete(ChanName),
     init:stop().
 
 
@@ -39,7 +38,7 @@ join("{{appid}}", _Args, _CState, Ref) ->
     Pdus = [
         [{<<"from">>, <<"{{appid}}">>}, {<<"value">>, <<"you should be synced now">>}]
         ],
-    supercast_channel:join_accept(Ref, Pdus);
+    supercast:join_accept(Ref, Pdus);
     %supercast_channel:join_refuse(Ref);
 
 join(_, _, _, _) ->
@@ -55,21 +54,21 @@ leave("{{appid}}", _Args, _CState, Ref) ->
     Pdus = [
         [{<<"from">>, <<"{{appid}}">>}, {<<"value">>, <<"Bye!!!">>}]
     ],
-    supercast_channel:leave_ack(Ref, Pdus).
+    supercast:leave_ack(Ref, Pdus).
 
 
 %% @spec emit(Messages::[term()], Perm::any()) -> ok
 emit() ->
     Event = [{<<"from">>, <<"{{appid}}">>}, {<<"value">>, <<"Hello event">>}],
     Channel = "{{appid}}",
-    supercast_channel:broadcast(Channel, [Event]).
+    supercast:broadcast(Channel, [Event]).
 emit(Messages, CustomPerm) ->
     Channel = "{{appid}}",
-    supercast_channel:multicast(Channel, Messages, CustomPerm).
+    supercast:multicast(Channel, Messages, CustomPerm).
 
 %% @spec send_unicast(Messages::[term()], CState) -> ok
 send(Messages, CState) ->
     Channel = "{{appid}}",
-    supercast_channel:unicast(Channel, Messages, CState).
+    supercast:unicast(Channel, Messages, CState).
 
 

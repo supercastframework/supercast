@@ -7,3 +7,4 @@
 @doc `supercast' is an application framework introducing the concept of
 'channels' to facilitate the creation of soft real time user interfaces.
 @TODO Dynamics channels on pattern matching (will allow per user channel creation).
+@TODO Use ssl or secure authentication mechanism

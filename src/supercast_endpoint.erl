@@ -17,7 +17,7 @@
 %% under the License.
 %% -----------------------------------------------------------------------------
 
-%% @doc Shared functions used by supercast_endpoint_tcp|websocket|...
+%% @doc Common functions for supercast_endpoint_tcp|websocket|...
 -module(supercast_endpoint).
 -include("supercast.hrl").
 
