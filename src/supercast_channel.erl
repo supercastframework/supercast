@@ -21,8 +21,8 @@
 %%% @author Sebastien Serre <ssbx@supercastframework.org>
 %%% @copyright (C) 2015, Sebastien Serre
 %%% @doc
-%%% WORK IN PROGRESS
 %%% @end
+%%%
 %%%-----------------------------------------------------------------------------
 -module(supercast_channel).
 -behaviour(gen_server).
@@ -144,7 +144,7 @@ init([Channel, Module, Args, Perm]) ->
         {stop, Reason} ->
             {stop, Reason};
         {ok, Opaque} ->
-            {ok, #state{module=Module,opaque=Opaque}}
+            {ok, #state{channel=Channel,module=Module,opaque=Opaque}}
     end.
 
 %%------------------------------------------------------------------------------
@@ -165,18 +165,23 @@ handle_cast({join, CState, Ref},
     #state{channel=Name,module=Mod,opaque=Opaque} = State) ->
     case Mod:channel_join(Name, CState, Opaque) of
         {ok, Opaque2} ->
+            ?traceInfo("trace", Opaque2),
             supercast_proc:join_accept(Ref),
             {noreply, State#state{opaque=Opaque2}};
         {ok, Pdus, Opaque2} ->
+            ?traceInfo("trace", Opaque2),
             supercast_proc:join_accept(Ref, Pdus),
             {noreply, State#state{opaque=Opaque2}};
         {refuse, Opaque2} ->
+            ?traceInfo("trace", Opaque2),
             supercast_proc:join_refuse(Ref),
             {noreply, State#state{opaque=Opaque2}};
         {stop, Reason} ->
+            ?traceInfo("trace", Reason),
             supercast_proc:join_refuse(Ref),
             {stop, Reason};
         R ->
+            ?traceInfo("trace", R),
             supercast_proc:join_refuse(Ref),
             {stop, {bad_return, R}, State}
     end;
@@ -232,7 +237,7 @@ handle_info(Info, #state{module=Mod, opaque=Opaque} = State) ->
 -spec(terminate(Reason :: (normal | shutdown | {shutdown, term()} | term()),
     State :: #state{}) -> term()).
 terminate(Reason, #state{channel=Channel,module=Mod,opaque=Opaque}) ->
-    case Mod:channel_terminate(Reason, Opaque) of
+    case Mod:channel_terminate(Channel, Reason, Opaque) of
         {ok, Pdus} ->
             supercast_proc:send_broadcast(Channel, Pdus);
         _ -> ok
