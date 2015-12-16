@@ -2,13 +2,18 @@
 
 -module({{appid}}).
 -include_lib("supercast/include/supercast.hrl").
--behaviour(supercast_proc).
+-behaviour(supercast_channel).
 -author("{{author}}").
 
 -export([start/0, stop/0]).
 
-%% supercast_proc  behaviour
--export([join_request/4,leave_request/4]).
+%% supercast_channel  behaviour
+-export([
+    channel_init/2,
+    channel_info/2,
+    channel_join/2,
+    channel_leave/2,
+    channel_terminate/2]).
 
 %% user test
 -export([emit/0, emit/2, send/2]).
@@ -17,41 +22,38 @@ start() ->
     ok = application:start(xmerl),
     ok = application:start(supercast),
     ok = supercast:listen(),
-    ChanName = "{{appid}}",
     Perm = #perm_conf{read=["admin"], write=["admin"]},
     Args = [],
-    ok = supercast_proc:new_channel(ChanName, ?MODULE, Args, Perm).
+    supercast_channel:new("{{appid}}", ?MODULE, Args, Perm).
 
 stop() ->
-    ChanName = "{{appid}}",
-    supercast_proc:delete_channel(ChanName),
+    supercast:cast("{{appid}}", quit),
+    supercast:call("{{appid}}", quit),
     init:stop().
 
-join_request("{{appid}}", _Args, _CState, Ref) ->
-    Pdus = [
-        [{<<"from">>, <<"{{appid}}">>}, {<<"value">>, <<"you should be synced now">>}]
-        ],
-    supercast_proc:join_accept(Ref, Pdus);
-    %supercast_channel:join_refuse(Ref);
+channel_init("{{appid}}", _) ->
+    {ok, nostate}.
 
-join_request(_, _, _, _) ->
-    {error, "unknown channel"}.
+channel_join(_CState, State) ->
+    Pdus = [[{<<"from">>, <<"{{appid}}">>}, {<<"value">>, <<"you should be synced now">>}]],
+    {ok, Pdus, State}.
 
-leave_request("{{appid}}", _Args, _CState, Ref) ->
-    Pdus = [
-        [{<<"from">>, <<"{{appid}}">>}, {<<"value">>, <<"Bye!!!">>}]
-    ],
-    supercast_proc:leave_ack(Ref, Pdus).
+channel_leave(_CState, State) ->
+    Pdus = [[{<<"from">>, <<"{{appid}}">>}, {<<"value">>, <<"Bye!!!">>}]],
+    {ok, Pdus, State}.
 
+channel_info(_Info, State) -> {ok, State}.
+
+channel_terminate(_Reason, _State) ->
+    Pdus = [[{<<"from">>, <<"{{appid}}">>}, {<<"value">>, <<"Aouch!">>}]],
+    {ok, Pdus}.
 
 emit() ->
     Event = [{<<"from">>, <<"{{appid}}">>}, {<<"value">>, <<"Hello event">>}],
-    Channel = "{{appid}}",
-    supercast_proc:send_broadcast(Channel, [Event]).
+    supercast_proc:send_broadcast("{{appid}}", [Event]).
+
 emit(Messages, CustomPerm) ->
-    Channel = "{{appid}}",
-    supercast_proc:send_multicast(Channel, Messages, CustomPerm).
+    supercast_proc:send_multicast("{{appid}}", Messages, CustomPerm).
 
 send(Messages, CState) ->
-    Channel = "{{appid}}",
-    supercast_proc:send_unicast(Channel, Messages, CState).
+    supercast_proc:send_unicast("{{appid}}", Messages, CState).

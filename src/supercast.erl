@@ -35,6 +35,9 @@
     listen/0,
     stop/0]).
 
+-export([ %% convenience API
+    new/4]).
+
 -export([ %% users access control utils
     satisfy/2]).
 
@@ -45,6 +48,15 @@
     Channel :: string(),
     CState  :: #client_state{},
     QueryId :: sc_queryid()}).
+
+%%------------------------------------------------------------------------------
+%% @equiv supercast_channel:new/4
+%% @doc
+%%
+%% @end
+%%------------------------------------------------------------------------------
+new(Name, Module, Args, Perm) ->
+    supercast_channel:new(Name,Module,Args,Perm).
 
 
 %%------------------------------------------------------------------------------

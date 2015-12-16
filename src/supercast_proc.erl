@@ -116,6 +116,7 @@ new_channel(Channel, Module, Args, Perm) ->
 %%------------------------------------------------------------------------------
 %% @doc
 %% Delete a registered channel.
+%% @TODO send a channel vanished message
 %%
 %% @end
 %%------------------------------------------------------------------------------

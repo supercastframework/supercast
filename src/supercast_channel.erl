@@ -56,26 +56,24 @@
 }).
 
 
--callback(supercast_init(Channel :: string(), Args :: term()) ->
+-callback(channel_init(Channel :: string(), Args :: term()) ->
     {ok, State :: term()} |
     {stop, Reason :: normal | shutdown | term()}).
--callback(supercast_join(Channel :: string(), CState :: #client_state{},
-        State :: term()) ->
-    {accept, NewState :: term()} |
-    {accept, Pdus :: supercast:sc_message(), NewState :: term()} |
+-callback(channel_join(CState :: #client_state{}, State :: term()) ->
+    {ok, NewState :: term()} |
+    {ok, Pdus :: supercast:sc_message(), NewState :: term()} |
     {refuse, NewState :: term()} |
     {stop, Reason :: normal | shutdown | term()}).
--callback(supercast_leave(Channel :: string(), CState :: #client_state{},
-        State :: term()) ->
+-callback(channel_leave(CState :: #client_state{}, State :: term()) ->
     {ok, NewState :: term()} |
     {ok, Pdus :: supercast:sc_message(), NewState :: term()} |
     {stop, Reason :: normal | shutdown | term()}).
--callback(supercast_info(Channel :: string(), Info :: term(),
-        State :: term()) ->
+-callback(channel_info(Info :: term(), State :: term()) ->
     {ok, NewState :: term()} |
+    {ok, Pdus :: supercast:sc_message(), NewState :: term()} |
     {stop, Reason :: normal | shutdown | term()}).
--callback(supercast_close(Channel :: string(), term(), State :: term()) ->
-    Ignored :: term()).
+-callback(channel_terminate(Reason :: term(), State :: term()) ->
+    {ok, Pdus :: [supercast:sc_message()]} | term()).
 
 
 
@@ -85,7 +83,7 @@
 -spec start_link(Channel :: string(), Module :: atom(), Args :: term(),
     Perm :: #perm_conf{}) -> {ok,    Pid :: pid()} |{error, Reason :: term()}.
 start_link(Channel, Module, Args, Perm) ->
-    gen_server:start_link(?MODULE, {Channel, Module, Args, Perm}, []).
+    gen_server:start_link(?MODULE, [Channel, Module, Args, Perm], []).
 
 
 %%%=============================================================================
@@ -94,11 +92,10 @@ start_link(Channel, Module, Args, Perm) ->
 
 
 %%%=============================================================================
-%%% supercast_endpoints API
+%%% public API
 %%%=============================================================================
 new(Channel, Module, Args, Perm) ->
     supercast_channel_sup:new_channel([Channel, Module, Args, Perm]).
-
 
 
 
@@ -107,20 +104,22 @@ new(Channel, Module, Args, Perm) ->
 %%%=============================================================================
 
 %%------------------------------------------------------------------------------
+%% @see supercast_proc:join_request/4
 %% @private
 %%------------------------------------------------------------------------------
 -spec join_request(Channel :: string(), Self :: pid(), CState :: #client_state{},
     Ref :: supercast:sc_reference()) -> ok.
-join_request(Channel, _Args = Self, CState, Ref) ->
-    gen_server:cast(Self, {join, Channel, CState, Ref}).
+join_request(_Channel, _Args = Self, CState, Ref) ->
+    gen_server:cast(Self, {join, CState, Ref}).
 
 %%------------------------------------------------------------------------------
+%% @see supercast_proc:leave_request/4
 %% @private
 %%------------------------------------------------------------------------------
 -spec leave_request(Channel :: string(), Self :: pid(), CState :: #client_state{},
     Ref :: supercast:sc_reference()) -> ok.
-leave_request(Channel, _Args = Self, CState, Ref) ->
-    gen_server:cast(Self, {leave, Channel, CState, Ref}).
+leave_request(_Channel, _Args = Self, CState, Ref) ->
+    gen_server:cast(Self, {leave, CState, Ref}).
 
 
 
@@ -135,10 +134,10 @@ leave_request(Channel, _Args = Self, CState, Ref) ->
 %%------------------------------------------------------------------------------
 -spec init({Channel :: string(), Module :: atom(), Args :: term(),
     Perm :: #perm_conf{}}) -> {ok, State :: #state{}}.
-init({Channel, Module, Args, Perm}) ->
+init([Channel, Module, Args, Perm]) ->
     process_flag(trap_exit, true),
     supercast_proc:new_channel(Channel, ?MODULE, self(), Perm),
-    case Module:init_channel(Channel, Args) of
+    case Module:channel_init(Channel, Args) of
         {stop, Reason} ->
             {stop, Reason};
         {ok, Opaque} ->
@@ -159,13 +158,12 @@ handle_call(_Request, _From, State) -> {reply, ok, State}.
     {noreply, NewState :: #state{}} |
     {noreply, NewState :: #state{}, timeout() | hibernate} |
     {stop, Reason :: term(), NewState :: #state{}}).
-handle_cast({join, Channel, CState, Ref},
-                                    #state{module=Mod,opaque=Opaque} = State) ->
-    case Mod:supercast_join(Channel, CState, Opaque) of
-        {accept, Opaque2} ->
+handle_cast({join, CState, Ref}, #state{module=Mod,opaque=Opaque} = State) ->
+    case Mod:channel_join(CState, Opaque) of
+        {ok, Opaque2} ->
             supercast_proc:join_accept(Ref),
             {noreply, State#state{opaque=Opaque2}};
-        {accept, Pdus, Opaque2} ->
+        {ok, Pdus, Opaque2} ->
             supercast_proc:join_accept(Ref, Pdus),
             {noreply, State#state{opaque=Opaque2}};
         {refuse, Opaque2} ->
@@ -179,9 +177,8 @@ handle_cast({join, Channel, CState, Ref},
             {stop, bad_return, {_R, State}}
     end;
 
-handle_cast({leave, Channel, CState, Ref},
-                                    #state{module=Mod,opaque=Opaque} = State) ->
-    case Mod:supercast_leave(Channel, CState, Opaque) of
+handle_cast({leave, CState, Ref}, #state{module=Mod,opaque=Opaque} = State) ->
+    case Mod:channel_leave(CState, Opaque) of
         {ok, Opaque2} ->
             supercast_proc:leave_ack(Ref),
             {noreply, State#state{opaque=Opaque2}};
@@ -196,8 +193,7 @@ handle_cast({leave, Channel, CState, Ref},
             {stop, bad_return, {_R, State}}
     end;
 
-handle_cast(_Request, State) ->
-    {noreply, State}.
+handle_cast(_Request, State) -> {noreply, State}.
 
 %%------------------------------------------------------------------------------
 %% @private
@@ -207,7 +203,7 @@ handle_cast(_Request, State) ->
     {noreply, NewState :: #state{}, timeout() | hibernate} |
     {stop, Reason :: term(), NewState :: #state{}}).
 handle_info(Info, #state{module=Mod, opaque=Opaque} = State) ->
-    {ok, Opaque2} = Mod:info(Info, Opaque),
+    {ok, Opaque2} = Mod:channel_info(Info, Opaque),
     {noreply, State#state{opaque=Opaque2}}.
 
 %%------------------------------------------------------------------------------
@@ -215,23 +211,17 @@ handle_info(Info, #state{module=Mod, opaque=Opaque} = State) ->
 %%------------------------------------------------------------------------------
 -spec(terminate(Reason :: (normal | shutdown | {shutdown, term()} | term()),
     State :: #state{}) -> term()).
-terminate(_Reason, _State) ->
-    ok.
+terminate(Reason, #state{channel=Channel,module=Mod,opaque=Opaque}) ->
+    case Mod:channel_terminate(Reason, Opaque) of
+        {ok, Pdus} ->
+            supercast_proc:send_broadcast(Channel, Pdus);
+        _ -> ok
+    end.
 
 %%------------------------------------------------------------------------------
 %% @private
-%% @doc
-%% Convert process state when code is changed
-%%
-%% @spec code_change(OldVsn, State, Extra) -> {ok, NewState}
-%% @end
 %%------------------------------------------------------------------------------
 -spec(code_change(OldVsn :: term() | {down, term()}, State :: #state{},
-    Extra :: term()) ->
-    {ok, NewState :: #state{}} | {error, Reason :: term()}).
+    Extra :: term()) -> {ok, NewState :: #state{}} | {error, Reason :: term()}).
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
-
-%%%=============================================================================
-%%% Internal functions
-%%%=============================================================================
