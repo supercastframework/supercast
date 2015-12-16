@@ -8,7 +8,7 @@
 /.eunit
 /doc/*
 !/doc/overview.edoc
-/erl_crash.dump
+erl_crash.dump
 
 #intellij
 *.iml
