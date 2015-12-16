@@ -36,7 +36,11 @@
     stop/0]).
 
 -export([ %% convenience API
-    new/4]).
+    new/4,
+    info_request/2,
+    send/3,
+    emit/2,
+    emit/3]).
 
 -export([ %% users access control utils
     satisfy/2]).
@@ -51,13 +55,69 @@
 
 %%------------------------------------------------------------------------------
 %% @equiv supercast_channel:new/4
-%% @doc
-%%
-%% @end
 %%------------------------------------------------------------------------------
+-spec(new(Name :: string(), Module :: atom(), Args :: term(),
+    Perm :: #perm_conf{}) -> ok).
 new(Name, Module, Args, Perm) ->
     supercast_channel:new(Name,Module,Args,Perm).
 
+%%------------------------------------------------------------------------------
+%% @equiv supercast_proc:cast/4
+%%------------------------------------------------------------------------------
+-spec(info_request(Name :: string(), Request :: term()) -> ok).
+info_request(Name, Request) ->
+    supercast_proc:info_request(Name, Request).
+
+%%------------------------------------------------------------------------------
+%% @equiv supercast_proc:send_unicast/3
+%% @doc
+%% WARNING:
+%%
+%% This function must be called uniquely from the process owning the channel
+%% (ie from one of the supercast_channel callbacks),
+%% to insure that the messages emited or sent will arrive at the same order to
+%% the client side.
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec(send(Channel :: string(), CState :: #client_state{},
+    Messages :: [supercast:sc_message()]) -> ok).
+send(Channel, CState, Messages) ->
+    supercast_proc:send_unicast(Channel, CState, Messages).
+
+%%------------------------------------------------------------------------------
+%% @equiv supercast_proc:send_multicast/3
+%% @doc
+%% WARNING:
+%%
+%% This function must be called uniquely from the process owning the channel
+%% (ie from one of the supercast_channel callbacks),
+%% to insure that the messages emited or sent will arrive at the same order to
+%% the client side.
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec(emit(Channel :: string(), Messages :: [supercast:sc_message()],
+    Perm :: #perm_conf{}) -> ok).
+emit(Channel, Messages, Perm) ->
+    supercast_proc:send_multicast(Channel, Messages, Perm).
+
+%%------------------------------------------------------------------------------
+%% @equiv supercast_proc:send_broadcast/2
+%% @doc
+%% WARNING:
+%%
+%% This function must be called uniquely from the process owning the channel
+%% (ie from one of the supercast_channel callbacks),
+%% to insure that the messages emited or sent will arrive at the same order to
+%% the client side.
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec(emit(Channel :: string(),
+    Messages :: [supercast:sc_message()]) -> ok).
+emit(Channel, Messages) ->
+    supercast_proc:send_broadcast(Channel, Messages).
 
 %%------------------------------------------------------------------------------
 %% @doc

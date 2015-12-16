@@ -37,7 +37,8 @@
 %% supcercast_proc callbacks
 -export([
     join_request/4,
-    leave_request/4]).
+    leave_request/4,
+    info_request/3]).
 
 %% gen_server callbacks
 -export([
@@ -59,21 +60,21 @@
 -callback(channel_init(Channel :: string(), Args :: term()) ->
     {ok, State :: term()} |
     {stop, Reason :: normal | shutdown | term()}).
--callback(channel_join(CState :: #client_state{}, State :: term()) ->
-    {ok, NewState :: term()} |
+-callback(channel_join(Channel :: string(), CState :: #client_state{},
+    State :: term()) -> {ok, NewState :: term()} |
     {ok, Pdus :: supercast:sc_message(), NewState :: term()} |
     {refuse, NewState :: term()} |
     {stop, Reason :: normal | shutdown | term()}).
--callback(channel_leave(CState :: #client_state{}, State :: term()) ->
+-callback(channel_leave(Channel :: string(), CState :: #client_state{},
+    State :: term()) -> {ok, NewState :: term()} |
+    {ok, Pdus :: supercast:sc_message(), NewState :: term()} |
+    {stop, Reason :: normal | shutdown | term()}).
+-callback(channel_info(Channel :: string(), Info :: term(), State :: term()) ->
     {ok, NewState :: term()} |
     {ok, Pdus :: supercast:sc_message(), NewState :: term()} |
     {stop, Reason :: normal | shutdown | term()}).
--callback(channel_info(Info :: term(), State :: term()) ->
-    {ok, NewState :: term()} |
-    {ok, Pdus :: supercast:sc_message(), NewState :: term()} |
-    {stop, Reason :: normal | shutdown | term()}).
--callback(channel_terminate(Reason :: term(), State :: term()) ->
-    {ok, Pdus :: [supercast:sc_message()]} | term()).
+-callback(channel_terminate(Channel :: string(), Reason :: term(),
+    State :: term()) -> {ok, Pdus :: [supercast:sc_message()]} | term()).
 
 
 
@@ -121,7 +122,9 @@ join_request(_Channel, _Args = Self, CState, Ref) ->
 leave_request(_Channel, _Args = Self, CState, Ref) ->
     gen_server:cast(Self, {leave, CState, Ref}).
 
-
+-spec info_request(Channel :: string(), Self :: pid(), Request :: term()) -> ok.
+info_request(_Channel, _Args = Self, Request) ->
+    gen_server:cast(Self, {info, Request}).
 
 
 
@@ -158,8 +161,9 @@ handle_call(_Request, _From, State) -> {reply, ok, State}.
     {noreply, NewState :: #state{}} |
     {noreply, NewState :: #state{}, timeout() | hibernate} |
     {stop, Reason :: term(), NewState :: #state{}}).
-handle_cast({join, CState, Ref}, #state{module=Mod,opaque=Opaque} = State) ->
-    case Mod:channel_join(CState, Opaque) of
+handle_cast({join, CState, Ref},
+    #state{channel=Name,module=Mod,opaque=Opaque} = State) ->
+    case Mod:channel_join(Name, CState, Opaque) of
         {ok, Opaque2} ->
             supercast_proc:join_accept(Ref),
             {noreply, State#state{opaque=Opaque2}};
@@ -172,13 +176,14 @@ handle_cast({join, CState, Ref}, #state{module=Mod,opaque=Opaque} = State) ->
         {stop, Reason} ->
             supercast_proc:join_refuse(Ref),
             {stop, Reason};
-        _R ->
+        R ->
             supercast_proc:join_refuse(Ref),
-            {stop, bad_return, {_R, State}}
+            {stop, {bad_return, R}, State}
     end;
 
-handle_cast({leave, CState, Ref}, #state{module=Mod,opaque=Opaque} = State) ->
-    case Mod:channel_leave(CState, Opaque) of
+handle_cast({leave, CState, Ref},
+    #state{channel=Name,module=Mod,opaque=Opaque} = State) ->
+    case Mod:channel_leave(Name, CState, Opaque) of
         {ok, Opaque2} ->
             supercast_proc:leave_ack(Ref),
             {noreply, State#state{opaque=Opaque2}};
@@ -188,9 +193,24 @@ handle_cast({leave, CState, Ref}, #state{module=Mod,opaque=Opaque} = State) ->
         {stop, Reason} ->
             supercast_proc:leave_ack(Ref),
             {stop, Reason};
-        _R ->
+        R ->
             supercast_proc:leave_ack(Ref),
-            {stop, bad_return, {_R, State}}
+            {stop, {bad_return, R}, State}
+    end;
+
+handle_cast({info, Request},
+        #state{channel=Name,module=Mod,opaque=Opaque} = State) ->
+    case Mod:channel_info(Name, Request, Opaque) of
+        {ok, Opaque2} ->
+            {noreply, State#state{opaque=Opaque2}};
+        {ok, Pdus, Opaque2} ->
+            supercast_proc:send_broadcast(Name, Pdus),
+            {noreply, State#state{opaque=Opaque2}};
+        {stop, Reason} ->
+            {stop, Reason};
+        R ->
+            {stop, {bad_return, R}, State}
+
     end;
 
 handle_cast(_Request, State) -> {noreply, State}.

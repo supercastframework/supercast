@@ -53,9 +53,12 @@
 
 -include("supercast.hrl").
 
--export([ %% supercast_proc API
+-export([
     new_channel/4,
     delete_channel/1,
+    info_request/2]).
+
+-export([%% supercast_proc API
     send_unicast/2,
     send_unicast/3,
     send_multicast/3,
@@ -77,15 +80,24 @@
     Ref     :: supercast:sc_reference()
 ) -> term().
 
--callback leave_request(Channel :: string, Args :: any(),
+-callback leave_request(Channel :: string, Args :: term(),
     CState :: #client_state{}, Ref :: supercast:sc_reference()) -> term().
 
+-callback info_request(Channel :: string, Args :: term(),
+    Request :: term()) -> ok.
 
 
 
 %%%=============================================================================
 %%% API
 %%%=============================================================================
+
+info_request(Name, Request) ->
+    case ets:lookup(?ETS_CHAN_STATES, Name) of
+        [] -> ok;
+        [#chan_state{module=Mod,args=Args}] ->
+            Mod:info_request(Name, Args, Request)
+    end.
 
 %%------------------------------------------------------------------------------
 %% @doc

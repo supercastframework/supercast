@@ -10,10 +10,10 @@
 %% supercast_channel  behaviour
 -export([
     channel_init/2,
-    channel_info/2,
-    channel_join/2,
-    channel_leave/2,
-    channel_terminate/2]).
+    channel_info/3,
+    channel_join/3,
+    channel_leave/3,
+    channel_terminate/3]).
 
 %% user test
 -export([emit/0, emit/2, send/2]).
@@ -27,24 +27,25 @@ start() ->
     supercast_channel:new("{{appid}}", ?MODULE, Args, Perm).
 
 stop() ->
-    supercast:cast("{{appid}}", quit),
-    supercast:call("{{appid}}", quit),
+    supercast:info("{{appid}}", quit),
+    supercast:info("{{appid}}", quit),
     init:stop().
 
 channel_init("{{appid}}", _) ->
     {ok, nostate}.
 
-channel_join(_CState, State) ->
+channel_join("{{appid}}", _CState, State) ->
     Pdus = [[{<<"from">>, <<"{{appid}}">>}, {<<"value">>, <<"you should be synced now">>}]],
     {ok, Pdus, State}.
 
-channel_leave(_CState, State) ->
+channel_leave("{{appid}}", _CState, State) ->
     Pdus = [[{<<"from">>, <<"{{appid}}">>}, {<<"value">>, <<"Bye!!!">>}]],
     {ok, Pdus, State}.
 
-channel_info(_Info, State) -> {ok, State}.
+channel_info("{{appid}}", quit, State) ->
+    {stop, normal, State}.
 
-channel_terminate(_Reason, _State) ->
+channel_terminate("{{appid}}", _Reason, _State) ->
     Pdus = [[{<<"from">>, <<"{{appid}}">>}, {<<"value">>, <<"Aouch!">>}]],
     {ok, Pdus}.
 
