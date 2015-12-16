@@ -24,6 +24,29 @@
 %%% @doc
 %%% WORK IN PROGRESS
 %%%
+%%% Client Syn request.
+%%%
+%%% This call is triggered when a client has requested and is allowed to
+%%% join to the channel.
+%%%
+%%% <em>Args</em> is the term set at supercast_proc:new_channel/4.
+%%%
+%%% A call to this function MUST include a supercast_proc:join_accept/1-2 or
+%%% supercast_proc:join_refuse/1.
+%%%
+%%% A well behaving proc should reply as soon as possible ie: gen_server:cast/2
+%%%
+%%% The return value of the function is ignored.
+%%%
+%%% Called when a client leave the channel either on socket close or
+%%% unsubscribe call.
+%%%
+%%% A call to this function MUST include a supercast_proc:leave_ack/1-2
+%%%
+%%% A well behaving proc should reply as soon as possible ie: gen_server:cast/2
+%%%
+%%% The return value of the function is ignored.
+%%%
 %%% @end
 %%%-----------------------------------------------------------------------------
 -module(supercast_proc).
@@ -47,27 +70,6 @@
 %%% Behaviour callbacks definition
 %%%=============================================================================
 
-%%------------------------------------------------------------------------------
-%% @see supercast_proc:join_accept/2
-%% @see supercast_proc:join_refuse/1
-%% @see gen_server:cast/2
-%% @doc
-%% Client Syn request.
-%%
-%% This call is triggered when a client has requested and is allowed to
-%% join to the channel.
-%%
-%% <em>Args<em> is the term set at supercast_proc:new_channel/4.
-%%
-%% A call to this function MUST include a supercast_proc:join_accept/1-2 or
-%% supercast_proc:join_refuse/1.
-%%
-%% A well behaving proc should reply as soon as possible ie: gen_server:cast/2
-%%
-%% The return value of the function is ignored.
-%%
-%% @end
-%%------------------------------------------------------------------------------
 -callback join_request(
     Channel :: string(),
     Args    :: any(),
@@ -75,21 +77,6 @@
     Ref     :: supercast:sc_reference()
 ) -> term().
 
-%%------------------------------------------------------------------------------
-%% @see supercast_proc:leave_ack/2
-%% @see gen_server:cast/2
-%% @doc
-%% Called when a client leave the channel either on socket close or
-%% unsubscribe call.
-%%
-%% A call to this function MUST include a supercast_proc:leave_ack/1-2
-%%
-%% A well behaving proc should reply as soon as possible ie: gen_server:cast/2
-%%
-%% The return value of the function is ignored.
-%%
-%% @end
-%%------------------------------------------------------------------------------
 -callback leave_request(Channel :: string, Args :: any(),
     CState :: #client_state{}, Ref :: supercast:sc_reference()) -> term().
 
@@ -110,8 +97,8 @@
 %% behaviour.
 %%
 %% <em>Opts</em> is any term passed to supercast callbacks.
-%% @see supercast_proc:join/3
-%% @see supercast_proc:leave/1
+%% @see supercast_proc:join_ack/3.
+%% @see supercast_proc:leave_ack/1.
 %%
 %% <em>Perm</em> is the permissions of the channel. Only read is handled by
 %% supercast.
@@ -190,8 +177,8 @@ send_multicast(Channel, Messages, Perm) ->
 
 
 %%------------------------------------------------------------------------------
-%% @equiv multicast(Channel, Messages, default).
-%% @see multicast/3
+%% @equiv multicast(Channel, Messages, default)
+%% @see multicast/3.
 %% @doc
 %% Send messages to all clients of the specified channel.
 %%
@@ -203,7 +190,9 @@ send_broadcast(Channel, Message) ->
 
 
 %%------------------------------------------------------------------------------
-%% @equiv join_ack(Ref, [])..
+%% @equiv join_ack(Ref, [])
+%% @doc
+%% @end
 %%------------------------------------------------------------------------------
 -spec(join_accept(Ref :: supercast:sc_reference()) -> ok).
 join_accept(Ref) -> join_accept(Ref, []).
@@ -229,7 +218,9 @@ join_accept({Channel, #client_state{module=Mod} = CState, QueryId}, Pdus) ->
     ets:insert(?ETS_CHAN_STATES, CS#chan_state{clients=[CState|Clients]}).
 
 %%------------------------------------------------------------------------------
-%% @equiv leave_ack(Ref, [])..
+%% @equiv leave_ack(Ref, [])
+%% @doc
+%% @end
 %%------------------------------------------------------------------------------
 -spec(leave_ack(Ref :: supercast:sc_reference()) -> ok).
 leave_ack(Ref) -> leave_ack(Ref, []).

@@ -23,21 +23,17 @@
 %%% @doc
 %%% Access control for supercast.
 %%%
+%%% Filter a list of client satisfying to the permission specified.
+%%%
+%%% Return a list of #client_state wich satisfy with the access control
+%%% constraint defined by term().
+%%% PermConf is dependant on the return of beha_supercast_auth module
+%%% used by the application.
+%%%
 %%% @end
 %%%-----------------------------------------------------------------------------
 -module(supercast_acctrl).
 -include("supercast.hrl").
 
-%%------------------------------------------------------------------------------
-%% @doc
-%% Filter a list of client satisfying to the permission specified.
-%%
-%% Return a list of #client_state wich satisfy with the access control
-%% constraint defined by term().
-%% PermConf is dependant on the return of beha_supercast_auth module
-%% used by the application.
-%%
-%% @end
-%%------------------------------------------------------------------------------
 -callback(satisfy(Mode :: read | write, Clients :: [#client_state{}],
     PermConf :: term()) -> {ok, Allowed :: [#client_state{}]}).
