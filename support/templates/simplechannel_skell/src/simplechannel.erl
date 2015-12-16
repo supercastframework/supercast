@@ -16,7 +16,7 @@
     channel_terminate/3]).
 
 %% user test
--export([emit/0, emit/2, send/2]).
+-export([emit/0,close/0]).
 
 start() ->
     ok = application:start(xmerl),
@@ -27,11 +27,9 @@ start() ->
     supercast_channel:new("{{appid}}", ?MODULE, Args, Perm).
 
 stop() ->
-    supercast:info("{{appid}}", quit),
-    supercast:info("{{appid}}", quit),
     init:stop().
 
-channel_init("{{appid}}", _) ->
+channel_init("{{appid}}", _Args) ->
     {ok, nostate}.
 
 channel_join("{{appid}}", _CState, State) ->
@@ -42,6 +40,12 @@ channel_leave("{{appid}}", _CState, State) ->
     Pdus = [[{<<"from">>, <<"{{appid}}">>}, {<<"value">>, <<"Bye!!!">>}]],
     {ok, Pdus, State}.
 
+channel_info("{{appid}}", {emit, Events}, State) ->
+    supercast:emit("{{appid}}", Events),
+    {ok, State};
+channel_info("{{appid}}", {emit, Events, Perm}, State) ->
+    supercast:emit("{{appid}}", Events, Perm),
+    {ok, State};
 channel_info("{{appid}}", quit, State) ->
     {stop, normal, State}.
 
@@ -51,10 +55,7 @@ channel_terminate("{{appid}}", _Reason, _State) ->
 
 emit() ->
     Event = [{<<"from">>, <<"{{appid}}">>}, {<<"value">>, <<"Hello event">>}],
-    supercast_proc:send_broadcast("{{appid}}", [Event]).
+    supercast:info_request("{{appid}}", {emit, [Event]}).
 
-emit(Messages, CustomPerm) ->
-    supercast_proc:send_multicast("{{appid}}", Messages, CustomPerm).
-
-send(Messages, CState) ->
-    supercast_proc:send_unicast("{{appid}}", Messages, CState).
+close() ->
+    supercast:info_request("{{appid}}", quit).

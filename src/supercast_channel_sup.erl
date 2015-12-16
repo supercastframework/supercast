@@ -72,7 +72,7 @@ new_channel(Args) ->
 init([]) ->
     {ok,
         {
-            {simple_one_for_one, 0, 6000},
+            {simple_one_for_one, 600, 6000},
             [
                 {
                     supercast_channel,

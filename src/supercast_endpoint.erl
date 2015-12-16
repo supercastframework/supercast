@@ -74,24 +74,30 @@ handle_message("supercast", "subscribe", Contents, CState) ->
             %% @TODO dynamic channels
             send_pdu(CState, pdu(subscribeErr, {QueryId, Channel}));
 
-        [#chan_state{module=ChanMod,perm=Perm,args=Args}] ->
+        [#chan_state{module=ChanMod,perm=Perm,args=Args,clients=Clients}] ->
             ?traceInfo("exist", ChanMod),
+            %% user allready registered?
+            case lists:member(CState,Clients) of
+                true -> %% yes
+                    send_pdu(CState, pdu(subscribeOk, {QueryId, Channel}));
+                false -> %% no
 
-            %% User have access right?
-            {ok, Acctrl} = application:get_env(supercast,acctrl_module),
-            ?traceInfo("acctrl", Acctrl),
-            case Acctrl:satisfy(read, [CState], Perm) of
+                    %% User have access right?
+                    {ok, Acctrl} = application:get_env(supercast,acctrl_module),
+                    ?traceInfo("acctrl", Acctrl),
+                    case Acctrl:satisfy(read, [CState], Perm) of
 
-                {ok, []} -> %% no
-                    ?traceInfo("n satisfy"),
-                    send_pdu(CState, pdu(subscribeErr, {QueryId, Channel}));
+                        {ok, []} -> %% no
+                            ?traceInfo("n satisfy"),
+                            send_pdu(CState, pdu(subscribeErr, {QueryId, Channel}));
 
-                {ok, [CState]} -> % yes
-                    ?traceInfo("satisfy"),
+                        {ok, [CState]} -> % yes
+                            ?traceInfo("satisfy"),
 
-                    %% Then register
-                    Ref = {Channel, CState, QueryId},
-                    ChanMod:join_request(Channel, Args, CState, Ref)
+                            %% Then register
+                            Ref = {Channel, CState, QueryId},
+                            ChanMod:join_request(Channel, Args, CState, Ref)
+                    end
             end;
         _Other ->
             ?traceInfo("other", _Other)
@@ -110,9 +116,14 @@ handle_message("supercast", "unsubscribe", Contents, CState) ->
         [] ->
             ?traceInfo("handle unsubscribe false"),
             send_pdu(CState, pdu(unsubscribeErr, {QueryId, Channel}));
-        [#chan_state{name=Name,module=Mod,args=Args}] ->
-            ?traceInfo("handle unsubscribe true"),
-            Mod:leave_request(Name, Args, CState, {Name, CState, QueryId});
+        [#chan_state{name=Name,module=Mod,args=Args,clients=Clients}] ->
+            case lists:member(CState, Clients) of
+                true ->
+                    ?traceInfo("handle unsubscribe true"),
+                    Mod:leave_request(Name, Args, CState, {Name, CState, QueryId});
+                false ->
+                    send_pdu(CState, pdu(unsubscribeOk, {QueryId, Channel}))
+            end;
         _Other ->
             ?traceInfo("handle unsubscribe other", _Other)
 

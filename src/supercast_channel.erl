@@ -176,10 +176,10 @@ handle_cast({join, CState, Ref},
             ?traceInfo("trace", Opaque2),
             supercast_proc:join_refuse(Ref),
             {noreply, State#state{opaque=Opaque2}};
-        {stop, Reason} ->
+        {stop, Reason, Opaque2} ->
             ?traceInfo("trace", Reason),
             supercast_proc:join_refuse(Ref),
-            {stop, Reason};
+            {stop, Reason, State#state{opaque=Opaque2}};
         R ->
             ?traceInfo("trace", R),
             supercast_proc:join_refuse(Ref),
@@ -195,9 +195,9 @@ handle_cast({leave, CState, Ref},
         {ok, Pdus, Opaque2} ->
             supercast_proc:leave_ack(Ref, Pdus),
             {noreply, State#state{opaque=Opaque2}};
-        {stop, Reason} ->
+        {stop, Reason, Opaque2} ->
             supercast_proc:leave_ack(Ref),
-            {stop, Reason};
+            {stop, Reason, State#state{opaque=Opaque2}};
         R ->
             supercast_proc:leave_ack(Ref),
             {stop, {bad_return, R}, State}
@@ -208,11 +208,8 @@ handle_cast({info, Request},
     case Mod:channel_info(Name, Request, Opaque) of
         {ok, Opaque2} ->
             {noreply, State#state{opaque=Opaque2}};
-        {ok, Pdus, Opaque2} ->
-            supercast_proc:send_broadcast(Name, Pdus),
-            {noreply, State#state{opaque=Opaque2}};
-        {stop, Reason} ->
-            {stop, Reason};
+        {stop, Reason, Opaque2} ->
+            {stop, Reason, State#state{opaque=Opaque2}};
         R ->
             {stop, {bad_return, R}, State}
 
@@ -237,6 +234,7 @@ handle_info(Info, #state{module=Mod, opaque=Opaque} = State) ->
 -spec(terminate(Reason :: (normal | shutdown | {shutdown, term()} | term()),
     State :: #state{}) -> term()).
 terminate(Reason, #state{channel=Channel,module=Mod,opaque=Opaque}) ->
+    %% @TODO send channelVanished and unsubscribeOk?
     case Mod:channel_terminate(Channel, Reason, Opaque) of
         {ok, Pdus} ->
             supercast_proc:send_broadcast(Channel, Pdus);
