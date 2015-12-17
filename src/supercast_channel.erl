@@ -53,7 +53,8 @@
     channel :: string(),
     module  :: atom(),
     perm    :: #perm_conf{},
-    opaque  :: term()
+    opaque  :: term(),
+    pending :: [#client_state{}]
 }).
 
 
@@ -111,7 +112,11 @@ new(Channel, Module, Args, Perm) ->
 -spec join_request(Channel :: string(), Self :: pid(), CState :: #client_state{},
     Ref :: supercast:sc_reference()) -> ok.
 join_request(_Channel, _Args = Self, CState, Ref) ->
-    gen_server:cast(Self, {join, CState, Ref}).
+    %% first we call to be sure the endpoint will be notified of a channel
+    %% terminate. If it fails, an exception is catched and handled correctly
+    %% by the endpoing process.
+    Timeout = 5000,
+    gen_server:call(Self, {join, CState, Ref}, Timeout).
 
 %%------------------------------------------------------------------------------
 %% @see supercast_proc:leave_request/4
@@ -122,6 +127,10 @@ join_request(_Channel, _Args = Self, CState, Ref) ->
 leave_request(_Channel, _Args = Self, CState, Ref) ->
     gen_server:cast(Self, {leave, CState, Ref}).
 
+%%------------------------------------------------------------------------------
+%% @see supercast_proc:info_request/4
+%% @private
+%%------------------------------------------------------------------------------
 -spec info_request(Channel :: string(), Self :: pid(), Request :: term()) -> ok.
 info_request(_Channel, _Args = Self, Request) ->
     gen_server:cast(Self, {info, Request}).
@@ -144,7 +153,7 @@ init([Channel, Module, Args, Perm]) ->
         {stop, Reason} ->
             {stop, Reason};
         {ok, Opaque} ->
-            {ok, #state{channel=Channel,module=Module,opaque=Opaque}}
+            {ok, #state{channel=Channel,module=Module,opaque=Opaque,pending=[]}}
     end.
 
 %%------------------------------------------------------------------------------
@@ -152,6 +161,9 @@ init([Channel, Module, Args, Perm]) ->
 %%------------------------------------------------------------------------------
 -spec handle_call(Request :: term(), From :: {pid(), Tag :: term()},
     State :: #state{}) -> {reply, ok, #state{}}.
+handle_call({join, CState, Ref}, _From, #state{pending=Pending} = State) ->
+    gen_server:cast(self(), {join, CState, Ref}),
+    {reply, ok, State#state{pending=[CState|Pending]}};
 handle_call(_Request, _From, State) -> {reply, ok, State}.
 
 %%------------------------------------------------------------------------------
@@ -162,28 +174,29 @@ handle_call(_Request, _From, State) -> {reply, ok, State}.
     {noreply, NewState :: #state{}, timeout() | hibernate} |
     {stop, Reason :: term(), NewState :: #state{}}).
 handle_cast({join, CState, Ref},
-    #state{channel=Name,module=Mod,opaque=Opaque} = State) ->
+    #state{channel=Name,module=Mod,opaque=Opaque,pending=Pending} = State) ->
+    NewPending = lists:delete(CState, Pending),
     case Mod:channel_join(Name, CState, Opaque) of
         {ok, Opaque2} ->
             ?traceInfo("trace", Opaque2),
             supercast_proc:join_accept(Ref),
-            {noreply, State#state{opaque=Opaque2}};
+            {noreply, State#state{opaque=Opaque2,pending=NewPending}};
         {ok, Pdus, Opaque2} ->
             ?traceInfo("trace", Opaque2),
             supercast_proc:join_accept(Ref, Pdus),
-            {noreply, State#state{opaque=Opaque2}};
+            {noreply, State#state{opaque=Opaque2,pending=NewPending}};
         {refuse, Opaque2} ->
             ?traceInfo("trace", Opaque2),
             supercast_proc:join_refuse(Ref),
-            {noreply, State#state{opaque=Opaque2}};
+            {noreply, State#state{opaque=Opaque2,pending=NewPending}};
         {stop, Reason, Opaque2} ->
             ?traceInfo("trace", Reason),
             supercast_proc:join_refuse(Ref),
-            {stop, Reason, State#state{opaque=Opaque2}};
+            {stop, Reason, State#state{opaque=Opaque2,pending=NewPending}};
         R ->
             ?traceInfo("trace", R),
             supercast_proc:join_refuse(Ref),
-            {stop, {bad_return, R}, State}
+            {stop, {bad_return, R}, State#state{pending=NewPending}}
     end;
 
 handle_cast({leave, CState, Ref},
@@ -233,13 +246,22 @@ handle_info(Info, #state{module=Mod, opaque=Opaque} = State) ->
 %%------------------------------------------------------------------------------
 -spec(terminate(Reason :: (normal | shutdown | {shutdown, term()} | term()),
     State :: #state{}) -> term()).
-terminate(Reason, #state{channel=Channel,module=Mod,opaque=Opaque}) ->
-    %% @TODO send channelVanished and unsubscribeOk?
+terminate(Reason,
+        #state{channel=Channel,module=Mod,opaque=Opaque,pending=Pending}) ->
     case Mod:channel_terminate(Channel, Reason, Opaque) of
         {ok, Pdus} ->
             supercast_proc:send_broadcast(Channel, Pdus);
         _ -> ok
-    end.
+    end,
+
+    %% handle pending endpoints
+    ErrPdu = supercast_endpoint:pdu(subscribeErr, Channel),
+    lists:foreach(fun(C) ->
+        supercast_proc:send_unicast(C, [ErrPdu])
+    end, Pending),
+
+    %% delete the channel.
+    supercast_proc:delete_channel(Channel).
 
 %%------------------------------------------------------------------------------
 %% @private

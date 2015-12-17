@@ -27,7 +27,8 @@
 -export([handle_other_control/3]).
 
 
--spec handle_message(Json :: supercast:sc_message(), Client::#client_state{}) -> ok.
+-spec handle_message(Json :: supercast:sc_message(),
+    Client::#client_state{}) -> ok.
 %% @doc Handle a client messages.
 %% @private
 handle_message(Json, Client) ->
@@ -67,6 +68,7 @@ handle_message("supercast", "subscribe", Contents, CState) ->
     QueryId = prop_val(<<"queryId">>, Values),
     Channel = prop_str_val(<<"channel">>, Values),
 
+    %% does the channel exists?
     case ets:lookup(?ETS_CHAN_STATES, Channel) of
 
         [] ->
@@ -89,14 +91,34 @@ handle_message("supercast", "subscribe", Contents, CState) ->
 
                         {ok, []} -> %% no
                             ?traceInfo("n satisfy"),
-                            send_pdu(CState, pdu(subscribeErr, {QueryId, Channel}));
+                            send_pdu(CState,
+                                        pdu(subscribeErr, {QueryId, Channel}));
 
                         {ok, [CState]} -> % yes
-                            ?traceInfo("satisfy"),
+                           ?traceInfo("satisfy"),
 
                             %% Then register
                             Ref = {Channel, CState, QueryId},
-                            ChanMod:join_request(Channel, Args, CState, Ref)
+                            try
+                                ChanMod:join_request(Channel, Args, CState, Ref)
+                            of
+                                _ ->
+                                    %% At this point:
+                                    %% the client must be handled and
+                                    %% is sure to receive eather a subscribeOk
+                                    %% , subscribeErr or channelVanished message
+                                    %% from the channel process.
+                                    ok
+                            catch
+                                _Exception:_Reason ->
+                                    %% mostly due to a supercast_channel
+                                    %% gen_server:call() timeout.
+                                    ?SUPERCAST_LOG_ERROR("join_request failed",
+                                        {Channel,CState,{_Exception,_Reason}}),
+                                    %% @TODO maybe dynamic and recurse?
+                                    send_pdu(CState,
+                                        pdu(subscribeErr, {QueryId, Channel}))
+                            end
                     end
             end;
         _Other ->
@@ -120,7 +142,7 @@ handle_message("supercast", "unsubscribe", Contents, CState) ->
             case lists:member(CState, Clients) of
                 true ->
                     ?traceInfo("handle unsubscribe true"),
-                    Mod:leave_request(Name, Args, CState, {Name, CState, QueryId});
+                    Mod:leave_request(Name,Args,CState,{Name,CState,QueryId});
                 false ->
                     send_pdu(CState, pdu(unsubscribeOk, {QueryId, Channel}))
             end;
@@ -131,7 +153,8 @@ handle_message("supercast", "unsubscribe", Contents, CState) ->
 
 
 handle_message(OtherMod, Type, Contents, CState) ->
-    erlang:spawn(?MODULE, handle_other_control, [OtherMod, {Type,Contents}, CState]),
+    erlang:spawn(?MODULE, handle_other_control,
+                                           [OtherMod, {Type,Contents}, CState]),
     ok.
 
 
@@ -173,13 +196,13 @@ pdu(serverInfo, {AuthType, DataPort, DataProto}) ->
         {<<"type">>, <<"serverInfo">>},
         {<<"value">>, [
             {<<"dataPort">>,  DataPort},
-            {<<"dataProto">>, list_to_binary(DataProto)},
-            {<<"authType">>,  list_to_binary(AuthType)}]
+            {<<"dataProto">>, char_to_binary(DataProto)},
+            {<<"authType">>,  char_to_binary(AuthType)}]
         }
     ];
 
 pdu(authAck, {Groups, StaticChans}) ->
-    BinGroups       = [list_to_binary(G) || G <- Groups],
+    BinGroups       = [char_to_binary(G) || G <- Groups],
     BinStaticChans  = [atom_to_binary(G, utf8) || G <- StaticChans],
         [
             {<<"from">>, <<"supercast">>},
@@ -196,8 +219,8 @@ pdu(authErr, {Name, Password}) ->
             {<<"type">>, <<"authErr">>},
             {<<"value">>, [
                 {<<"error">>, <<"Bad password">>},
-                {<<"name">>, list_to_binary(Name)},
-                {<<"password">>, list_to_binary(Password)}]
+                {<<"name">>, char_to_binary(Name)},
+                {<<"password">>, char_to_binary(Password)}]
             }
         ];
 
@@ -207,7 +230,7 @@ pdu(subscribeOk, {QueryId, Channel}) ->
             {<<"type">>, <<"subscribeOk">>},
             {<<"value">>, [
                 {<<"queryId">>, QueryId},
-                {<<"channel">>, list_to_binary(Channel)}]
+                {<<"channel">>, char_to_binary(Channel)}]
             }
         ];
 
@@ -217,7 +240,7 @@ pdu(subscribeErr, {QueryId, Channel}) ->
             {<<"type">>, <<"subscribeErr">>},
             {<<"value">>, [
                 {<<"queryId">>, QueryId},
-                {<<"channel">>, list_to_binary(Channel)}]
+                {<<"channel">>, char_to_binary(Channel)}]
             }
         ];
 
@@ -227,7 +250,7 @@ pdu(unsubscribeOk, {QueryId, Channel}) ->
             {<<"type">>, <<"unsubscribeOk">>},
             {<<"value">>, [
                 {<<"queryId">>, QueryId},
-                {<<"channel">>, list_to_binary(Channel)}]
+                {<<"channel">>, char_to_binary(Channel)}]
             }
         ];
 
@@ -238,13 +261,22 @@ pdu(authenticationRequired, _) ->
             {<<"value">>, [{}]}
         ];
 
+pdu(channelVanished, Channel) ->
+        [
+            {<<"from">>, <<"supercast">>},
+            {<<"type">>, <<"channelVanished">>},
+            {<<"value">>, [
+                {<<"chanel">>, char_to_binary(Channel)}
+            ]}
+        ];
+
 pdu(unsubscribeErr, {QueryId, Channel}) ->
         [
             {<<"from">>, <<"supercast">>},
             {<<"type">>, <<"unsubscribeErr">>},
             {<<"value">>, [
                 {<<"queryId">>, QueryId},
-                {<<"channel">>, list_to_binary(Channel)}]
+                {<<"channel">>, char_to_binary(Channel)}]
             }
         ].
 
@@ -253,3 +285,4 @@ send_pdu(#client_state{module=Mod} = CS, Msg) -> Mod:send(CS, Msg).
 
 prop_str_val(Key, Contents) -> binary_to_list(prop_val(Key, Contents)).
 prop_val(Key, Contents) -> proplists:get_value(Key, Contents).
+char_to_binary(String) -> unicode:characters_to_binary(String).

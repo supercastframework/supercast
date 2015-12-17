@@ -76,8 +76,7 @@ websocket_handle(_Data, Req, State) ->
 websocket_info({send, Ref, Pdu}, Req, #client_state{ref=Ref} = State) ->
     ?traceInfo(" send", {Pdu, State}),
     {reply, {text, Pdu}, Req, State};
-websocket_info({encode_send, Ref, Msg},
-        Req, #client_state{ref=Ref} = State) ->
+websocket_info({encode_send, Ref, Msg}, Req, #client_state{ref=Ref} = State) ->
     ?traceInfo("encode send", {Msg, State}),
     Pdu = ?ENCODER:encode(Msg),
     {reply, {text, Pdu}, Req, State};

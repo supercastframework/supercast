@@ -55,6 +55,8 @@
 
 %%------------------------------------------------------------------------------
 %% @equiv supercast_channel:new/4
+%% @doc
+%% @end
 %%------------------------------------------------------------------------------
 -spec(new(Name :: string(), Module :: atom(), Args :: term(),
     Perm :: #perm_conf{}) -> ok).
@@ -63,6 +65,8 @@ new(Name, Module, Args, Perm) ->
 
 %%------------------------------------------------------------------------------
 %% @equiv supercast_proc:cast/4
+%% @doc
+%% @end
 %%------------------------------------------------------------------------------
 -spec(info_request(Name :: string(), Request :: term()) -> ok).
 info_request(Name, Request) ->
@@ -71,8 +75,9 @@ info_request(Name, Request) ->
 %%------------------------------------------------------------------------------
 %% @equiv supercast_proc:send_unicast/3
 %% @doc
-%% WARNING:
+%% Send messages to one client.
 %%
+%% WARNING:
 %% This function must be called uniquely from the process owning the channel
 %% (ie from one of the supercast_channel callbacks),
 %% to insure that the messages emited or sent will arrive at the same order to
@@ -88,8 +93,9 @@ send(Channel, CState, Messages) ->
 %%------------------------------------------------------------------------------
 %% @equiv supercast_proc:send_multicast/3
 %% @doc
-%% WARNING:
+%% Send messages to clients satisfying to permissions condition.
 %%
+%% WARNING:
 %% This function must be called uniquely from the process owning the channel
 %% (ie from one of the supercast_channel callbacks),
 %% to insure that the messages emited or sent will arrive at the same order to
@@ -105,8 +111,9 @@ emit(Channel, Messages, Perm) ->
 %%------------------------------------------------------------------------------
 %% @equiv supercast_proc:send_broadcast/2
 %% @doc
-%% WARNING:
+%% Send messages to all clients.
 %%
+%% WARNING:
 %% This function must be called uniquely from the process owning the channel
 %% (ie from one of the supercast_channel callbacks),
 %% to insure that the messages emited or sent will arrive at the same order to

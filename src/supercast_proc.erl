@@ -22,10 +22,16 @@
 %%% @author Sebastien Serre <ssbx@supercastframework.org>
 %%% @copyright (C) 2015, Sebastien Serre
 %%% @doc
-%%% WORK IN PROGRESS
+%%% This module describe the implementation of a supercast_proc module (ie
+%%% supercast_channel). It is here for users who wish to extent their own
+%%% application process to become supercast_proc channels.
 %%%
-%%% Client Syn request.
+%%% A supercast_proc module must export join_request, leave_request and
+%%% info_request. All functions of this module must be called from the same
+%%% process to insure a predictable message order arrival on the client side.
 %%%
+%%%
+%%% <h4>join_request/4</h4>
 %%% This call is triggered when a client has requested and is allowed to
 %%% join to the channel.
 %%%
@@ -34,10 +40,14 @@
 %%% A call to this function MUST include a supercast_proc:join_accept/1-2 or
 %%% supercast_proc:join_refuse/1.
 %%%
-%%% A well behaving proc should reply as soon as possible ie: gen_server:cast/2
+%%% A well behaving proc should eather reply as soon as possible
+%%% (ie: gen_server:cast/2) or raise an exception wich will send a subscribeErr
+%%% to the client (ie: the channel does not exists).
+%%% See <em>supercast_channel</em> implementation.
 %%%
 %%% The return value of the function is ignored.
 %%%
+%%% <h4>leave_request/4</h4>
 %%% Called when a client leave the channel either on socket close or
 %%% unsubscribe call.
 %%%
@@ -45,7 +55,14 @@
 %%%
 %%% A well behaving proc should reply as soon as possible ie: gen_server:cast/2
 %%%
+%%% See <em>supercast_channel</em> implementation.
+%%%
 %%% The return value of the function is ignored.
+%%%
+%%% <h4>info_request/4</h4>
+%%% Used for communicate with the channel process .
+%%%
+%%% See <em>supercast_channel</em> implementation.
 %%%
 %%% @end
 %%%-----------------------------------------------------------------------------
@@ -134,6 +151,12 @@ new_channel(Channel, Module, Args, Perm) ->
 %%------------------------------------------------------------------------------
 -spec(delete_channel(Channel :: string()) -> ok).
 delete_channel(Channel) ->
+    case ets:lookup(?ETS_CHAN_STATES, Channel) of
+        [] -> ok;
+        [#chan_state{clients=Clients}] ->
+            multi_send(Clients,
+                [supercast_endpoint:pdu(channelVanished, Channel)])
+    end,
     ets:delete(?ETS_CHAN_STATES, Channel).
 
 
