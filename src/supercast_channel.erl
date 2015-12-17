@@ -21,6 +21,8 @@
 %%% @author Sebastien Serre <ssbx@supercastframework.org>
 %%% @copyright (C) 2015, Sebastien Serre
 %%% @doc
+%%% Most important module of supercast.
+%%% @TODO document.
 %%% @end
 %%%
 %%%-----------------------------------------------------------------------------
@@ -86,11 +88,6 @@
     Perm :: #perm_conf{}) -> {ok,    Pid :: pid()} |{error, Reason :: term()}.
 start_link(Channel, Module, Args, Perm) ->
     gen_server:start_link(?MODULE, [Channel, Module, Args, Perm], []).
-
-
-%%%=============================================================================
-%%% supervisor API
-%%%=============================================================================
 
 
 %%%=============================================================================

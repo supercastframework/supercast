@@ -22,7 +22,6 @@
 %%% @author Sebastien Serre <ssbx@supercastframework.org>
 %%% @copyright (C) 2015, Sebastien Serre
 %%% @doc
-%%% WORK IN PROGRESS
 %%%
 %%% @end
 %%%-----------------------------------------------------------------------------
@@ -38,17 +37,11 @@
 %% Supervisor callback
 -export([init/1]).
 
-%%------------------------------------------------------------------------------
-%% @private
-%%------------------------------------------------------------------------------
 -spec(start_link() ->
     {ok, Pid :: pid()} | ignore | {error, Reason :: term()}).
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
-%%------------------------------------------------------------------------------
-%% @private
-%%------------------------------------------------------------------------------
 -spec(new_channel(Args :: [term()]) ->
     {ok, Child :: supervisor:child()} |
     {ok, Child :: supervisor:child(), Info :: term()} |
@@ -59,9 +52,6 @@ start_link() ->
 new_channel(Args) ->
     supervisor:start_child(?MODULE, Args).
 
-%%------------------------------------------------------------------------------
-%% @private
-%%------------------------------------------------------------------------------
 -spec(init(Args :: term()) ->
     {ok, {SupFlags :: {
         RestartStrategy :: supervisor:strategy(),

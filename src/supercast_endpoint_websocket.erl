@@ -17,7 +17,6 @@
 %% under the License.
 %% -----------------------------------------------------------------------------
 
-%% @private
 %% @doc Websocket client implementation.
 %% @TODO maybe use ninenines/bullet
 -module(supercast_endpoint_websocket).
