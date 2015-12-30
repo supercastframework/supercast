@@ -1,4 +1,4 @@
-%% -------------------------------------------------------------------
+%% -----------------------------------------------------------------------------
 %% Supercast Copyright (c) 2012-2015
 %% Sebastien Serre <ssbx@supercastframework.org> All Rights Reserved.
 %%
@@ -15,92 +15,73 @@
 %% KIND, either express or implied.  See the License for the
 %% specific language governing permissions and limitations
 %% under the License.
-%% -------------------------------------------------------------------
+%% -----------------------------------------------------------------------------
 
--type   supercast_msg()     ::  {function, fun()} | {pdu, tuple()}.
+-define(ENCODER, jsx).
+-define(ETS_CHAN_STATES, supercast_channels_store).
+-define(ETS_DYNAMIC_CHAN_STATES, supercast_dynamic_channels_store).
+
 -record(perm_conf, {
-    read    = []    :: [term()],
-    write   = []    :: [term()]
+    read  = []  :: [string()],
+    write = []  :: [string()]
 }).
 
--record(registered_chan, {
-    name,
-    pid,
-    module
-}).
-
--record(chan, {
-    id          = undefined :: atom(),
-    perm        = undefined :: undefined | #perm_conf{}
-}).
 
 -record(client_state,  {
-    socket,                     % client socket
-    addr,                       % client address
-    port,                       % client port
-    certificate,                % ssl certificate
-    ca_certificate,             % for self signed certs
-    key,                        % ssl key
-    ref,                        % reference ovoiding socket swap in the 
-                                % middle of a async call
-    user_name = [],             % user attached to the socket
-    user_roles = [],            % groups wich the user belong
-    user_modules,               % modules allowed at client connexion
-    auth_request_count = 1,     % used by max request count
-    module,                     % callback mod to send data
-    encoding_mod,               %
-    communication_mod,          % must implement the X:send(Socket, Msg) fun
-    authenticated,              % boolean
-    ranch_transport,
-    ranch_ref,
-    pid                         % pid() of the gen_server howner of the socket
-}). 
+    pid                     :: pid(),
+    ref                     :: reference(),
+    user_name = ""          :: string(),
+    user_roles = []         :: [string()],
+    module                  :: atom(),
+    authenticated = false   :: boolean(),
+    data                    :: any() %% used to store cowboy state
+}).
 
--record(supercast_module, {
-    name        = undefined :: atom(),
-    callback    = undefined :: module(),
-    asnkey      = undefined :: atom(),
-    static_chan = undefined :: pid() | reference(),
-    perm        = []        :: [string()]
+-record(chan_state, {
+    name         :: string(),
+    perm         :: #perm_conf{},
+    module       :: atom(),
+    args    = [] :: any(),
+    clients = [] :: [#client_state{}]
 }).
 
 
-
-
-
+-ifdef(eqc).
+-include_lib("eqc/include/eqc.hrl").
+-include_lib("eqc/include/eqc_fsm.hrl").
+-endif.
 %% logger
 -ifdef(debug).
--define(SUPERCAST_LOG_INFO(String,Term),
+-define(traceInfo(String,Term),
     error_logger:info_report([
        {module, ?MODULE},
        {line, ?LINE},
        {message, String},
        {term, Term}])).
 
--define(SUPERCAST_LOG_INFO(String),
+-define(traceInfo(String),
     error_logger:info_report([
        {module, ?MODULE},
        {line, ?LINE},
        {message, String}])).
 
--define(SUPERCAST_LOG_WARNING(String,Term),
+-define(traceWarning(String,Term),
     error_logger:warning_report([
        {module, ?MODULE},
        {line, ?LINE},
        {message, String},
        {term, Term}])).
 
-
--define(SUPERCAST_LOG_WARNING(String),
+-define(traceWarning(String),
     error_logger:warning_report([
        {module, ?MODULE},
        {line, ?LINE},
        {message, String}])).
 -else.
--define(SUPERCAST_LOG_WARNING(String), ok).
--define(SUPERCAST_LOG_WARNING(String,Term), ok).
--define(SUPERCAST_LOG_INFO(String), ok).
--define(SUPERCAST_LOG_INFO(String,Term), ok).
+-define(traceInfo(String), ok).
+-define(traceInfo(String,Term), ok).
+-define(traceWarning(String), ok).
+-define(traceWarning(String,Term), ok).
 -endif.
 
 -define(SUPERCAST_LOG_ERROR(String,Term),

@@ -1,4 +1,4 @@
-%% -------------------------------------------------------------------
+%% -----------------------------------------------------------------------------
 %% Supercast Copyright (c) 2012-2015
 %% Sebastien Serre <ssbx@supercastframework.org> All Rights Reserved.
 %%
@@ -15,42 +15,63 @@
 %% KIND, either express or implied.  See the License for the
 %% specific language governing permissions and limitations
 %% under the License.
-%% -------------------------------------------------------------------
+%% -----------------------------------------------------------------------------
 
-%% @private
+%%%-----------------------------------------------------------------------------
+%%% @author Sebastien Serre <ssbx@supercastframework.org>
+%%% @copyright (C) 2015, Sebastien Serre
+%%% @private
+%%%-----------------------------------------------------------------------------
 -module(supercast_sup).
 -behaviour(supervisor).
+-include("supercast.hrl").
 
+%% API
 -export([start_link/0]).
+
+%% Supervisor callback
 -export([init/1]).
 
+%%------------------------------------------------------------------------------
+%% @private
+%% @see supervisor:start_link/3.
+%%------------------------------------------------------------------------------
+-spec(start_link() ->
+    {ok, Pid :: pid()} | ignore | {error, Reason :: term()}).
 start_link() ->
+    ets:new(?ETS_CHAN_STATES, [set, named_table, public,
+        {write_concurrency, false}, {read_concurrency, true}, {keypos, 2}]),
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
+%%------------------------------------------------------------------------------
+%% @private
+%% @see supervisor:start_link/3.
+%%------------------------------------------------------------------------------
+-spec(init(Args :: term()) ->
+    {ok,
+        {SupFlags :: {
+            RestartStrategy :: supervisor:strategy(),
+            MaxR            :: non_neg_integer(),
+            MaxT            :: non_neg_integer()},
+            ChildSpecs      :: [supervisor:child_spec()]
+        }
+    } | ignore | {error, Reason :: term()}).
 init([]) ->
     {ok,
         {
             {one_for_all, 0, 6000},
             [
                 {
-                    supercast_registrar,
-                    {supercast_registrar,start_link, []},
+                    supercast_channel_sup,
+                    {supercast_channel_sup, start_link, []},
                     permanent,
                     2000,
-                    worker,
-                    [supercast_registrar]
-                },
-                {
-                    supercast_mpd,
-                    {supercast_mpd,start_link, []},
-                    permanent,
-                    2000,
-                    worker,
-                    [supercast_mpd]
+                    supervisor,
+                    [supercast_channel_sup]
                 },
                 {
                     ranch_sup,
-                    {ranch_sup, start_link,[]},
+                    {ranch_sup, start_link, []},
                     permanent,
                     2000,
                     supervisor,

@@ -3,7 +3,7 @@ DEST   := $(PREFIX)$(PROJECT)
 
 REBAR = rebar
 
-.PHONY: all run clean clean-deps edoc app
+.PHONY: compile run clean clean-deps edoc app dialyzer
 
 compile:
 	@$(REBAR) -D debug prepare-deps
@@ -22,15 +22,24 @@ test: compile
 	@$(REBAR) skip_deps=true eunit
 
 clean:
-	@$(REBAR) clean
+	@$(REBAR) -r clean
 	@find doc/ ! -name overview.edoc -type f -delete
 
 clean-deps: clean
 	@$(REBAR) delete-deps
 
-app:
+app: clean-deps
 	@[ -z "$(PROJECT)" ] && echo "ERROR: required variable PROJECT missing" 1>&2 && exit 1 || true
-	@$(REBAR) -r create template=supercastapp dest=$(DEST) appid=$(PROJECT)
+	@$(REBAR) -r create template=simplechannel dest=$(DEST) appid=$(PROJECT)
+
+eqc-compile: clean compile
+	rm ebin/*.beam
+	@(cd src; erl -pa ../deps/*/ebin ../ebin -noshell -eval \
+	"make:files([supercast_proc,supercast_auth,supercast_acctrl,supercast_encoder], [{parse_transform, eqc_cover},{i, \"../include\"}, {outdir, \"../ebin\"}, {d, eqc}])" \
+	-s init stop)
+	@(cd src; erl -pa ../deps/*/ebin ../ebin -noshell -eval \
+	"make:all([{parse_transform, eqc_cover},{i, \"../include\"}, {outdir, \"../ebin\"}, {d, eqc}])" \
+	-s init stop)
 
 update-license:
 	@echo "--> Updating source headers licenses"
@@ -54,12 +63,11 @@ update-license:
 # dialyzer
 APPS = kernel stdlib sasl erts ssl tools os_mon runtime_tools crypto inets \
 	xmerl webtool snmp public_key mnesia eunit syntax_tools compiler
-DEPS = deps/cowboy/ebin deps/cowlib/ebin deps/ranch/ebin deps/jsx/ebin
-
 PLT = $(HOME)/.supercast_dialyzer_plt
+
 $(PLT): compile
-	dialyzer --build_plt --output_plt $(PLT) --apps $(APPS) $(DEPS) ebin
-	dialyzer --check_plt --plt $(PLT) --apps $(APPS) $(DEPS) ebin
+	dialyzer --build_plt --output_plt $(PLT) --apps $(APPS) deps/*/ebin ebin
+	dialyzer --check_plt --plt $(PLT) --apps $(APPS) deps/*/ebin ebin
 dialyzer: $(PLT)
-	dialyzer -Wno_return --plt $(PLT) ebin
+	dialyzer -Wno_return --plt $(PLT) deps/*/ebin ebin
 

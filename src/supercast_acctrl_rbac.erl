@@ -1,4 +1,4 @@
-%% -------------------------------------------------------------------
+%% -----------------------------------------------------------------------------
 %% Supercast Copyright (c) 2012-2015
 %% Sebastien Serre <ssbx@supercastframework.org> All Rights Reserved.
 %%
@@ -15,7 +15,7 @@
 %% KIND, either express or implied.  See the License for the
 %% specific language governing permissions and limitations
 %% under the License.
-%% -------------------------------------------------------------------
+%% -----------------------------------------------------------------------------
 
 -module(supercast_acctrl_rbac).
 -behaviour(supercast_acctrl).
@@ -24,9 +24,9 @@
 -include_lib("eunit/include/eunit.hrl").
 -export([satisfy/3]).
 
--spec satisfy(Mode::read | write, [#client_state{}], #perm_conf{}) ->
+-spec satisfy(Mode :: read | write, [#client_state{}], #perm_conf{}) ->
                                                     {ok, [#client_state{}]}.
-%% @doc Get permissions for a given client list.
+%% @doc Role Based Access Control module
 %% Givent a list of client and a perm conf, return a list of allowed
 %% clients or an empty list.
 %% @end

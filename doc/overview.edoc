@@ -4,6 +4,8 @@
 @copyright 2015 Sebastien Serre
 @version {@version}
 @title Supercast Documentation
-@doc `supercast' is an application framework introducing the concept of 'channels' to facilitate the creation of soft real time user interfaces.
-@TODO simpler API.
-@TODO allow implementation of channels without pid identity.
+@doc `supercast' is an application framework introducing the concept of
+'channels' to facilitate the creation of soft real time user interfaces.
+@TODO Dynamics channels on pattern matching (will allow per user channel creation).
+@TODO Use ssl or/and secure authentication mechanism
+@TODO Serious tests

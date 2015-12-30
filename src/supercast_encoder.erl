@@ -1,4 +1,4 @@
-%% -------------------------------------------------------------------
+%% -----------------------------------------------------------------------------
 %% Supercast Copyright (c) 2012-2015
 %% Sebastien Serre <ssbx@supercastframework.org> All Rights Reserved.
 %%
@@ -15,11 +15,16 @@
 %% KIND, either express or implied.  See the License for the
 %% specific language governing permissions and limitations
 %% under the License.
-%% -------------------------------------------------------------------
+%% -----------------------------------------------------------------------------
 
-%% @doc Encoder behaviour.
-%% Encode erlang tuples and decode client payloads to tuples.
-%% @end
+%%%-----------------------------------------------------------------------------
+%%% @author Sebastien Serre <ssbx@supercastframework.org>
+%%% @copyright (C) 2015, Sebastien Serre
+%%% @doc
+%%% Supercast encoder behaviour. Encode decode to and encode from erlang tuples.
+%%%
+%%% @end
+%%%-----------------------------------------------------------------------------
 -module(supercast_encoder).
 
 -callback encode(Message::tuple()) -> Pdu::any().

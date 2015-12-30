@@ -3,10 +3,7 @@
         {description, "Supercast, InterFace Session/authentication"},
         {vsn, "0.3.0"},
         {modules, []},
-        {registered, [
-                supercast_sup,
-                supercast_mpd
-            ]},
+        {registered, [supercast_sup]},
 
         {included_applications, [ranch, cowboy]},
         {applications, [kernel, stdlib, xmerl]},

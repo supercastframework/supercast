@@ -1,4 +1,4 @@
-%% -------------------------------------------------------------------
+%% -----------------------------------------------------------------------------
 %% Supercast Copyright (c) 2012-2015
 %% Sebastien Serre <ssbx@supercastframework.org> All Rights Reserved.
 %%
@@ -15,7 +15,7 @@
 %% KIND, either express or implied.  See the License for the
 %% specific language governing permissions and limitations
 %% under the License.
-%% -------------------------------------------------------------------
+%% -----------------------------------------------------------------------------
 
 %% @doc Simple authentication module reading "etc/users.xml" file.
 -module(supercast_auth_xml).
@@ -26,8 +26,8 @@
 
 -define(USERS_XML, "etc/users.xml").
 
--spec authenticate(UName::string(), UPass::string()) ->
-        Reply::fail | {ok, Groups::[string()]}.
+-spec authenticate(UName :: string(), UPass :: string()) ->
+        Reply :: fail | {ok, Groups :: [string()]}.
 authenticate(UName, UPass) ->
     {#xmlDocument{content=DocumentContent}, _} = xmerl_scan:file(?USERS_XML, [{document,true}]),
     #xmlElement{content=XmlUsers} = lists:keyfind(xml_users, 2, DocumentContent),

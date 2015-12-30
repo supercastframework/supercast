@@ -1,4 +1,4 @@
-%% -------------------------------------------------------------------
+%% -----------------------------------------------------------------------------
 %% Supercast Copyright (c) 2012-2015
 %% Sebastien Serre <ssbx@supercastframework.org> All Rights Reserved.
 %%
@@ -15,40 +15,137 @@
 %% KIND, either express or implied.  See the License for the
 %% specific language governing permissions and limitations
 %% under the License.
-%% -------------------------------------------------------------------
+%% -----------------------------------------------------------------------------
 
+%%%-----------------------------------------------------------------------------
+%%% @author Sebastien Serre <ssbx@supercastframework.org>
+%%% @copyright (C) 2015, Sebastien Serre
+%%% @doc
+%%% Suercast high level API.
+%%%
+%%% @end
+%%%-----------------------------------------------------------------------------
 -module(supercast).
+
 -include("supercast.hrl").
 
--export([listen/0]).
--export([filter/2, satisfy/2, mpd_state/0]).
--export([start/0,stop/0]).
+%% API
+-export([ %% start/stop
+    start/0,
+    listen/0,
+    stop/0]).
 
--spec start() -> ok.
-%% @doc Localy start the supercast server.
-%% This is an utility function, wich automaticaly call supercast:listen().
-%% You should embed supercast in your application.
+-export([ %% convenience API
+    new/4,
+    info_request/2,
+    send/3,
+    emit/2,
+    emit/3]).
+
+-export([ %% users access control utils
+    satisfy/2]).
+
+-export_type([sc_message/0,sc_queryid/0,sc_reference/0]).
+-type(sc_queryid() :: integer() | undefined).
+-type(sc_message() :: jsx:json_term()).
+-type(sc_reference() :: {
+    Channel :: string(),
+    CState  :: #client_state{},
+    QueryId :: sc_queryid()}).
+
+%%------------------------------------------------------------------------------
+%% @equiv supercast_channel:new/4
+%% @doc
 %% @end
+%%------------------------------------------------------------------------------
+-spec(new(Name :: string(), Module :: atom(), Args :: term(),
+    Perm :: #perm_conf{}) -> ok).
+new(Name, Module, Args, Perm) ->
+    supercast_channel:new(Name,Module,Args,Perm).
+
+%%------------------------------------------------------------------------------
+%% @equiv supercast_proc:cast/4
+%% @doc
+%% @end
+%%------------------------------------------------------------------------------
+-spec(info_request(Name :: string(), Request :: term()) -> ok).
+info_request(Name, Request) ->
+    supercast_proc:info_request(Name, Request).
+
+%%------------------------------------------------------------------------------
+%% @equiv supercast_proc:send_unicast/3
+%% @doc
+%% Send messages to one client.
+%%
+%% WARNING:
+%% This function must be called uniquely from the process owning the channel
+%% (ie from one of the supercast_channel callbacks),
+%% to insure that the messages emited or sent will arrive at the same order to
+%% the client side.
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec(send(Channel :: string(), CState :: #client_state{},
+    Messages :: [supercast:sc_message()]) -> ok).
+send(Channel, CState, Messages) ->
+    supercast_proc:send_unicast(Channel, CState, Messages).
+
+%%------------------------------------------------------------------------------
+%% @equiv supercast_proc:send_multicast/3
+%% @doc
+%% Send messages to clients satisfying to permissions condition.
+%%
+%% WARNING:
+%% This function must be called uniquely from the process owning the channel
+%% (ie from one of the supercast_channel callbacks),
+%% to insure that the messages emited or sent will arrive at the same order to
+%% the client side.
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec(emit(Channel :: string(), Messages :: [supercast:sc_message()],
+    Perm :: #perm_conf{}) -> ok).
+emit(Channel, Messages, Perm) ->
+    supercast_proc:send_multicast(Channel, Messages, Perm).
+
+%%------------------------------------------------------------------------------
+%% @equiv supercast_proc:send_broadcast/2
+%% @doc
+%% Send messages to all clients.
+%%
+%% WARNING:
+%% This function must be called uniquely from the process owning the channel
+%% (ie from one of the supercast_channel callbacks),
+%% to insure that the messages emited or sent will arrive at the same order to
+%% the client side.
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec(emit(Channel :: string(),
+    Messages :: [supercast:sc_message()]) -> ok).
+emit(Channel, Messages) ->
+    supercast_proc:send_broadcast(Channel, Messages).
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% This is an debug utility automaticaly calling supercast:listen().
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec(start() -> ok).
 start() ->
-    ensure_started(xmerl),
+    application:start(xmerl),
     application:start(supercast),
     supercast:listen().
 
-ensure_started(App) ->
-    case application:start(App) of
-        ok ->
-            ok;
-        {error, {already_started, App}} ->
-            ok
-    end.
 
--spec stop() -> ok.
-%% @doc Stop the supercast server.
-stop() ->
-    application:stop(supercast).
-
--spec listen() -> ok.
-%% @doc start listening for client connexion.
+%%------------------------------------------------------------------------------
+%% @doc
+%% Start listening for incomming client connexions.
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec(listen() -> ok).
 listen() ->
     {ok, DocRoot} = application:get_env(supercast, http_docroot),
     DocrootPath = filename:absname(DocRoot),
@@ -65,7 +162,7 @@ listen() ->
 
     %% keep-alive header is not shown because it is implicit
     %% (HTTP1.0: close HTTP1.1: keep-alive)
-    {ok, _} = cowboy:start_http(supercast_http, 50, [{port, HTTPPort}], [
+    {ok, _} = cowboy:start_http(supercast_http, 10, [{port, HTTPPort}], [
         {env, [{dispatch, Dispatch}]},
         {max_keepalive, 50}
     ]),
@@ -75,8 +172,28 @@ listen() ->
         [{port, TCPPort}], supercast_endpoint_tcp, []),
     ok.
 
--spec satisfy(CState::#client_state{}, Perm::tuple()) -> true | false.
-%% @doc Return true if the user is allowed to read the ressource.
+%%------------------------------------------------------------------------------
+%% @doc
+%% Stop the supercast server.
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec(stop() -> ok).
+stop() ->
+    application:stop(supercast).
+
+
+%%%=============================================================================
+%%% User utils
+%%%=============================================================================
+
+%%------------------------------------------------------------------------------
+%% @doc
+%% Return true if the user is allowed to read the ressource.
+%%
+%% @end
+%%------------------------------------------------------------------------------
+-spec(satisfy(CState :: #client_state{}, Perm :: #perm_conf{}) -> true | false).
 satisfy(CState, Perm) ->
     {ok, AccCtrl} = application:get_env(supercast, acctrl_module),
     case AccCtrl:satisfy(read, [CState], Perm) of
@@ -84,25 +201,3 @@ satisfy(CState, Perm) ->
         {ok, [CState]}  -> true
     end.
 
--spec filter(CState::#client_state{}, Values::[{#perm_conf{},
-        Things::term()}]) -> [Things::term()].
-%% @doc Called by external modules to filter things. It will return any "things",
-%% that the client defined in #client_state{} is allowed to 'read'.
-filter(CState, Values) ->
-    filter_things(CState, Values, []).
-
-filter_things(_, [], R) ->
-    R;
-filter_things(CState, [{Perm, Thing}|T], R) ->
-    case satisfy([CState], Perm) of
-        false ->
-            filter_things(CState, T, R);
-        true  ->
-            filter_things(CState, T, [Thing|R])
-    end.
-
-%% @private
--spec mpd_state() -> {ok, tuple()}.
-%% @doc This function return the state of the supercast_mpd gen_server module.
-mpd_state() ->
-    gen_server:call(supercast_mpd, dump).

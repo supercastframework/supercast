@@ -1,0 +1,13 @@
+%% -*- erlang -*-
+{variables, [{appid,  "dynchannel"},
+             {version,"0.1"},
+             {port,    8080},
+             {dest, "{{appid}}"}]}.
+{dir,      "{{dest}}"}.
+{template, "dynchannel_skell/src/dynchannel.app.src", "{{dest}}/src/{{appid}}.app.src"}.
+{template, "dynchannel_skell/src/dynchannel.erl", "{{dest}}/src/{{appid}}.erl"}.
+{template, "dynchannel_skell/start-dev.sh", "{{dest}}/start-dev.sh"}.
+{template, "dynchannel_skell/Makefile", "{{dest}}/Makefile"}.
+{file,     "dynchannel_skell/rebar.config", "{{dest}}/rebar.config"}.
+{file,     "../../sys.config", "{{dest}}/sys.config"}.
+{chmod, 8#755, "{{dest}}/start-dev.sh"}.

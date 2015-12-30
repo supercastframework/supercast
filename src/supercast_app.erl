@@ -1,4 +1,4 @@
-%% -------------------------------------------------------------------
+%% -----------------------------------------------------------------------------
 %% Supercast Copyright (c) 2012-2015
 %% Sebastien Serre <ssbx@supercastframework.org> All Rights Reserved.
 %%
@@ -15,15 +15,21 @@
 %% KIND, either express or implied.  See the License for the
 %% specific language governing permissions and limitations
 %% under the License.
-%% -------------------------------------------------------------------
+%% -----------------------------------------------------------------------------
 
-%% @private
+%%%-----------------------------------------------------------------------------
+%%% @private
+%%% @author Sebastien Serre <ssbx@supercastframework.org>
+%%% @copyright (C) 2015, Sebastien Serre
+%%%-----------------------------------------------------------------------------
 -module(supercast_app).
 -behaviour(application).
 
 -export([start/2, stop/1]).
 
+-spec(start(Type :: term(), Args :: term()) -> {ok, Pid :: pid()}).
 start(_Type, _Args) ->
     supercast_sup:start_link().
 
+-spec(stop(State :: term()) -> ok).
 stop(_State) -> ok.
