@@ -1,7 +1,6 @@
 Supercast
 =========
 [![Build Status](https://travis-ci.org/supercastframework/supercast.svg)](https://travis-ci.org/supercastframework/supercast)
-[![QuickCheck Status](http://quickcheck-ci.com/p/supercastframework/supercast.svg)](http://quickcheck-ci.com/p/supercastframework/supercast)
 
 Actually undocumented Supercast is not meant to be used as such. It isdevelopped and kept in sync from the [Sysmo-Core] repository.
 
