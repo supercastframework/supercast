@@ -82,7 +82,7 @@ init([RanchRef, Socket, Transport, _Opts]) ->
         {send_timeout_close, true}, {active, once}],
     Transport:setopts(Socket, TCPOpts),
     PduTerm = supercast_endpoint:init_pdu(),
-    Transport:send(?ENCODER:encode(PduTerm), Socket),
+    Transport:send(Socket, ?ENCODER:encode(PduTerm)),
     {next_state, 'UNAUTHENTICATED', State, ?TIMEOUT};
 
 'WAIT_RANCH_ACK'({shoot,_RanchRef,_,_,_}, State) ->
