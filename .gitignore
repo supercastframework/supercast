@@ -1,7 +1,3 @@
-#vim
-*.swo
-*.swp
-
 #erlang
 /ebin
 /deps
@@ -9,10 +5,4 @@
 /doc/*
 !/doc/overview.edoc
 erl_crash.dump
-
-#intellij
-*.iml
-/.idea
-
-#rebar
-/.rebar
+.rebar

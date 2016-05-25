@@ -66,8 +66,8 @@ APPS = kernel stdlib sasl erts ssl tools os_mon runtime_tools crypto inets \
 PLT = $(HOME)/.supercast_dialyzer_plt
 
 $(PLT): compile
-	dialyzer --build_plt --output_plt $(PLT) --apps $(APPS) deps/*/ebin ebin
-	dialyzer --check_plt --plt $(PLT) --apps $(APPS) deps/*/ebin ebin
+	dialyzer --build_plt --output_plt $(PLT) --apps $(APPS) deps/*/ebin
+
 dialyzer: $(PLT)
-	dialyzer -Wno_return --plt $(PLT) deps/*/ebin ebin
+	dialyzer -Wno_return --plt $(PLT) --src src
 
