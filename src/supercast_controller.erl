@@ -28,7 +28,7 @@
 %%%
 %%% @end
 %%%-----------------------------------------------------------------------------
--module(supercast_controler).
+-module(supercast_controller).
 -include("supercast.hrl").
 
 -callback handle_command(Msg::tuple(), CState::#client_state{}) -> ok.

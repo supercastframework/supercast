@@ -162,7 +162,7 @@ handle_message(OtherMod, Type, Contents, CState) ->
 handle_other_control(ModKey, Msg, CState) ->
     Dispatch = get_env(pdu_dispatch),
     case lists:keyfind(ModKey, 2, Dispatch) of
-        false -> {error, no_such_controler};
+        false -> {error, no_such_controller};
         {Mod, ModKey} ->
             Mod:handle_command(Msg, CState)
     end.
