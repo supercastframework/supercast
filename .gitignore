@@ -1,8 +1,6 @@
 #erlang
-/ebin
-/deps
 /.eunit
 /doc/*
 !/doc/overview.edoc
-erl_crash.dump
-.rebar
+/erl_crash.dump
+/_build
