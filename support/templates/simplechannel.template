@@ -1,13 +1,15 @@
 %% -*- erlang -*-
-{variables, [{appid,  "simplechannel"},
-             {version,"0.1"},
-             {port,    8080},
-             {dest, "{{appid}}"}]}.
-{dir,      "{{dest}}"}.
-{template, "simplechannel_skell/src/simplechannel.app.src", "{{dest}}/src/{{appid}}.app.src"}.
-{template, "simplechannel_skell/src/simplechannel.erl", "{{dest}}/src/{{appid}}.erl"}.
-{template, "simplechannel_skell/start-dev.sh", "{{dest}}/start-dev.sh"}.
-{template, "simplechannel_skell/Makefile", "{{dest}}/Makefile"}.
-{file,     "simplechannel_skell/rebar.config", "{{dest}}/rebar.config"}.
-{file,     "../../sys.config", "{{dest}}/sys.config"}.
-{chmod, 8#755, "{{dest}}/start-dev.sh"}.
+{description, "Supercast application, simple channel skeletton"}.
+{variables, [{name,  "mychannel", "Name of the Supercast application"},
+             {desc,  "A Supercast application", "Short description of the app"},
+             {dir, "..", "Where the application will be built"},
+             {port,    8080}]}.
+{dir,      "{{dir}}/{{name}}/src"}.
+{template, "simplechannel_skell/src/simplechannel.app.src", "{{dir}}/{{name}}/src/{{name}}.app.src"}.
+{template, "simplechannel_skell/src/simplechannel.erl", "{{dir}}/{{name}}/src/{{name}}.erl"}.
+{template, "simplechannel_skell/Makefile", "{{dir}}/{{name}}/Makefile"}.
+{file,     "simplechannel_skell/rebar.config", "{{dir}}/{{name}}/rebar.config"}.
+{file,     "simplechannel_skell/README.md", "{{dir}}/{{name}}/README.md"}.
+{file,     "../../rebar3", "{{dir}}/{{name}}/rebar3"}.
+{file,     "../../sys.config", "{{dir}}/{{name}}/sys.config"}.
+{chmod, "{{dir}}/{{name}}/rebar3", 8#755}.

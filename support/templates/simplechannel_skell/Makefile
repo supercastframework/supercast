@@ -1,16 +1,19 @@
 .PHONY: compile  run clean doc
+REBAR = ./rebar3
 
 compile:
-	@rebar prepare-deps
-	@if [ ! -d priv ]; then cp -r deps/supercast/priv . ; fi
+	@ $(REBAR) compile
+	@ if [ ! -d priv ]; then cp -r _build/default/lib/supercast/priv . ; fi
 
 clean:
-	@rebar -r clean
+	@ $(REBAR) clean
 
-doc:
-	@rebar -r doc
 
 run: compile
-	./start-dev.sh
-
+	exec erl \
+	    -pa _build/default/lib/*/ebin \
+	    -boot start_sasl \
+	    -sname {{name}} \
+	    -config ./sys \
+	    -eval "{{name}}:start()."
 

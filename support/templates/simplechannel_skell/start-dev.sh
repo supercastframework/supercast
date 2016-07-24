@@ -2,6 +2,6 @@
 exec erl \
     -pa ebin deps/*/ebin \
     -boot start_sasl \
-    -sname {{appid}}_dev \
+    -sname {{name}}_dev \
     -config ./sys \
-    -eval "{{appid}}:start()."
+    -eval "{{name}}:start()."

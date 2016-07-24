@@ -1,8 +1,8 @@
 %% -*- erlang -*-
-{application, {{appid}},
- [{description, "{{appid}}"},
-  {vsn, "{{version}}"},
-  {modules, [{{appid}}]},
+{application, {{name}},
+ [{description, "{{desc}}"},
+  {vsn, "0.1"},
+  {modules, [{{name}}]},
   {registered, []},
   {env, []},
-  {applications, [kernel, stdlib, supercast, jsx]}]}.
+  {applications, [kernel, stdlib, sasl, supercast, jsx]}]}.

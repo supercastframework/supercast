@@ -1,9 +1,9 @@
-%% @doc The wonderfull {{appid}} application.
+%% @doc The wonderfull {{name}} application.
 
--module({{appid}}).
+-module({{name}}).
 -include_lib("supercast/include/supercast.hrl").
 -behaviour(supercast_channel).
--author("{{author}}").
+-author("{{author_name}}").
 
 -export([start/0, stop/0]).
 
@@ -24,38 +24,38 @@ start() ->
     ok = supercast:listen(),
     Perm = #perm_conf{read=["admin"], write=["admin"]},
     Args = [],
-    supercast_channel:new("{{appid}}", ?MODULE, Args, Perm).
+    supercast_channel:new("{{name}}", ?MODULE, Args, Perm).
 
 stop() ->
     init:stop().
 
-channel_init("{{appid}}", _Args) ->
+channel_init("{{name}}", _Args) ->
     {ok, nostate}.
 
-channel_join("{{appid}}", _CState, State) ->
-    Pdus = [[{<<"from">>, <<"{{appid}}">>}, {<<"value">>, <<"you should be synced now">>}]],
+channel_join("{{name}}", _CState, State) ->
+    Pdus = [[{<<"from">>, <<"{{name}}">>}, {<<"value">>, <<"you should be synced now">>}]],
     {ok, Pdus, State}.
 
-channel_leave("{{appid}}", _CState, State) ->
-    Pdus = [[{<<"from">>, <<"{{appid}}">>}, {<<"value">>, <<"Bye!!!">>}]],
+channel_leave("{{name}}", _CState, State) ->
+    Pdus = [[{<<"from">>, <<"{{name}}">>}, {<<"value">>, <<"Bye!!!">>}]],
     {ok, Pdus, State}.
 
-channel_info("{{appid}}", {emit, Events}, State) ->
-    supercast:emit("{{appid}}", Events),
+channel_info("{{name}}", {emit, Events}, State) ->
+    supercast:emit("{{name}}", Events),
     {ok, State};
-channel_info("{{appid}}", {emit, Events, Perm}, State) ->
-    supercast:emit("{{appid}}", Events, Perm),
+channel_info("{{name}}", {emit, Events, Perm}, State) ->
+    supercast:emit("{{name}}", Events, Perm),
     {ok, State};
-channel_info("{{appid}}", quit, State) ->
+channel_info("{{name}}", quit, State) ->
     {stop, normal, State}.
 
-channel_terminate("{{appid}}", _Reason, _State) ->
-    Pdus = [[{<<"from">>, <<"{{appid}}">>}, {<<"value">>, <<"Aouch!">>}]],
+channel_terminate("{{name}}", _Reason, _State) ->
+    Pdus = [[{<<"from">>, <<"{{name}}">>}, {<<"value">>, <<"Aouch!">>}]],
     {ok, Pdus}.
 
 emit() ->
-    Event = [{<<"from">>, <<"{{appid}}">>}, {<<"value">>, <<"Hello event">>}],
-    supercast:info_request("{{appid}}", {emit, [Event]}).
+    Event = [{<<"from">>, <<"{{name}}">>}, {<<"value">>, <<"Hello event">>}],
+    supercast:info_request("{{name}}", {emit, [Event]}).
 
 close() ->
-    supercast:info_request("{{appid}}", quit).
+    supercast:info_request("{{name}}", quit).

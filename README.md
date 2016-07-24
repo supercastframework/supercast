@@ -6,6 +6,16 @@ Actually undocumented Supercast is not meant to be used as such. It isdevelopped
 
 Supercast is an application framework offering authentication and access control for applications behaving "asynchronous". It provide his functionnalities throught the concept of channels and access control around it. Originaly developped to facilitate the creation of full asynchronous websocket application, it is actually used by [Sysmo] to provide asynchronous behaviour to his Qt interface throught raw TCP.
 
+Templates
+=========
+There is acutally one template wich will create a simple channel set-up. From inside the supercast repository issue this:
+```sh
+$ ./rebar3 new simplechannel name=mychannel dir=..
+$ cd ../mychannel
+$ make run
+```
+You can now connect your browser to [http://localhost:8080](http://localhost:8080). User/Password is admin/password, the only channel accessible is the $name channel (is our case "mychannel").
+
 TODO
 ====
 1. delayed sync included in supercast, require that every channel event is
