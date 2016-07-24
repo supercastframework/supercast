@@ -8,13 +8,13 @@ Supercast is an application framework offering authentication and access control
 
 Templates
 =========
-There is acutally one template wich will create a simple channel set-up. From inside the supercast repository issue this:
+There is one template wich will create a simple channel set-up. From inside the supercast repository issue this:
 ```sh
 $ ./rebar3 new simplechannel name=mychannel dir=..
 $ cd ../mychannel
 $ make run
 ```
-You can now connect your browser to [http://localhost:8080](http://localhost:8080). User/Password is admin/password, the only channel accessible is the $name channel (is our case "mychannel").
+You can now connect your browser to [http://localhost:8080](http://localhost:8080). User/Password is admin/password, the only channel accessible is the $name channel (is our example "mychannel").
 
 TODO
 ====
