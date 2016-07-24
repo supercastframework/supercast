@@ -18,11 +18,9 @@ You can now connect your browser to [http://localhost:8080](http://localhost:808
 
 TODO
 ====
-1. delayed sync included in supercast, require that every channel event is
-recognized by supercast,
-2. remove **supercast_mpd.erl** (everything done by **supercast_channel** processes),
-3. channel live update of their permissions change: unsubscribe connected client not satisfying to the new permission,
-4. supercast javascript library,
+1. simplechannel template as a gen_server,
+2. channel live update of their permissions change: unsubscribe connected client not satisfying to the new permission,
+3. supercast javascript library,
 
 
 In the future
