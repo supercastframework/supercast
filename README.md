@@ -13,15 +13,21 @@ There is one template wich will create a simple channel set-up. From inside the 
 $ ./rebar3 new simplechannel name=mychannel dir=..
 $ cd ../mychannel
 $ make run
+...
 ```
 You can now connect your browser to [http://localhost:8080](http://localhost:8080). User/Password is admin/password, the only channel accessible is the $name channel (is our example "mychannel").
+Once done you can simulate channel events. Return to your erlang shell (started with "make run"):
+```sh
+...
+(mychannel@herre)1> mychannel:emit().
+
+```
 
 TODO
 ====
 1. simplechannel template as a gen_server,
 2. channel live update of their permissions change: unsubscribe connected client not satisfying to the new permission,
 3. supercast javascript library,
-
 
 In the future
 -------------
