@@ -52,11 +52,11 @@
     code_change/3]).
 
 -record(state, {
-    channel :: string(),
-    module  :: atom(),
-    perm    :: #perm_conf{},
-    opaque  :: term(),
-    pending :: [#client_state{}]
+    channel::string(),
+    module::atom(),
+    perm::#perm_conf{},
+    opaque::term(),
+    pending::[#client_state{}]
 }).
 
 
@@ -141,8 +141,8 @@ info_request(_Channel, _Args = Self, Request) ->
 %%------------------------------------------------------------------------------
 %% @private
 %%------------------------------------------------------------------------------
--spec init({Channel :: string(), Module :: atom(), Args :: term(),
-    Perm :: #perm_conf{}}) -> {ok, State :: #state{}}.
+-spec init({Channel::string(), Module::atom(), Args::term(),
+            Perm::#perm_conf{}}) -> {ok, State::#state{}} | {stop, term()}.
 init([Channel, Module, Args, Perm]) ->
     process_flag(trap_exit, true),
     supercast_proc:new_channel(Channel, ?MODULE, self(), Perm),

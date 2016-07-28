@@ -52,7 +52,7 @@ satisfy_pass(ReadList,
     end.
 
 %% @private
--spec satisfy_bool([term()], [term()]) -> true | false.
+-spec satisfy_bool([string()], [string()]) -> boolean().
 satisfy_bool([], _RoleListTwo) ->
     false;
 satisfy_bool([R | RoleListOne], RoleListTwo) ->

@@ -89,17 +89,13 @@
 %%% Behaviour callbacks definition
 %%%=============================================================================
 
--callback join_request(
-    Channel :: string(),
-    Args    :: any(),
-    CState  :: #client_state{},
-    Ref     :: supercast:sc_reference()
-) -> term().
+-callback join_request(Channel::string(), Args::any(), CState::#client_state{},
+            Ref::supercast:sc_reference()) -> term().
 
--callback leave_request(Channel :: string, Args :: term(),
+-callback leave_request(Channel::string(), Args::term(),
     CState :: #client_state{}, Ref :: supercast:sc_reference()) -> term().
 
--callback info_request(Channel :: string, Args :: term(),
+-callback info_request(Channel::string(), Args::term(),
     Request :: term()) -> ok.
 
 

@@ -59,7 +59,10 @@
 %% @end
 %%------------------------------------------------------------------------------
 -spec(new(Name :: string(), Module :: atom(), Args :: term(),
-    Perm :: #perm_conf{}) -> ok).
+                                                    Perm :: #perm_conf{}) -> 
+        {error, any()} |
+        {ok, undefined | pid()} |
+        {ok, undefined | pid(), _}).
 new(Name, Module, Args, Perm) ->
     supercast_channel:new(Name,Module,Args,Perm).
 
