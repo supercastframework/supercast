@@ -1,11 +1,11 @@
-.PHONY: compile run clean clean-deps edoc app dialyzer
+.PHONY: compile run clean clean-deps doc app dialyzer
 
-REBAR = rebar3
+REBAR = ./rebar3
 
 compile:
 	@$(REBAR) compile
 
-edoc:
+doc:
 	@$(REBAR) edoc
 	@printf "\nbody {font-family: \"Helvetica Neue\",Helvetica,Roboto,Arial,sans-serif;}\n" \
 		>> doc/stylesheet.css
@@ -13,6 +13,9 @@ edoc:
 clean:
 	@$(REBAR) clean
 	@find doc/ ! -name overview.edoc -type f -delete
+
+clean_all: clean
+	rm -rf _build
 
 dialyzer:
 	$(REBAR) dialyzer

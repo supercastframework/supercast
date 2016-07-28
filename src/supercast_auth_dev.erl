@@ -1,5 +1,5 @@
 %% -----------------------------------------------------------------------------
-%% Supercast Copyright (c) 2012-2015
+%% Supercast Copyright (c) 2012-2016
 %% Sebastien Serre <ssbx@supercastframework.org> All Rights Reserved.
 %%
 %% This file is provided to you under the Apache License,

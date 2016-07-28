@@ -8,8 +8,8 @@
 {template, "simplechannel_skell/src/simplechannel.app.src", "{{dir}}/{{name}}/src/{{name}}.app.src"}.
 {template, "simplechannel_skell/src/simplechannel.erl", "{{dir}}/{{name}}/src/{{name}}.erl"}.
 {template, "simplechannel_skell/Makefile", "{{dir}}/{{name}}/Makefile"}.
+{template, "simplechannel_skell/README.md", "{{dir}}/{{name}}/README.md"}.
 {file,     "simplechannel_skell/rebar.config", "{{dir}}/{{name}}/rebar.config"}.
-{file,     "simplechannel_skell/README.md", "{{dir}}/{{name}}/README.md"}.
 {file,     "../../rebar3", "{{dir}}/{{name}}/rebar3"}.
-{file,     "../../sys.config", "{{dir}}/{{name}}/sys.config"}.
+{file,     "sys.config", "{{dir}}/{{name}}/sys.config"}.
 {chmod, "{{dir}}/{{name}}/rebar3", 8#755}.
