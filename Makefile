@@ -5,11 +5,6 @@ REBAR = ./rebar3
 compile:
 	@$(REBAR) compile
 
-doc:
-	@$(REBAR) edoc
-	@printf "\nbody {font-family: \"Helvetica Neue\",Helvetica,Roboto,Arial,sans-serif;}\n" \
-		>> doc/stylesheet.css
-
 clean:
 	@$(REBAR) clean
 	@find doc/ ! -name overview.edoc -type f -delete
@@ -17,8 +12,16 @@ clean:
 clean_all: clean
 	rm -rf _build
 
+test:
+	$(REBAR) eunit
+
 dialyzer:
 	$(REBAR) dialyzer
+
+doc:
+	@$(REBAR) edoc
+	@printf "\nbody {font-family: \"Helvetica Neue\",Helvetica,Roboto,Arial,sans-serif;}\n" \
+		>> doc/stylesheet.css
 
 update-license:
 	@echo "--> Updating source headers licenses"

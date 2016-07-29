@@ -9,9 +9,6 @@ sudo: false
 
 script: "make test"
 
-before_cache:
-    - rm -f deps/*/.rebar/erlcinfo
-
 cache:
   directories:
-    - deps/
+    - _build/
