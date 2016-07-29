@@ -2,7 +2,7 @@ Supercast
 =========
 [![Build Status](https://travis-ci.org/supercastframework/supercast.svg)](https://travis-ci.org/supercastframework/supercast)
 
-Actually undocumented Supercast is not meant to be used as such. It isdevelopped and kept in sync from the [Sysmo-Core] repository.
+Supercast was originaly developped for the [Sysmo-Core] project.
 
 Supercast is an application framework offering authentication and access control for applications behaving "asynchronous". It provide his functionnalities throught the concept of channels and access control around it. Originaly developped to facilitate the creation of full asynchronous websocket application, it is actually used by [Sysmo] to provide asynchronous behaviour to his Qt interface throught raw TCP.
 
