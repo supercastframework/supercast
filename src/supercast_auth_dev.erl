@@ -1,6 +1,6 @@
 %% -----------------------------------------------------------------------------
 %% Supercast Copyright (c) 2012-2016
-%% Sebastien Serre <ssbx@supercastframework.org> All Rights Reserved.
+%% Sebastien Serre <ssbx@sysmo.io> All Rights Reserved.
 %%
 %% This file is provided to you under the Apache License,
 %% Version 2.0 (the "License"); you may not use this file
@@ -18,7 +18,7 @@
 %% -----------------------------------------------------------------------------
 
 %%%-----------------------------------------------------------------------------
-%%% @author Sebastien Serre <ssbx@supercastframework.org>
+%%% @author Sebastien Serre <ssbx@sysmo.io>
 %%% @copyright (C) 2015, Sebastien Serre
 %%% @doc
 %%% Development authentication module always returning
