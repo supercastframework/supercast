@@ -4,7 +4,6 @@
         {vsn, "0.3.0"},
         {modules, []},
         {registered, [supercast_sup]},
-
         {included_applications, [ranch, cowboy]},
         {applications, [kernel, stdlib, xmerl]},
         {start_phases, []},
